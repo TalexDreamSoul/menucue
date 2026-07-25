@@ -911,7 +911,7 @@ private struct SettingsContentView: View {
         .frame(minHeight: 150, maxHeight: 260)
 
         Text(
-          "Drag to set the carousel order. Scroll over the menu-bar clock to switch manually; Auto Rotate in the context menu resumes timed switching."
+          "Drag to set the carousel order. Scroll over the menu-bar clock to switch temporarily; after one interval, rotation continues unless a context-menu clock is pinned."
         )
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -1128,7 +1128,7 @@ private struct SettingsContentView: View {
   }
 
   private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0"
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.1"
   }
 
   private func binding<Value>(_ keyPath: WritableKeyPath<AppSettings, Value>) -> Binding<Value> {

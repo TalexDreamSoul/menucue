@@ -117,6 +117,181 @@ final class ClockEntryAndCarouselTests: XCTestCase {
         XCTAssertEqual(StatusClockResolver.clock(in: settings, manualClockID: nil, at: dates[2]).id, "Europe/London")
     }
 
+    func testTemporaryScrollSelectionExpiresAfterOneCompleteRotationInterval() {
+        let settings = makeSettings(clockEntries: [
+            ClockEntry.custom(identifier: "Asia/Tokyo")!,
+            ClockEntry.custom(identifier: "America/New_York")!,
+            ClockEntry.custom(identifier: "Europe/London")!
+        ])
+        let selectedAt = Date(timeIntervalSinceReferenceDate: 0)
+        let selection = TemporaryClockSelection(
+            clockID: "Europe/London",
+            selectedAt: selectedAt,
+            duration: settings.statusBarSwitchIntervalSeconds
+        )
+
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: nil,
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(4.999)
+            ).id,
+            "Europe/London"
+        )
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: nil,
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(5)
+            ).id,
+            "Asia/Tokyo"
+        )
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: nil,
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(10)
+            ).id,
+            "America/New_York"
+        )
+    }
+
+    func testTemporaryScrollSelectionReturnsToPersistentMenuSelectionWhenExpired() {
+        let settings = makeSettings(clockEntries: [
+            ClockEntry.custom(identifier: "Asia/Tokyo")!,
+            ClockEntry.custom(identifier: "America/New_York")!,
+            ClockEntry.custom(identifier: "Europe/London")!
+        ])
+        let selectedAt = Date(timeIntervalSinceReferenceDate: 0)
+        let selection = TemporaryClockSelection(
+            clockID: "America/New_York",
+            selectedAt: selectedAt,
+            duration: settings.statusBarSwitchIntervalSeconds
+        )
+
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: "Europe/London",
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(4.999)
+            ).id,
+            "America/New_York"
+        )
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: "Europe/London",
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(5)
+            ).id,
+            "Europe/London"
+        )
+    }
+
+    func testLatestScrollSelectionRestartsTheCompleteTemporaryInterval() {
+        let firstSelectionDate = Date(timeIntervalSinceReferenceDate: 0)
+        let secondSelectionDate = firstSelectionDate.addingTimeInterval(3)
+        var state = StatusClockSelectionState()
+
+        state.selectTemporarily(
+            clockID: "America/New_York",
+            at: firstSelectionDate,
+            duration: 5
+        )
+        state.selectTemporarily(
+            clockID: "Europe/London",
+            at: secondSelectionDate,
+            duration: 5
+        )
+
+        XCTAssertEqual(state.temporarySelection?.clockID, "Europe/London")
+        XCTAssertEqual(
+            state.temporarySelection?.expiresAt,
+            secondSelectionDate.addingTimeInterval(5)
+        )
+        XCTAssertTrue(
+            state.temporarySelection?.isActive(
+                at: secondSelectionDate.addingTimeInterval(4.999)
+            ) == true
+        )
+    }
+
+    func testMenuSelectionAndAutoRotateClearTemporaryScrollState() {
+        let date = Date(timeIntervalSinceReferenceDate: 0)
+        var state = StatusClockSelectionState()
+        state.selectTemporarily(clockID: "America/New_York", at: date, duration: 5)
+
+        state.selectPersistently(clockID: "Europe/London")
+
+        XCTAssertEqual(state.persistentClockID, "Europe/London")
+        XCTAssertNil(state.temporarySelection)
+
+        state.selectTemporarily(clockID: "Asia/Tokyo", at: date, duration: 5)
+        state.resumeAutomaticRotation()
+
+        XCTAssertNil(state.persistentClockID)
+        XCTAssertNil(state.temporarySelection)
+    }
+
+    func testUnavailableClockSelectionsAreClearedTogether() {
+        let date = Date(timeIntervalSinceReferenceDate: 0)
+        var state = StatusClockSelectionState()
+        state.selectPersistently(clockID: "Europe/London")
+        state.selectTemporarily(clockID: "America/New_York", at: date, duration: 5)
+
+        state.removeUnavailableClockIDs(validClockIDs: ["Asia/Tokyo"])
+
+        XCTAssertNil(state.persistentClockID)
+        XCTAssertNil(state.temporarySelection)
+    }
+
+    func testActiveSelectionKeepsCapturedDurationThenUsesLatestAutomaticInterval() {
+        var settings = makeSettings(clockEntries: [
+            ClockEntry.custom(identifier: "Asia/Tokyo")!,
+            ClockEntry.custom(identifier: "America/New_York")!,
+            ClockEntry.custom(identifier: "Europe/London")!
+        ])
+        let selectedAt = Date(timeIntervalSinceReferenceDate: 0)
+        let selection = TemporaryClockSelection(
+            clockID: "Europe/London",
+            selectedAt: selectedAt,
+            duration: settings.statusBarSwitchIntervalSeconds
+        )
+        settings.statusBarSwitchIntervalSeconds = 2
+
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: nil,
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(4.999)
+            ).id,
+            "Europe/London"
+        )
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: nil,
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(5)
+            ).id,
+            "Asia/Tokyo"
+        )
+        XCTAssertEqual(
+            StatusClockResolver.clock(
+                in: settings,
+                manualClockID: nil,
+                temporarySelection: selection,
+                at: selectedAt.addingTimeInterval(7)
+            ).id,
+            "America/New_York"
+        )
+    }
+
     func testCarouselNavigationWrapsFromTheManualSelectionInBothDirections() {
         let clocks = [
             ClockTimeZone.custom(identifier: "America/New_York")!,

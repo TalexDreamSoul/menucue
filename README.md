@@ -9,7 +9,7 @@ TouchMacer is a native macOS status bar clock app built with AppKit, SwiftUI, Ev
 ## Features
 
 - Configurable menu-bar date/time formatting with structured controls, advanced Unicode patterns, live preview, validation, and reset.
-- Ordered system/custom world-clock carousel with drag reordering, custom labels, timed rotation, and mouse-wheel or trackpad switching directly over the status item. Manual gesture selection pauses timed rotation until **Auto Rotate** is selected.
+- Ordered system/custom world-clock carousel with drag reordering, custom labels, timed rotation, and mouse-wheel or trackpad switching directly over the status item. A gesture selection remains visible for one configured interval, then timed rotation resumes automatically; context-menu clock selection remains pinned until **Auto Rotate** is selected.
 - Overview popover with world clocks, current system time zone, and upcoming events, plus a sidebar settings window for clock formatting, time zones, iCloud Sync, Calendar filters, appearance, app info, and update checks.
 - EventKit Calendar integration for iCloud/local calendars configured in macOS Calendar.
 - Calendar picker for all calendars or selected calendars.

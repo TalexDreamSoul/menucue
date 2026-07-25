@@ -15,7 +15,7 @@ final class StatusBarController: NSObject {
   private var syncStatusCancellable: AnyCancellable?
   private var isPresentingSyncPrompt = false
   private var currentStatusClockID: String?
-  private var manualStatusClockID: String?
+  private var clockSelection = StatusClockSelectionState()
   private lazy var clockRenderer = MenuBarClockRenderer(format: model.settings.menuBarFormat)
   private var interactionView: StatusItemInteractionView?
   private var accumulatedScrollDelta: CGFloat = 0
@@ -173,14 +173,13 @@ final class StatusBarController: NSObject {
   }
 
   private func currentStatusClock(at date: Date) -> ClockTimeZone {
-    if let manualStatusClockID,
-       !model.settings.clockTimeZones.contains(where: { $0.id == manualStatusClockID })
-    {
-      self.manualStatusClockID = nil
-    }
+    clockSelection.removeUnavailableClockIDs(
+      validClockIDs: Set(model.settings.clockTimeZones.map(\.id))
+    )
     return StatusClockResolver.clock(
       in: model.settings,
-      manualClockID: manualStatusClockID,
+      manualClockID: clockSelection.persistentClockID,
+      temporarySelection: clockSelection.temporarySelection,
       at: date
     )
   }
@@ -361,15 +360,15 @@ final class StatusBarController: NSObject {
       return
     }
 
-    selectAdjacentClock(step: accumulatedScrollDelta > 0 ? -1 : 1)
+    selectAdjacentClock(step: accumulatedScrollDelta > 0 ? -1 : 1, at: eventDate)
     accumulatedScrollDelta = 0
     lastWheelSwitchDate = eventDate
     didSwitchDuringGesture = event.hasPreciseScrollingDeltas
   }
 
-  private func selectAdjacentClock(step: Int) {
+  private func selectAdjacentClock(step: Int, at date: Date) {
     let clocks = model.settings.clockTimeZones
-    let currentID = currentStatusClock(at: Date()).id
+    let currentID = currentStatusClock(at: date).id
     guard let nextID = ClockCarouselNavigator.adjacentClockID(
       in: clocks,
       currentID: currentID,
@@ -377,7 +376,11 @@ final class StatusBarController: NSObject {
     ) else {
       return
     }
-    manualStatusClockID = nextID
+    clockSelection.selectTemporarily(
+      clockID: nextID,
+      at: date,
+      duration: model.settings.statusBarSwitchIntervalSeconds
+    )
     refreshClockTitle()
   }
 
@@ -423,7 +426,7 @@ final class StatusBarController: NSObject {
     let autoItem = NSMenuItem(
       title: "Auto Rotate", action: #selector(clearManualClockSelection(_:)), keyEquivalent: "")
     autoItem.target = self
-    autoItem.state = manualStatusClockID == nil ? .on : .off
+    autoItem.state = clockSelection.persistentClockID == nil ? .on : .off
     menu.addItem(autoItem)
     menu.addItem(NSMenuItem.separator())
 
@@ -434,7 +437,7 @@ final class StatusBarController: NSObject {
       item.target = self
       item.representedObject = clock.id
       item.toolTip = clock.subtitle
-      item.state = manualStatusClockID == clock.id ? .on : .off
+      item.state = clockSelection.persistentClockID == clock.id ? .on : .off
       menu.addItem(item)
     }
 
@@ -454,13 +457,13 @@ final class StatusBarController: NSObject {
   }
 
   @objc private func clearManualClockSelection(_ sender: NSMenuItem) {
-    manualStatusClockID = nil
+    clockSelection.resumeAutomaticRotation()
     refreshClockTitle()
   }
 
   @objc private func selectClockFromMenu(_ sender: NSMenuItem) {
     guard let clockID = sender.representedObject as? String else { return }
-    manualStatusClockID = clockID
+    clockSelection.selectPersistently(clockID: clockID)
     refreshClockTitle()
   }
 

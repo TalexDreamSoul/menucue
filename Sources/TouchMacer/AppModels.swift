@@ -330,14 +330,86 @@ enum ClockCarouselNavigator {
     }
 }
 
+struct TemporaryClockSelection: Equatable {
+    let clockID: String
+    let expiresAt: Date
+
+    init(clockID: String, selectedAt: Date, duration: TimeInterval) {
+        self.clockID = clockID
+        self.expiresAt = selectedAt.addingTimeInterval(duration)
+    }
+
+    func isActive(at date: Date) -> Bool {
+        date < expiresAt
+    }
+}
+
+struct StatusClockSelectionState: Equatable {
+    var persistentClockID: String?
+    var temporarySelection: TemporaryClockSelection?
+
+    mutating func selectTemporarily(
+        clockID: String,
+        at date: Date,
+        duration: TimeInterval
+    ) {
+        temporarySelection = TemporaryClockSelection(
+            clockID: clockID,
+            selectedAt: date,
+            duration: duration
+        )
+    }
+
+    mutating func selectPersistently(clockID: String) {
+        persistentClockID = clockID
+        temporarySelection = nil
+    }
+
+    mutating func resumeAutomaticRotation() {
+        persistentClockID = nil
+        temporarySelection = nil
+    }
+
+    mutating func removeUnavailableClockIDs(validClockIDs: Set<String>) {
+        if let persistentClockID, !validClockIDs.contains(persistentClockID) {
+            self.persistentClockID = nil
+        }
+        if let temporarySelection, !validClockIDs.contains(temporarySelection.clockID) {
+            self.temporarySelection = nil
+        }
+    }
+}
+
 enum StatusClockResolver {
     static func clock(
         in settings: AppSettings,
         manualClockID: String?,
+        temporarySelection: TemporaryClockSelection? = nil,
         at date: Date
     ) -> ClockTimeZone {
+        let clocks = settings.clockTimeZones
+        if let temporarySelection,
+           let temporaryIndex = clocks.firstIndex(where: {
+               $0.id == temporarySelection.clockID
+           })
+        {
+            if temporarySelection.isActive(at: date) {
+                return clocks[temporaryIndex]
+            }
+            if manualClockID == nil,
+               clocks.count > 1,
+               settings.statusBarSwitchIntervalSeconds > 0
+            {
+                let elapsed = max(0, date.timeIntervalSince(temporarySelection.expiresAt))
+                let completedIntervals = Int(
+                    floor(elapsed / settings.statusBarSwitchIntervalSeconds)
+                )
+                let index = (temporaryIndex + completedIntervals + 1) % clocks.count
+                return clocks[index]
+            }
+        }
         if let manualClockID,
-           let manualClock = settings.clockTimeZones.first(where: { $0.id == manualClockID })
+           let manualClock = clocks.first(where: { $0.id == manualClockID })
         {
             return manualClock
         }
