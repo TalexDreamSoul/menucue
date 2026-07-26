@@ -21,9 +21,17 @@ let package = Package(
         .linkedFramework("Security")
       ]
     ),
+    .binaryTarget(
+      name: "Sparkle",
+      url: "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-for-Swift-Package-Manager.zip",
+      checksum: "cb6fdbdc8884f15d62a616e79face92b08322410fd2d425edc6596ccbf4ba3b0"
+    ),
     .executableTarget(
       name: "TouchMacer",
-      dependencies: ["TouchMacerHelperProtocol"],
+      dependencies: [
+        "TouchMacerHelperProtocol",
+        "Sparkle",
+      ],
       path: "Sources/TouchMacer",
       linkerSettings: [
         .linkedFramework("AppKit"),
@@ -32,11 +40,19 @@ let package = Package(
         .linkedFramework("ServiceManagement"),
         .linkedFramework("Security"),
         .linkedFramework("SwiftUI"),
+        .unsafeFlags([
+          "-Xlinker", "-rpath",
+          "-Xlinker", "@executable_path/../Frameworks",
+        ]),
       ]
     ),
     .testTarget(
       name: "TouchMacerTests",
-      dependencies: ["TouchMacer"],
+      dependencies: [
+        "TouchMacer",
+        "TouchMacerHelperProtocol",
+        "Sparkle",
+      ],
       path: "Tests/TouchMacerTests"
     ),
   ]

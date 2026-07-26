@@ -17,6 +17,8 @@ private struct ProcessResult {
 private enum HelperError: LocalizedError {
   case notRoot
   case unsupportedPowerMode
+  case invalidTimeZone(String)
+  case timeZoneMismatch(expected: String, observed: String?)
   case commandFailed(String)
 
   var errorDescription: String? {
@@ -25,6 +27,10 @@ private enum HelperError: LocalizedError {
       return "TouchMacerHelper must run as a root LaunchDaemon."
     case .unsupportedPowerMode:
       return "This Mac does not expose a supported Low Power Mode pmset key."
+    case .invalidTimeZone(let identifier):
+      return "Unsupported system time zone: \(identifier)"
+    case .timeZoneMismatch(let expected, let observed):
+      return "Expected system time zone \(expected), observed \(observed ?? "unknown")."
     case .commandFailed(let message):
       return message
     }
@@ -39,6 +45,14 @@ private enum HelperPreferenceKey {
 private final class PowerHelperService: NSObject, PowerHelperProtocol {
   private let defaults =
     UserDefaults(suiteName: PowerHelperConstants.daemonLabel) ?? .standard
+
+  func queryProtocolInfo(reply: @escaping (Int, UInt64) -> Void) {
+    reply(
+      PowerHelperProtocolInfo.currentVersion,
+      PowerHelperProtocolInfo.currentCapabilities.rawValue
+    )
+  }
+
   func queryPowerState(
     reply: @escaping (Bool, Bool, Bool, String?) -> Void
   ) {
@@ -79,6 +93,43 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
         self.clearManagedSleepState()
       }
       return try self.queryState()
+    }
+  }
+
+  func querySystemTimeZone(
+    reply: @escaping (Bool, String?, String?) -> Void
+  ) {
+    do {
+      guard getuid() == 0 else { throw HelperError.notRoot }
+      let output = try runSystemSetup(["-gettimezone"]).output
+      guard let identifier = SystemTimeZoneCommand.observedIdentifier(from: output) else {
+        throw HelperError.commandFailed("systemsetup returned an unreadable time zone.")
+      }
+      reply(true, identifier, nil)
+    } catch {
+      reply(false, nil, error.localizedDescription)
+    }
+  }
+
+  func setSystemTimeZone(
+    _ identifier: String,
+    reply: @escaping (Bool, String?, String?) -> Void
+  ) {
+    do {
+      guard getuid() == 0 else { throw HelperError.notRoot }
+      guard let arguments = SystemTimeZoneCommand.arguments(for: identifier) else {
+        throw HelperError.invalidTimeZone(identifier)
+      }
+      _ = try runSystemSetup(arguments)
+      let output = try runSystemSetup(["-gettimezone"]).output
+      let observed = SystemTimeZoneCommand.observedIdentifier(from: output)
+      guard observed == identifier else {
+        throw HelperError.timeZoneMismatch(expected: identifier, observed: observed)
+      }
+      reply(true, observed, nil)
+    } catch {
+      let observed = try? observedSystemTimeZone()
+      reply(false, observed, error.localizedDescription)
     }
   }
 
@@ -184,11 +235,27 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
     return Int(fields[1])
   }
 
+  private func observedSystemTimeZone() throws -> String {
+    let output = try runSystemSetup(["-gettimezone"]).output
+    guard let identifier = SystemTimeZoneCommand.observedIdentifier(from: output) else {
+      throw HelperError.commandFailed("systemsetup returned an unreadable time zone.")
+    }
+    return identifier
+  }
+
   private func runPMSet(_ arguments: [String]) throws -> ProcessResult {
+    try runProcess(executablePath: "/usr/bin/pmset", arguments: arguments)
+  }
+
+  private func runSystemSetup(_ arguments: [String]) throws -> ProcessResult {
+    try runProcess(executablePath: SystemTimeZoneCommand.executablePath, arguments: arguments)
+  }
+
+  private func runProcess(executablePath: String, arguments: [String]) throws -> ProcessResult {
     let process = Process()
     let outputPipe = Pipe()
     let errorPipe = Pipe()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
+    process.executableURL = URL(fileURLWithPath: executablePath)
     process.arguments = arguments
     process.standardOutput = outputPipe
     process.standardError = errorPipe
@@ -208,8 +275,9 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
     )
     guard result.status == 0 else {
       let message = result.error.trimmingCharacters(in: .whitespacesAndNewlines)
+      let executableName = URL(fileURLWithPath: executablePath).lastPathComponent
       throw HelperError.commandFailed(
-        message.isEmpty ? "pmset failed with status \(result.status)." : message
+        message.isEmpty ? "\(executableName) failed with status \(result.status)." : message
       )
     }
     return result

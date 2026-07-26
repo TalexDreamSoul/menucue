@@ -7,6 +7,7 @@ final class StatusBarController: NSObject {
   private let statusItem: NSStatusItem
   private let popover: NSPopover
   private let model: AppModel
+  private let updateService: UpdateService
   private var settingsWindow: NSWindow?
   private var quickActionsWindow: NSWindow?
   private var quickEventWindow: NSWindow?
@@ -25,8 +26,9 @@ final class StatusBarController: NSObject {
   private let wheelSwitchCooldown: TimeInterval = 0.16
   private let preciseGestureResetInterval: TimeInterval = 0.35
 
-  init(model: AppModel) {
+  init(model: AppModel, updateService: UpdateService) {
     self.model = model
+    self.updateService = updateService
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.popover = NSPopover()
     super.init()
@@ -157,7 +159,7 @@ final class StatusBarController: NSObject {
     }
   }
 
-  private func refreshClockTitle() {
+  private func refreshClockTitle(transitionOrigin: ClockTransitionOrigin = .bottom) {
     popover.contentViewController?.view.appearance = NSApp.appearance
     settingsWindow?.contentViewController?.view.appearance = NSApp.appearance
     quickEventWindow?.contentViewController?.view.appearance = NSApp.appearance
@@ -168,7 +170,12 @@ final class StatusBarController: NSObject {
     appendClock(clock, at: now, includeLabel: clocks.count > 1, to: attributedTitle)
     attributedTitle.append(NSAttributedString(string: " ", attributes: baseTitleAttributes))
     let shouldAnimate = currentStatusClockID != nil && currentStatusClockID != clock.id
-    applyStatusTitle(attributedTitle, clockID: clock.id, animated: shouldAnimate)
+    applyStatusTitle(
+      attributedTitle,
+      clockID: clock.id,
+      animated: shouldAnimate,
+      transitionOrigin: transitionOrigin
+    )
     interactionView?.frame = statusItem.button?.bounds ?? .zero
   }
 
@@ -203,7 +210,10 @@ final class StatusBarController: NSObject {
   }
 
   private func applyStatusTitle(
-    _ attributedTitle: NSAttributedString, clockID: String, animated: Bool
+    _ attributedTitle: NSAttributedString,
+    clockID: String,
+    animated: Bool,
+    transitionOrigin: ClockTransitionOrigin
   ) {
     guard let button = statusItem.button else { return }
     guard animated, let layer = button.layer else {
@@ -214,7 +224,7 @@ final class StatusBarController: NSObject {
 
     let transition = CATransition()
     transition.type = .push
-    transition.subtype = .fromBottom
+    transition.subtype = transitionOrigin == .bottom ? .fromBottom : .fromTop
     transition.duration = 0.34
     transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
     layer.add(transition, forKey: "statusClockSwitch")
@@ -360,13 +370,29 @@ final class StatusBarController: NSObject {
       return
     }
 
-    selectAdjacentClock(step: accumulatedScrollDelta > 0 ? -1 : 1, at: eventDate)
+    guard
+      let scrollIntent = ClockCarouselScrollIntent(
+        scrollingDeltaY: accumulatedScrollDelta,
+        directionInvertedFromDevice: event.isDirectionInvertedFromDevice
+      )
+    else {
+      return
+    }
+    selectAdjacentClock(
+      step: scrollIntent.carouselStep,
+      transitionOrigin: scrollIntent.transitionOrigin,
+      at: eventDate
+    )
     accumulatedScrollDelta = 0
     lastWheelSwitchDate = eventDate
     didSwitchDuringGesture = event.hasPreciseScrollingDeltas
   }
 
-  private func selectAdjacentClock(step: Int, at date: Date) {
+  private func selectAdjacentClock(
+    step: Int,
+    transitionOrigin: ClockTransitionOrigin,
+    at date: Date
+  ) {
     let clocks = model.settings.clockTimeZones
     let currentID = currentStatusClock(at: date).id
     guard let nextID = ClockCarouselNavigator.adjacentClockID(
@@ -381,7 +407,7 @@ final class StatusBarController: NSObject {
       at: date,
       duration: model.settings.statusBarSwitchIntervalSeconds
     )
-    refreshClockTitle()
+    refreshClockTitle(transitionOrigin: transitionOrigin)
   }
 
 
@@ -476,7 +502,11 @@ final class StatusBarController: NSObject {
     model.refreshCalendarData()
 
     let hostingController = NSHostingController(
-      rootView: SettingsWindowView(model: model, initialPane: initialPane)
+      rootView: SettingsWindowView(
+        model: model,
+        updateService: updateService,
+        initialPane: initialPane
+      )
     )
     hostingController.view.appearance = NSApp.appearance
 

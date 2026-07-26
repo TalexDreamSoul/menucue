@@ -380,10 +380,16 @@ private struct QuickEventEditor: View {
 
 struct SettingsWindowView: View {
   @ObservedObject var model: AppModel
+  @ObservedObject var updateService: UpdateService
   @State private var selectedPane: SettingsPane
 
-  init(model: AppModel, initialPane: SettingsPane = .dateAndEvents) {
+  init(
+    model: AppModel,
+    updateService: UpdateService,
+    initialPane: SettingsPane = .dateAndEvents
+  ) {
     self.model = model
+    self.updateService = updateService
     self._selectedPane = State(initialValue: initialPane)
   }
 
@@ -397,7 +403,11 @@ struct SettingsWindowView: View {
       .navigationTitle("Settings")
       .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 220)
     } detail: {
-      SettingsContentView(model: model, pane: selectedPane)
+      SettingsContentView(
+        model: model,
+        updateService: updateService,
+        pane: selectedPane
+      )
     }
     .frame(minWidth: 700, idealWidth: 760, minHeight: 520, idealHeight: 640, alignment: .topLeading)
   }
@@ -787,11 +797,9 @@ private struct PreferenceSyncSettingsView: View {
 
 private struct SettingsContentView: View {
   @ObservedObject var model: AppModel
+  @ObservedObject var updateService: UpdateService
   let pane: SettingsPane
   @State private var pendingTimeZoneID = TimeZone.autoupdatingCurrent.identifier
-  @State private var isCheckingForUpdates = false
-  @State private var updateCheckMessage = "Check GitHub releases for a newer build."
-  @State private var latestReleaseURL: URL?
 
   var body: some View {
     ScrollView {
@@ -1054,25 +1062,29 @@ private struct SettingsContentView: View {
 
       Divider()
 
-      VStack(alignment: .leading, spacing: 8) {
+      VStack(alignment: .leading, spacing: 10) {
         Text("Updates")
           .font(.headline)
-        Text(updateCheckMessage)
+
+        Toggle(
+          "Automatically check and download updates",
+          isOn: automaticUpdatesBinding
+        )
+
+        Text(updateStatusMessage)
           .font(.caption)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(updateStatusIsError ? Color.red : Color.secondary)
 
-        HStack(spacing: 10) {
-          Button(isCheckingForUpdates ? "Checking..." : "Check GitHub Updates") {
-            checkForGitHubUpdates()
-          }
-          .disabled(isCheckingForUpdates)
-
-          if let latestReleaseURL {
-            Button("Open Latest Release") {
-              NSWorkspace.shared.open(latestReleaseURL)
-            }
-          }
+        if let lastCheckText {
+          Text(lastCheckText)
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
         }
+
+        Button("Check for Updates") {
+          updateService.checkForUpdates()
+        }
+        .disabled(!updateService.canCheckForUpdates)
       }
 
       Divider()
@@ -1128,7 +1140,48 @@ private struct SettingsContentView: View {
   }
 
   private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.1"
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.0"
+  }
+
+  private var automaticUpdatesBinding: Binding<Bool> {
+    Binding(
+      get: { updateService.automaticUpdatesEnabled },
+      set: { updateService.setAutomaticUpdatesEnabled($0) }
+    )
+  }
+
+  private var updateStatusMessage: String {
+    switch updateService.status {
+    case .idle:
+      return updateService.automaticUpdatesEnabled
+        ? "TouchMacer checks for updates every 12 hours."
+        : "Automatic updates are off. Manual checks remain available."
+    case .checking:
+      return "Checking for updates..."
+    case .available(let version):
+      return "Version \(version) is available."
+    case .downloading(let version):
+      return "Downloading version \(version)..."
+    case .downloaded(let version):
+      return "Version \(version) is downloaded and ready to install."
+    case .installing(let version):
+      return "Installing version \(version)..."
+    case .current:
+      return "TouchMacer is up to date."
+    case .failed(let message):
+      return "Update failed: \(message)"
+    }
+  }
+
+  private var updateStatusIsError: Bool {
+    if case .failed = updateService.status { return true }
+    return false
+  }
+
+  private var lastCheckText: String? {
+    updateService.lastUpdateCheckDate.map { date in
+      "Last checked \(date.formatted(date: .abbreviated, time: .shortened))."
+    }
   }
 
   private func binding<Value>(_ keyPath: WritableKeyPath<AppSettings, Value>) -> Binding<Value> {
@@ -1155,21 +1208,6 @@ private struct SettingsContentView: View {
         }
       }
     )
-  }
-
-  private func checkForGitHubUpdates() {
-    isCheckingForUpdates = true
-    updateCheckMessage = "Checking GitHub releases..."
-    latestReleaseURL = nil
-
-    Task {
-      let result = await GitHubReleaseChecker.check(currentVersion: appVersion)
-      await MainActor.run {
-        isCheckingForUpdates = false
-        updateCheckMessage = result.message
-        latestReleaseURL = result.releaseURL
-      }
-    }
   }
 
   private func openURL(_ urlString: String) {
@@ -1207,77 +1245,6 @@ struct SettingsGroup<Content: View>: View {
       content
     }
     .frame(maxWidth: 560, alignment: .leading)
-  }
-}
-
-private struct GitHubUpdateResult {
-  let message: String
-  let releaseURL: URL?
-}
-
-private struct GitHubRelease: Decodable {
-  let tagName: String
-  let htmlURL: String
-
-  private enum CodingKeys: String, CodingKey {
-    case tagName = "tag_name"
-    case htmlURL = "html_url"
-  }
-}
-
-private enum GitHubReleaseChecker {
-  static func check(currentVersion: String) async -> GitHubUpdateResult {
-    guard
-      let url = URL(
-        string: "https://api.github.com/repos/TalexDreamSoul/touch-macer/releases/latest")
-    else {
-      return GitHubUpdateResult(message: "GitHub releases URL is invalid.", releaseURL: nil)
-    }
-
-    var request = URLRequest(url: url)
-    request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-
-    do {
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse else {
-        return GitHubUpdateResult(
-          message: "GitHub returned an unreadable response.", releaseURL: nil)
-      }
-
-      if httpResponse.statusCode == 404 {
-        return GitHubUpdateResult(message: "No GitHub releases are published yet.", releaseURL: nil)
-      }
-
-      guard (200..<300).contains(httpResponse.statusCode) else {
-        return GitHubUpdateResult(
-          message: "GitHub update check failed with HTTP \(httpResponse.statusCode).",
-          releaseURL: nil)
-      }
-
-      let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
-      let latestVersion = normalizedVersion(release.tagName)
-      let current = normalizedVersion(currentVersion)
-      let releaseURL = URL(string: release.htmlURL)
-
-      if latestVersion.compare(current, options: .numeric) == .orderedDescending {
-        return GitHubUpdateResult(
-          message: "Version \(latestVersion) is available on GitHub.", releaseURL: releaseURL)
-      }
-
-      return GitHubUpdateResult(
-        message: "TouchMacer is up to date. Latest release: \(latestVersion).",
-        releaseURL: releaseURL)
-    } catch {
-      return GitHubUpdateResult(
-        message: "GitHub update check failed: \(error.localizedDescription)", releaseURL: nil)
-    }
-  }
-
-  private static func normalizedVersion(_ version: String) -> String {
-    String(
-      version.trimmingCharacters(in: .whitespacesAndNewlines)
-        .trimmingPrefix("v")
-        .trimmingPrefix("V"))
   }
 }
 

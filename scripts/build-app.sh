@@ -5,9 +5,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="TouchMacer"
 HELPER_NAME="TouchMacerHelper"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.3.1"
-BUILD_NUMBER="8"
+APP_VERSION="0.4.0"
+BUILD_NUMBER="9"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
+SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
+SPARKLE_FEED_URL="https://github.com/TalexDreamSoul/touch-macer/releases/download/appcast-feed/appcast.xml"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-}"
 PROVISIONING_PROFILE="${PROVISIONING_PROFILE:-}"
 RESOLVED_APP_ENTITLEMENTS="$ROOT_DIR/.build/TouchMacer.resolved.entitlements"
@@ -17,17 +20,30 @@ APP_DIR="$ROOT_DIR/.build/app/$APP_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
 HELPER_TOOLS_DIR="$CONTENTS_DIR/Library/HelperTools"
 LAUNCH_DAEMONS_DIR="$CONTENTS_DIR/Library/LaunchDaemons"
 ICONSET_DIR="$ROOT_DIR/.build/AppIcon.iconset"
 ICNS_PATH="$ROOT_DIR/.build/AppIcon.icns"
+SPARKLE_FRAMEWORK_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/Sparkle.framework"
+SPARKLE_FRAMEWORK_DESTINATION="$FRAMEWORKS_DIR/Sparkle.framework"
 
 cd "$ROOT_DIR"
+if [[ "$REQUIRE_STABLE_SIGNING" == "true" && "$CODESIGN_IDENTITY" == "-" ]]; then
+    echo "A stable CODESIGN_IDENTITY is required for OTA release builds." >&2
+    exit 1
+fi
 swift build -c "$BUILD_CONFIG"
 
+if [[ ! -d "$SPARKLE_FRAMEWORK_SOURCE" ]]; then
+    echo "Missing Sparkle framework: $SPARKLE_FRAMEWORK_SOURCE" >&2
+    exit 1
+fi
+
 rm -rf "$APP_DIR" "$ICONSET_DIR" "$ICNS_PATH"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$HELPER_TOOLS_DIR" "$LAUNCH_DAEMONS_DIR" "$ICONSET_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$FRAMEWORKS_DIR" "$HELPER_TOOLS_DIR" "$LAUNCH_DAEMONS_DIR" "$ICONSET_DIR"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$APP_NAME" "$MACOS_DIR/$APP_NAME"
+ditto "$SPARKLE_FRAMEWORK_SOURCE" "$SPARKLE_FRAMEWORK_DESTINATION"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$HELPER_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
 cp "$ROOT_DIR/Resources/com.touchmacer.clock.helper.plist" "$LAUNCH_DAEMONS_DIR/com.touchmacer.clock.helper.plist"
 chmod +x "$MACOS_DIR/$APP_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
@@ -79,6 +95,20 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <string>$BUILD_NUMBER</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+    <key>SUFeedURL</key>
+    <string>$SPARKLE_FEED_URL</string>
+    <key>SUPublicEDKey</key>
+    <string>$SPARKLE_PUBLIC_ED_KEY</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <real>43200</real>
+    <key>SUAutomaticallyUpdate</key>
+    <true/>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
+    <key>SURequireSignedFeed</key>
+    <true/>
     <key>LSUIElement</key>
     <true/>
     <key>NSCalendarsFullAccessUsageDescription</key>
@@ -90,6 +120,19 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+sign_sparkle_component() {
+    codesign --force --sign "$CODESIGN_IDENTITY" \
+        --preserve-metadata=identifier,entitlements,flags \
+        "$1"
+}
+
+SPARKLE_VERSION_DIR="$SPARKLE_FRAMEWORK_DESTINATION/Versions/B"
+sign_sparkle_component "$SPARKLE_VERSION_DIR/XPCServices/Installer.xpc"
+sign_sparkle_component "$SPARKLE_VERSION_DIR/XPCServices/Downloader.xpc"
+sign_sparkle_component "$SPARKLE_VERSION_DIR/Autoupdate"
+sign_sparkle_component "$SPARKLE_VERSION_DIR/Updater.app"
+sign_sparkle_component "$SPARKLE_FRAMEWORK_DESTINATION"
 
 codesign --force --sign "$CODESIGN_IDENTITY" \
     --entitlements "$ROOT_DIR/Resources/TouchMacerHelper.entitlements" \
@@ -155,4 +198,14 @@ PLIST
 else
     codesign --force --sign "$CODESIGN_IDENTITY" "$APP_DIR"
     echo "Built local-only $APP_DIR"
+fi
+
+codesign --verify --deep --strict "$APP_DIR"
+if ! otool -L "$MACOS_DIR/$APP_NAME" | grep -q '@rpath/Sparkle.framework/'; then
+    echo "TouchMacer does not link the embedded Sparkle framework through @rpath." >&2
+    exit 1
+fi
+if ! otool -l "$MACOS_DIR/$APP_NAME" | grep -q '@executable_path/../Frameworks'; then
+    echo "TouchMacer is missing the packaged Frameworks rpath." >&2
+    exit 1
 fi

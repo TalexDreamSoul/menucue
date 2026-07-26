@@ -289,6 +289,12 @@ struct QuickActionSettingsView: View {
       }
       Button("Cancel Install", role: .destructive, action: removePowerHelper)
         .disabled(powerHelper.isWorking)
+    case .refreshRequired:
+      Button("Refresh Helper") {
+        helperFeedback = nil
+        powerHelper.refreshHelperRegistration()
+      }
+      .disabled(powerHelper.isWorking)
     case .unavailable:
       Button("Install Helper") {}
         .disabled(true)

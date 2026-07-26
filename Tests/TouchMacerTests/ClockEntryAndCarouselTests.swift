@@ -292,6 +292,43 @@ final class ClockEntryAndCarouselTests: XCTestCase {
         )
     }
 
+    func testScrollIntentFollowsPhysicalGestureWithEitherSystemScrollPreference() {
+        let standardUp = ClockCarouselScrollIntent(
+            scrollingDeltaY: 12,
+            directionInvertedFromDevice: false
+        )
+        XCTAssertEqual(standardUp?.carouselStep, -1)
+        XCTAssertEqual(standardUp?.transitionOrigin, .bottom)
+
+        let naturalUp = ClockCarouselScrollIntent(
+            scrollingDeltaY: -12,
+            directionInvertedFromDevice: true
+        )
+        XCTAssertEqual(naturalUp?.carouselStep, 1)
+        XCTAssertEqual(naturalUp?.transitionOrigin, .bottom)
+
+        let standardDown = ClockCarouselScrollIntent(
+            scrollingDeltaY: -12,
+            directionInvertedFromDevice: false
+        )
+        XCTAssertEqual(standardDown?.carouselStep, 1)
+        XCTAssertEqual(standardDown?.transitionOrigin, .top)
+
+        let naturalDown = ClockCarouselScrollIntent(
+            scrollingDeltaY: 12,
+            directionInvertedFromDevice: true
+        )
+        XCTAssertEqual(naturalDown?.carouselStep, -1)
+        XCTAssertEqual(naturalDown?.transitionOrigin, .top)
+
+        XCTAssertNil(
+            ClockCarouselScrollIntent(
+                scrollingDeltaY: 0,
+                directionInvertedFromDevice: false
+            )
+        )
+    }
+
     func testCarouselNavigationWrapsFromTheManualSelectionInBothDirections() {
         let clocks = [
             ClockTimeZone.custom(identifier: "America/New_York")!,

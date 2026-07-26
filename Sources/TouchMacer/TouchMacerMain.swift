@@ -27,7 +27,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             calendarService: calendarService,
             appearanceService: appearanceService
         )
-        statusBarController = StatusBarController(model: model)
+        let updateService = UpdateService(engine: SparkleUpdateEngine())
+        statusBarController = StatusBarController(
+            model: model,
+            updateService: updateService
+        )
     }
 
     func applicationWillTerminate(_ notification: Notification) {

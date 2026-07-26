@@ -313,6 +313,24 @@ struct ClockTimeZone: Identifiable, Equatable {
     }
 }
 
+enum ClockTransitionOrigin: Equatable {
+    case top
+    case bottom
+}
+
+struct ClockCarouselScrollIntent: Equatable {
+    let carouselStep: Int
+    let transitionOrigin: ClockTransitionOrigin
+
+    init?(scrollingDeltaY: CGFloat, directionInvertedFromDevice: Bool) {
+        guard scrollingDeltaY != 0 else { return nil }
+        carouselStep = scrollingDeltaY > 0 ? -1 : 1
+
+        let deviceDeltaY = directionInvertedFromDevice ? -scrollingDeltaY : scrollingDeltaY
+        transitionOrigin = deviceDeltaY > 0 ? .bottom : .top
+    }
+}
+
 enum ClockCarouselNavigator {
     static func adjacentClockID(
         in clocks: [ClockTimeZone],
