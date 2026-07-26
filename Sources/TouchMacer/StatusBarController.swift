@@ -74,7 +74,7 @@ final class StatusBarController: NSObject {
 
   private func configurePopover() {
     popover.behavior = .transient
-    popover.contentSize = NSSize(width: 304, height: 640)
+    popover.contentSize = NSSize(width: PopoverMetrics.width, height: PopoverMetrics.height)
     let hostingController = NSHostingController(
       rootView: StatusPopoverView(
         model: model,
@@ -83,6 +83,9 @@ final class StatusBarController: NSObject {
         },
         openQuickActions: { [weak self] in
           self?.showQuickActionsWindow()
+        },
+        quitApp: {
+          NSApp.terminate(nil)
         }
       )
     )

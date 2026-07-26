@@ -17,30 +17,93 @@ private func eventAccentColor(for event: CalendarEventInfo) -> Color {
   return eventAccentPalette[scalarTotal % eventAccentPalette.count]
 }
 
+enum PopoverTab: String, CaseIterable, Identifiable {
+  case status
+  case calendar
+  case actions
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .status: return L10n.string("Status")
+    case .calendar: return L10n.string("Calendar")
+    case .actions: return L10n.string("Actions")
+    }
+  }
+
+  var systemImage: String {
+    switch self {
+    case .status: return "waveform.path.ecg"
+    case .calendar: return "calendar"
+    case .actions: return "square.grid.2x2"
+    }
+  }
+}
+
 struct StatusPopoverView: View {
   @ObservedObject var model: AppModel
   let openSettings: () -> Void
   let openQuickActions: () -> Void
+  let quitApp: () -> Void
+  @StateObject private var metrics = SystemMetricsService()
+  @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
   @State private var selectedCalendarDate = Date()
   @State private var quickEventDraft: QuickEventDraft?
 
   var body: some View {
-    overviewView
-      .padding(18)
-      .frame(width: 304, height: 640, alignment: .topLeading)
-      .background(Color(nsColor: .windowBackgroundColor))
-      .sheet(isPresented: quickEventSheetBinding) {
-        quickEventSheet
-      }
+    VStack(spacing: 0) {
+      PopoverTabBar(selection: $selectedTab)
+        .padding(.horizontal, PopoverMetrics.contentPadding)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+
+      Divider()
+        .opacity(0.5)
+
+      tabContent
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+      Divider()
+        .opacity(0.5)
+
+      PopoverFooter(
+        bootDate: metrics.bootDate,
+        openSettings: openSettings,
+        openQuickActions: openQuickActions,
+        newEvent: openQuickEventEditor,
+        quitApp: quitApp
+      )
+      .padding(.horizontal, PopoverMetrics.contentPadding)
+      .padding(.vertical, 7)
+    }
+    .frame(width: PopoverMetrics.width, height: PopoverMetrics.height, alignment: .top)
+    .background(Color(nsColor: .windowBackgroundColor))
+    .sheet(isPresented: quickEventSheetBinding) {
+      quickEventSheet
+    }
   }
 
-  private var overviewView: some View {
+  @ViewBuilder
+  private var tabContent: some View {
+    switch selectedTab {
+    case .status:
+      StatusTabView(model: model, metrics: metrics) {
+        withAnimation(.snappy(duration: 0.2)) { selectedTab = .actions }
+      }
+    case .calendar:
+      calendarTab
+    case .actions:
+      ActionsTabView(model: model, openSettings: openSettings, openMore: openQuickActions)
+    }
+  }
+
+  private var calendarTab: some View {
     TimelineView(.periodic(from: Date(), by: 1)) { context in
       ScrollView {
-        VStack(alignment: .leading, spacing: 16) {
-          QuickActionGrid(model: model, openMore: openQuickActions)
-          clockSection(date: context.date)
+        VStack(spacing: PopoverMetrics.cardSpacing) {
+          clockCard(date: context.date)
           MonthCalendarView(
             monthDate: $visibleMonthDate,
             selectedDate: $selectedCalendarDate,
@@ -54,15 +117,19 @@ struct StatusPopoverView: View {
           )
           eventsSection
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, PopoverMetrics.contentPadding)
+        .padding(.vertical, 2)
       }
+      .scrollBounceBehavior(.basedOnSize)
     }
   }
 
-  private func clockSection(date: Date) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("World Clocks")
-        .font(.headline)
+  private func clockCard(date: Date) -> some View {
+    PopoverCard(title: "World Clocks", systemImage: "globe.desk", tint: .indigo) {
+      Text("\(model.settings.clockTimeZones.count)")
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(.tertiary)
+    } content: {
       ForEach(model.settings.clockTimeZones) { clock in
         ClockCard(clock: clock, date: date)
       }
@@ -70,21 +137,19 @@ struct StatusPopoverView: View {
   }
 
   private var eventsSection: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack {
-        Text("Events")
-          .font(.headline)
-        Spacer()
-        Button("New Event") {
-          openQuickEventEditor()
-        }
-        .disabled(
-          !model.authorizationState.canReadEvents && model.authorizationState != .notDetermined)
-        Button("Settings") {
-          openSettings()
-        }
+    PopoverCard(title: "Events", systemImage: "calendar.badge.clock", tint: .orange) {
+      Button {
+        openQuickEventEditor()
+      } label: {
+        Image(systemName: "plus.circle.fill")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundStyle(Color.accentColor)
       }
-
+      .buttonStyle(.plain)
+      .help("New Event")
+      .disabled(
+        !model.authorizationState.canReadEvents && model.authorizationState != .notDetermined)
+    } content: {
       if !model.authorizationState.canReadEvents {
         VStack(alignment: .leading, spacing: 8) {
           Text("Grant Calendar access to show iCloud and local Calendar events.")
@@ -93,11 +158,12 @@ struct StatusPopoverView: View {
           Button("Grant Calendar Access") {
             model.requestCalendarAccess()
           }
+          .controlSize(.small)
         }
-        .padding(12)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.orange.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
       } else {
         AgendaList(
           events: model.events,
@@ -1162,7 +1228,7 @@ private struct SettingsContentView: View {
   }
 
   private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.1"
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.2"
   }
 
   private var automaticUpdatesBinding: Binding<Bool> {

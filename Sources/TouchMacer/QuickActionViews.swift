@@ -1,52 +1,142 @@
 import SwiftUI
 
-struct QuickActionGrid: View {
+/// Grid of just the pinned actions, for embedding under other popover content.
+struct PinnedQuickActionGrid: View {
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
+
+  private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
+
+  init(model: AppModel) {
+    self.model = model
+    self.service = model.quickActionService
+  }
+
+  var body: some View {
+    let items = service.pinnedItems(for: model.settings.pinnedQuickActions)
+    VStack(alignment: .leading, spacing: 7) {
+      if items.isEmpty {
+        CardPlaceholder(message: L10n.string("Pin actions in Settings to reach them from here."))
+      } else {
+        LazyVGrid(columns: columns, spacing: 6) {
+          ForEach(items) { item in
+            QuickActionTile(item: item, style: .compact) {
+              service.perform(item.reference)
+            }
+          }
+        }
+      }
+
+      if let feedbackMessage = service.feedbackMessage {
+        Text(feedbackMessage)
+          .font(.system(size: 10))
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+  }
+}
+
+/// Popover tab listing every quick action: pinned ones first, then the rest of the catalog.
+struct ActionsTabView: View {
+  @ObservedObject var model: AppModel
+  @ObservedObject private var service: QuickActionService
+  let openSettings: () -> Void
   let openMore: () -> Void
 
-  private let columns = Array(
-    repeating: GridItem(.flexible(), spacing: 6),
-    count: 4
-  )
+  private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
 
-  init(model: AppModel, openMore: @escaping () -> Void) {
+  init(model: AppModel, openSettings: @escaping () -> Void, openMore: @escaping () -> Void) {
     self.model = model
+    self.openSettings = openSettings
     self.openMore = openMore
     self.service = model.quickActionService
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      HStack {
-        Text("Quick Actions")
-          .font(.subheadline.weight(.semibold))
-        Spacer()
-        Text(L10n.format("%d/7", model.settings.pinnedQuickActions.count))
-          .font(.caption.weight(.medium))
-          .foregroundStyle(.secondary)
-      }
+    ScrollView {
+      VStack(spacing: PopoverMetrics.cardSpacing) {
+        if let feedbackMessage = service.feedbackMessage {
+          Label(feedbackMessage, systemImage: "info.circle")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(9)
+            .background(
+              Color.accentColor.opacity(0.10),
+              in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+            .transition(.opacity)
+        }
 
-      LazyVGrid(columns: columns, spacing: 7) {
-        ForEach(service.pinnedItems(for: model.settings.pinnedQuickActions)) { item in
-          QuickActionTile(item: item, style: .compact) {
-            service.perform(item.reference)
+        PopoverCard(title: "Pinned", systemImage: "pin.fill", tint: .accentColor) {
+          Text("\(model.settings.pinnedQuickActions.count)/7")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.tertiary)
+        } content: {
+          if pinnedItems.isEmpty {
+            CardPlaceholder(message: "Nothing pinned yet. Pin actions in Settings.")
+          } else {
+            LazyVGrid(columns: columns, spacing: 6) {
+              ForEach(pinnedItems) { item in
+                QuickActionTile(item: item, style: .compact) {
+                  service.perform(item.reference)
+                }
+              }
+            }
           }
         }
-        QuickActionMoreTile(action: openMore)
-      }
 
-      if let feedbackMessage = service.feedbackMessage {
-        Text(feedbackMessage)
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-          .transition(.opacity)
+        PopoverCard(title: "More Actions", systemImage: "square.grid.2x2", tint: .secondary) {
+          Button("Manage", action: openSettings)
+            .buttonStyle(.plain)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(Color.accentColor)
+        } content: {
+          if unpinnedItems.isEmpty {
+            CardPlaceholder(message: "Every available action is pinned.")
+          } else {
+            LazyVGrid(columns: columns, spacing: 6) {
+              ForEach(unpinnedItems) { item in
+                QuickActionTile(item: item, style: .compact) {
+                  service.perform(item.reference)
+                }
+              }
+            }
+          }
+        }
+
+        Button(action: openMore) {
+          Label("Open Quick Actions Window", systemImage: "macwindow")
+            .font(.system(size: 11, weight: .medium))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .background(
+          Color.primary.opacity(0.045),
+          in: RoundedRectangle(cornerRadius: PopoverMetrics.cardCornerRadius, style: .continuous)
+        )
       }
+      .padding(.horizontal, PopoverMetrics.contentPadding)
+      .padding(.vertical, 2)
     }
+    .scrollBounceBehavior(.basedOnSize)
     .onAppear {
       service.refreshAll()
     }
+  }
+
+  private var pinnedItems: [QuickActionItem] {
+    service.pinnedItems(for: model.settings.pinnedQuickActions)
+  }
+
+  private var unpinnedItems: [QuickActionItem] {
+    let pinned = Set(model.settings.pinnedQuickActions)
+    return service.catalogItems.filter { !pinned.contains($0.reference) }
   }
 }
 
@@ -437,32 +527,5 @@ private struct QuickActionTile: View {
       return L10n.string(isOn ? "On" : "Off")
     }
     return L10n.string(item.kind == .button ? "Button" : "Action")
-  }
-}
-
-private struct QuickActionMoreTile: View {
-  let action: () -> Void
-
-  var body: some View {
-    Button(action: action) {
-      VStack(spacing: 3) {
-        ZStack {
-          Circle()
-            .fill(Color.accentColor.opacity(0.16))
-          Image(systemName: "ellipsis")
-            .font(.system(size: 22, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
-        }
-        .frame(width: 34, height: 34)
-        Text("More")
-          .font(.caption2.weight(.medium))
-          .lineLimit(1)
-      }
-      .frame(maxWidth: .infinity, minHeight: 60, alignment: .top)
-      .contentShape(Rectangle())
-    }
-    .buttonStyle(.plain)
-    .help("Open all Quick Actions")
-    .accessibilityLabel("More Quick Actions")
   }
 }
