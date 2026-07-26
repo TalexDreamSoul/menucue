@@ -81,7 +81,10 @@ final class AppModel: ObservableObject {
             try launchAtLoginService.setEnabled(enabled)
             launchAtLoginErrorMessage = nil
         } catch {
-            launchAtLoginErrorMessage = error.localizedDescription
+            launchAtLoginErrorMessage = L10n.format(
+                "Could not update Launch at Login: %@",
+                error.localizedDescription
+            )
         }
         refreshLaunchAtLoginState()
     }
@@ -220,7 +223,7 @@ final class AppModel: ObservableObject {
             errorMessage = nil
             refreshCalendarData()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = L10n.format("Could not save the event: %@", error.localizedDescription)
         }
     }
 
@@ -241,7 +244,9 @@ final class AppModel: ObservableObject {
         calendarService.requestAccess { [weak self] state, error in
             DispatchQueue.main.async {
                 self?.authorizationState = state
-                self?.errorMessage = error?.localizedDescription
+                self?.errorMessage = error.map {
+                    L10n.format("Could not update Calendar access: %@", $0.localizedDescription)
+                }
                 self?.refreshCalendarData()
             }
         }

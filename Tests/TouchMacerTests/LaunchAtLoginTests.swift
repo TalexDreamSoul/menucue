@@ -71,7 +71,13 @@ final class LaunchAtLoginTests: XCTestCase {
 
         XCTAssertEqual(service.setEnabledRequests, [true])
         XCTAssertEqual(model.launchAtLoginState, .requiresApproval)
-        XCTAssertEqual(model.launchAtLoginErrorMessage, LaunchAtLoginTestError.operationDenied.localizedDescription)
+        XCTAssertEqual(
+            model.launchAtLoginErrorMessage,
+            L10n.format(
+                "Could not update Launch at Login: %@",
+                LaunchAtLoginTestError.operationDenied.localizedDescription
+            )
+        )
     }
 
     func testExplicitStatusRefreshPublishesCurrentServiceState() {

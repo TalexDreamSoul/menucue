@@ -7,7 +7,7 @@ enum CalendarServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingDefaultCalendar:
-            return "No writable calendar is available for new events."
+            return L10n.string("No writable calendar is available for new events.")
         }
     }
 }
@@ -68,7 +68,8 @@ final class CalendarService {
             .map { event in
                 CalendarEventInfo(
                     id: event.eventIdentifier ?? "\(event.calendarItemIdentifier)-\(event.startDate.timeIntervalSince1970)",
-                    title: event.title?.isEmpty == false ? event.title : "Untitled Event",
+                    title: event.title?.isEmpty == false
+                        ? event.title : L10n.string("Untitled Event"),
                     calendarTitle: event.calendar.title,
                     startDate: event.startDate,
                     endDate: event.endDate,
@@ -80,7 +81,7 @@ final class CalendarService {
     func createEvent(from draft: QuickEventDraft) throws {
         let event = EKEvent(eventStore: eventStore)
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        event.title = trimmedTitle.isEmpty ? "New Event" : trimmedTitle
+        event.title = trimmedTitle.isEmpty ? L10n.string("New Event") : trimmedTitle
         event.location = draft.location.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         event.notes = draft.notes.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         event.url = URL(string: draft.urlString.trimmingCharacters(in: .whitespacesAndNewlines))

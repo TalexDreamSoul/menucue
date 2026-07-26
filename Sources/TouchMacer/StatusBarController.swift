@@ -8,6 +8,7 @@ final class StatusBarController: NSObject {
   private let popover: NSPopover
   private let model: AppModel
   private let updateService: UpdateService
+  private let languageService: AppLanguageService
   private var settingsWindow: NSWindow?
   private var quickActionsWindow: NSWindow?
   private var quickEventWindow: NSWindow?
@@ -26,9 +27,14 @@ final class StatusBarController: NSObject {
   private let wheelSwitchCooldown: TimeInterval = 0.16
   private let preciseGestureResetInterval: TimeInterval = 0.35
 
-  init(model: AppModel, updateService: UpdateService) {
+  init(
+    model: AppModel,
+    updateService: UpdateService,
+    languageService: AppLanguageService
+  ) {
     self.model = model
     self.updateService = updateService
+    self.languageService = languageService
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.popover = NSPopover()
     super.init()
@@ -48,7 +54,7 @@ final class StatusBarController: NSObject {
     guard let button = statusItem.button else { return }
     button.wantsLayer = true
     button.imagePosition = .imageLeading
-    button.toolTip = "TouchMacer Clock — scroll to switch clocks"
+    button.toolTip = L10n.string("TouchMacer Clock — scroll to switch clocks")
 
     let interactionView = StatusItemInteractionView(frame: button.bounds)
     interactionView.autoresizingMask = [.width, .height]
@@ -124,20 +130,21 @@ final class StatusBarController: NSObject {
 
     switch status {
     case .needsOnboarding:
-      alert.messageText = "Sync TouchMacer Settings with iCloud?"
-      alert.informativeText =
+      alert.messageText = L10n.string("Sync TouchMacer Settings with iCloud?")
+      alert.informativeText = L10n.string(
         "Portable clock and appearance preferences can stay consistent across your Macs. Calendar access, Quick Actions, and system controls remain local."
-      alert.addButton(withTitle: "Enable iCloud Sync")
-      alert.addButton(withTitle: "Keep on This Mac")
+      )
+      alert.addButton(withTitle: L10n.string("Enable iCloud Sync"))
+      alert.addButton(withTitle: L10n.string("Keep on This Mac"))
       let response = alert.runModal()
       model.completePreferenceSyncOnboarding(enable: response == .alertFirstButtonReturn)
     case let .needsSourceDecision(reason):
       alert.messageText = reason == .accountChanged
-        ? "iCloud Account Changed"
-        : "Choose Initial TouchMacer Settings"
+        ? L10n.string("iCloud Account Changed")
+        : L10n.string("Choose Initial TouchMacer Settings")
       alert.informativeText = status.message
-      alert.addButton(withTitle: "Use iCloud Settings")
-      alert.addButton(withTitle: "Use This Mac's Settings")
+      alert.addButton(withTitle: L10n.string("Use iCloud Settings"))
+      alert.addButton(withTitle: L10n.string("Use This Mac's Settings"))
       let response = alert.runModal()
       if response == .alertFirstButtonReturn {
         model.chooseCloudPreferenceSettings()
@@ -414,7 +421,7 @@ final class StatusBarController: NSObject {
   private func showContextMenu(relativeTo button: NSStatusBarButton) {
     let menu = NSMenu()
     let overviewItem = NSMenuItem(
-      title: popover.isShown ? "Hide Overview" : "Show Overview",
+      title: L10n.string(popover.isShown ? "Hide Overview" : "Show Overview"),
       action: #selector(togglePopoverFromMenu(_:)),
       keyEquivalent: ""
     )
@@ -422,25 +429,38 @@ final class StatusBarController: NSObject {
     menu.addItem(overviewItem)
 
     let settingsItem = NSMenuItem(
-      title: "Settings…", action: #selector(openSettingsFromMenu(_:)), keyEquivalent: ",")
+      title: L10n.string("Settings…"),
+      action: #selector(openSettingsFromMenu(_:)),
+      keyEquivalent: ","
+    )
     settingsItem.target = self
     menu.addItem(settingsItem)
 
     let newEventItem = NSMenuItem(
-      title: "New Event…", action: #selector(openNewEventFromMenu(_:)), keyEquivalent: "n")
+      title: L10n.string("New Event…"),
+      action: #selector(openNewEventFromMenu(_:)),
+      keyEquivalent: "n"
+    )
     newEventItem.target = self
     newEventItem.isEnabled =
       model.authorizationState.canReadEvents || model.authorizationState == .notDetermined
     menu.addItem(newEventItem)
 
     menu.addItem(NSMenuItem.separator())
-    let quickItem = NSMenuItem(title: "Quick Time Zone", action: nil, keyEquivalent: "")
+    let quickItem = NSMenuItem(
+      title: L10n.string("Quick Time Zone"),
+      action: nil,
+      keyEquivalent: ""
+    )
     menu.setSubmenu(quickTimeZoneMenu(), for: quickItem)
     menu.addItem(quickItem)
 
     menu.addItem(NSMenuItem.separator())
     let exitItem = NSMenuItem(
-      title: "Exit TouchMacer", action: #selector(exitFromMenu(_:)), keyEquivalent: "q")
+      title: L10n.string("Exit TouchMacer"),
+      action: #selector(exitFromMenu(_:)),
+      keyEquivalent: "q"
+    )
     exitItem.target = self
     menu.addItem(exitItem)
 
@@ -450,7 +470,10 @@ final class StatusBarController: NSObject {
   private func quickTimeZoneMenu() -> NSMenu {
     let menu = NSMenu()
     let autoItem = NSMenuItem(
-      title: "Auto Rotate", action: #selector(clearManualClockSelection(_:)), keyEquivalent: "")
+      title: L10n.string("Auto Rotate"),
+      action: #selector(clearManualClockSelection(_:)),
+      keyEquivalent: ""
+    )
     autoItem.target = self
     autoItem.state = clockSelection.persistentClockID == nil ? .on : .off
     menu.addItem(autoItem)
@@ -505,6 +528,7 @@ final class StatusBarController: NSObject {
       rootView: SettingsWindowView(
         model: model,
         updateService: updateService,
+        languageService: languageService,
         initialPane: initialPane
       )
     )
@@ -528,7 +552,7 @@ final class StatusBarController: NSObject {
     hostingController: NSHostingController<SettingsWindowView>
   ) -> NSWindow {
     let window = NSWindow(contentViewController: hostingController)
-    window.title = "TouchMacer Settings"
+    window.title = L10n.string("TouchMacer Settings")
     window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
     window.tabbingMode = .disallowed
     window.setContentSize(NSSize(width: 760, height: 640))
@@ -555,7 +579,7 @@ final class StatusBarController: NSObject {
     if quickActionsWindow != nil {
       window.contentViewController = hostingController
     } else {
-      window.title = "TouchMacer Quick Actions"
+      window.title = L10n.string("TouchMacer Quick Actions")
       window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
       window.tabbingMode = .disallowed
       window.setContentSize(NSSize(width: 700, height: 600))
@@ -590,7 +614,7 @@ final class StatusBarController: NSObject {
     if quickEventWindow != nil {
       window.contentViewController = hostingController
     } else {
-      window.title = "New Event"
+      window.title = L10n.string("New Event")
       window.styleMask = [.titled, .closable]
       window.isReleasedWhenClosed = false
       window.center()

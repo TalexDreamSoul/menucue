@@ -17,27 +17,29 @@ enum PowerHelperRegistrationState: Equatable {
 
   var title: String {
     switch self {
-    case .unavailable: return "Unavailable"
-    case .notRegistered: return "Not Installed"
-    case .requiresApproval: return "Approval Required"
-    case .refreshRequired: return "Update Required"
-    case .enabled: return "Enabled"
-    case .failed: return "Error"
+    case .unavailable: return L10n.string("Unavailable")
+    case .notRegistered: return L10n.string("Not Installed")
+    case .requiresApproval: return L10n.string("Approval Required")
+    case .refreshRequired: return L10n.string("Update Required")
+    case .enabled: return L10n.string("Enabled")
+    case .failed: return L10n.string("Error")
     }
   }
 
   var detail: String {
     switch self {
     case .unavailable(let reason), .failed(let reason):
-      return reason
+      return L10n.format("%@", reason)
     case .notRegistered:
-      return "Install the privileged Helper to change protected power settings."
+      return L10n.string("Install the privileged Helper to change protected power settings.")
     case .requiresApproval:
-      return "Approve TouchMacer in System Settings → General → Login Items & Extensions."
+      return L10n.string(
+        "Approve TouchMacer in System Settings → General → Login Items & Extensions."
+      )
     case .refreshRequired:
-      return "Refresh the installed Helper to match this TouchMacer version."
+      return L10n.string("Refresh the installed Helper to match this TouchMacer version.")
     case .enabled:
-      return "The Helper is approved and ready for protected power actions."
+      return L10n.string("The Helper is approved and ready for protected power actions.")
     }
   }
 }
@@ -50,7 +52,7 @@ private enum PowerHelperManagerError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .unavailable(let message), .connection(let message), .operation(let message):
-      return message
+      return L10n.format("%@", message)
     }
   }
 }
@@ -89,7 +91,7 @@ final class PowerHelperManager: ObservableObject {
   func refreshStatus() {
     guard isPackagedHelperAvailable else {
       registrationState = .unavailable(
-        "Run TouchMacer from its packaged app bundle to install the power Helper."
+        L10n.string("Run TouchMacer from its packaged app bundle to install the power Helper.")
       )
       clearProtocolInfo()
       invalidateConnection()
@@ -121,12 +123,12 @@ final class PowerHelperManager: ObservableObject {
       queryState()
     case .notFound:
       registrationState = .unavailable(
-        "The packaged power Helper or LaunchDaemon configuration is missing."
+        L10n.string("The packaged power Helper or LaunchDaemon configuration is missing.")
       )
       clearProtocolInfo()
       invalidateConnection()
     @unknown default:
-      registrationState = .unavailable("macOS returned an unknown Helper status.")
+      registrationState = .unavailable(L10n.string("macOS returned an unknown Helper status."))
       clearProtocolInfo()
       invalidateConnection()
     }
@@ -164,8 +166,9 @@ final class PowerHelperManager: ObservableObject {
       }
     } catch {
       isWorking = false
-      registrationState = .failed(error.localizedDescription)
-      lastError = error.localizedDescription
+      let message = L10n.format("Power Helper registration failed: %@", error.localizedDescription)
+      registrationState = .failed(message)
+      lastError = message
     }
   }
 
@@ -194,8 +197,9 @@ final class PowerHelperManager: ObservableObject {
       }
     } catch {
       isWorking = false
-      registrationState = .failed(error.localizedDescription)
-      lastError = error.localizedDescription
+      let message = L10n.format("Power Helper refresh failed: %@", error.localizedDescription)
+      registrationState = .failed(message)
+      lastError = message
     }
   }
 
@@ -281,7 +285,9 @@ final class PowerHelperManager: ObservableObject {
     guard SystemTimeZoneCommand.arguments(for: identifier) != nil else {
       completion(
         .failure(
-          PowerHelperManagerError.operation("Unsupported system time zone: \(identifier)")
+          PowerHelperManagerError.operation(
+            L10n.format("Unsupported system time zone: %@", identifier)
+          )
         )
       )
       return
@@ -353,9 +359,11 @@ final class PowerHelperManager: ObservableObject {
       refreshStatus()
       completion(.success(()))
     } catch {
-      registrationState = .failed(error.localizedDescription)
-      lastError = error.localizedDescription
-      completion(.failure(error))
+      let message = L10n.format("Power Helper removal failed: %@", error.localizedDescription)
+      let localizedError = PowerHelperManagerError.operation(message)
+      registrationState = .failed(message)
+      lastError = message
+      completion(.failure(localizedError))
     }
   }
 
@@ -375,18 +383,23 @@ final class PowerHelperManager: ObservableObject {
     isWorking = true
     let proxy = helperProxy { [weak self] error in
       DispatchQueue.main.async {
+        let message = L10n.format(
+          "Power Helper connection failed: %@",
+          error.localizedDescription
+        )
+        let localizedError = PowerHelperManagerError.connection(message)
         self?.isWorking = false
-        self?.lastError = error.localizedDescription
+        self?.lastError = message
         self?.invalidateConnection()
-        completion?(.failure(error))
+        completion?(.failure(localizedError))
       }
     }
     guard let proxy else {
       isWorking = false
       let error = PowerHelperManagerError.connection(
-        "Unable to connect to TouchMacerHelper."
+        L10n.string("Unable to connect to TouchMacerHelper.")
       )
-      lastError = error.localizedDescription
+      lastError = L10n.format("%@", error.localizedDescription)
       completion?(.failure(error))
       return
     }
@@ -403,10 +416,13 @@ final class PowerHelperManager: ObservableObject {
           completion?(.success(()))
         } else {
           let error = PowerHelperManagerError.operation(
-            errorMessage ?? "The power Helper operation failed."
+            Self.localizedHelperMessage(
+              errorMessage,
+              fallbackKey: "The power Helper operation failed."
+            )
           )
           self.registrationState = .enabled
-          self.lastError = error.localizedDescription
+          self.lastError = L10n.format("%@", error.localizedDescription)
           completion?(.failure(error))
         }
       }
@@ -425,7 +441,9 @@ final class PowerHelperManager: ObservableObject {
       completion?(
         .failure(
           PowerHelperManagerError.unavailable(
-            "The installed Helper must be refreshed before changing the system time zone."
+            L10n.string(
+              "The installed Helper must be refreshed before changing the system time zone."
+            )
           )
         )
       )
@@ -435,19 +453,24 @@ final class PowerHelperManager: ObservableObject {
     isWorking = true
     let proxy = helperProxy { [weak self] error in
       DispatchQueue.main.async {
+        let message = L10n.format(
+          "Power Helper connection failed: %@",
+          error.localizedDescription
+        )
+        let localizedError = PowerHelperManagerError.connection(message)
         self?.isWorking = false
-        self?.lastError = error.localizedDescription
+        self?.lastError = message
         self?.clearProtocolInfo()
         self?.invalidateConnection()
-        completion?(.failure(error))
+        completion?(.failure(localizedError))
       }
     }
     guard let proxy else {
       isWorking = false
       let error = PowerHelperManagerError.connection(
-        "Unable to connect to TouchMacerHelper."
+        L10n.string("Unable to connect to TouchMacerHelper.")
       )
-      lastError = error.localizedDescription
+      lastError = L10n.format("%@", error.localizedDescription)
       completion?(.failure(error))
       return
     }
@@ -462,9 +485,12 @@ final class PowerHelperManager: ObservableObject {
           completion?(.success(identifier))
         } else {
           let error = PowerHelperManagerError.operation(
-            errorMessage ?? "The system time zone operation failed."
+            Self.localizedHelperMessage(
+              errorMessage,
+              fallbackKey: "The system time zone operation failed."
+            )
           )
-          self.lastError = error.localizedDescription
+          self.lastError = L10n.format("%@", error.localizedDescription)
           completion?(.failure(error))
         }
       }
@@ -497,7 +523,9 @@ final class PowerHelperManager: ObservableObject {
       connection.interruptionHandler = { [weak self] in
         DispatchQueue.main.async {
           guard let self else { return }
-          let message = "The power Helper connection was interrupted. Try the action again."
+          let message = L10n.string(
+            "The power Helper connection was interrupted. Try the action again."
+          )
           self.registrationState = .failed(message)
           self.lastError = message
           self.clearProtocolInfo()
@@ -515,6 +543,58 @@ final class PowerHelperManager: ObservableObject {
 
     return connection?.remoteObjectProxyWithErrorHandler(errorHandler)
       as? PowerHelperProtocol
+  }
+
+  private static func localizedHelperMessage(
+    _ message: String?,
+    fallbackKey: String
+  ) -> String {
+    guard let message, !message.isEmpty else { return L10n.string(fallbackKey) }
+
+    switch message {
+    case "TouchMacerHelper must run as a root LaunchDaemon.",
+      "This Mac does not expose a supported Low Power Mode pmset key.",
+      "systemsetup returned an unreadable time zone.":
+      return L10n.string(message)
+    default:
+      let unsupportedPrefix = "Unsupported system time zone: "
+      if message.hasPrefix(unsupportedPrefix) {
+        return L10n.format(
+          "Unsupported system time zone: %@",
+          String(message.dropFirst(unsupportedPrefix.count))
+        )
+      }
+
+      let mismatchPrefix = "Expected system time zone "
+      let mismatchSeparator = ", observed "
+      if message.hasPrefix(mismatchPrefix),
+        let separatorRange = message.range(of: mismatchSeparator)
+      {
+        let expected = String(message[message.index(
+          message.startIndex,
+          offsetBy: mismatchPrefix.count
+        )..<separatorRange.lowerBound])
+        let observed = String(message[separatorRange.upperBound...].dropLast(message.hasSuffix(".") ? 1 : 0))
+        return L10n.format(
+          "Expected system time zone %@, observed %@.",
+          expected,
+          observed == "unknown" ? L10n.string("unknown") : observed
+        )
+      }
+
+      let statusSeparator = " failed with status "
+      if let separatorRange = message.range(of: statusSeparator) {
+        let executable = String(message[..<separatorRange.lowerBound])
+        let statusText = String(
+          message[separatorRange.upperBound...].dropLast(message.hasSuffix(".") ? 1 : 0)
+        )
+        if let status = Int(statusText) {
+          return L10n.format("%@ failed with status %d.", executable, status)
+        }
+      }
+
+      return L10n.format("Power Helper error: %@", message)
+    }
   }
 
   private func invalidateConnection() {

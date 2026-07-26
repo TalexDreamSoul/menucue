@@ -5,8 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="TouchMacer"
 HELPER_NAME="TouchMacerHelper"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.4.0"
-BUILD_NUMBER="9"
+APP_VERSION="0.4.1"
+BUILD_NUMBER="10"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
 SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
@@ -27,6 +27,7 @@ ICONSET_DIR="$ROOT_DIR/.build/AppIcon.iconset"
 ICNS_PATH="$ROOT_DIR/.build/AppIcon.icns"
 SPARKLE_FRAMEWORK_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/Sparkle.framework"
 SPARKLE_FRAMEWORK_DESTINATION="$FRAMEWORKS_DIR/Sparkle.framework"
+LOCALIZATION_BUNDLE_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/TouchMacer_TouchMacer.bundle"
 
 cd "$ROOT_DIR"
 if [[ "$REQUIRE_STABLE_SIGNING" == "true" && "$CODESIGN_IDENTITY" == "-" ]]; then
@@ -39,11 +40,22 @@ if [[ ! -d "$SPARKLE_FRAMEWORK_SOURCE" ]]; then
     echo "Missing Sparkle framework: $SPARKLE_FRAMEWORK_SOURCE" >&2
     exit 1
 fi
+if [[ ! -d "$LOCALIZATION_BUNDLE_SOURCE" ]]; then
+    echo "Missing TouchMacer localization bundle: $LOCALIZATION_BUNDLE_SOURCE" >&2
+    exit 1
+fi
 
 rm -rf "$APP_DIR" "$ICONSET_DIR" "$ICNS_PATH"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$FRAMEWORKS_DIR" "$HELPER_TOOLS_DIR" "$LAUNCH_DAEMONS_DIR" "$ICONSET_DIR"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 ditto "$SPARKLE_FRAMEWORK_SOURCE" "$SPARKLE_FRAMEWORK_DESTINATION"
+ditto "$LOCALIZATION_BUNDLE_SOURCE/en.lproj" "$RESOURCES_DIR/en.lproj"
+ZH_HANS_SOURCE="$(find "$LOCALIZATION_BUNDLE_SOURCE" -maxdepth 1 -type d -iname 'zh-hans.lproj' -print -quit)"
+if [[ -z "$ZH_HANS_SOURCE" ]]; then
+    echo "Missing zh-Hans localization in $LOCALIZATION_BUNDLE_SOURCE" >&2
+    exit 1
+fi
+ditto "$ZH_HANS_SOURCE" "$RESOURCES_DIR/zh-Hans.lproj"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$HELPER_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
 cp "$ROOT_DIR/Resources/com.touchmacer.clock.helper.plist" "$LAUNCH_DAEMONS_DIR/com.touchmacer.clock.helper.plist"
 chmod +x "$MACOS_DIR/$APP_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
@@ -87,6 +99,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <string>TouchMacer</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleShortVersionString</key>
@@ -201,6 +220,15 @@ else
 fi
 
 codesign --verify --deep --strict "$APP_DIR"
+for localization in en zh-Hans; do
+    if [[ ! -f "$RESOURCES_DIR/$localization.lproj/Localizable.strings" \
+        || ! -f "$RESOURCES_DIR/$localization.lproj/InfoPlist.strings" ]]; then
+        echo "Missing packaged $localization localization resources." >&2
+        exit 1
+    fi
+    plutil -lint "$RESOURCES_DIR/$localization.lproj/Localizable.strings" >/dev/null
+    plutil -lint "$RESOURCES_DIR/$localization.lproj/InfoPlist.strings" >/dev/null
+done
 if ! otool -L "$MACOS_DIR/$APP_NAME" | grep -q '@rpath/Sparkle.framework/'; then
     echo "TouchMacer does not link the embedded Sparkle framework through @rpath." >&2
     exit 1

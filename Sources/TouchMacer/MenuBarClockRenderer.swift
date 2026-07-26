@@ -14,15 +14,15 @@ enum MenuBarFormatValidation: Equatable {
         case .valid:
             return nil
         case .emptyTimePattern:
-            return "Time pattern cannot be empty."
+            return L10n.string("Time pattern cannot be empty.")
         case .invalidTimePattern:
-            return "Time pattern must contain a valid time symbol and balanced quotes."
+            return L10n.string("Time pattern must contain a valid time symbol and balanced quotes.")
         case .invalidDatePattern:
-            return "Date pattern contains unbalanced quotes."
+            return L10n.string("Date pattern contains unbalanced quotes.")
         case .emptyTimeOutput:
-            return "Time pattern produced no visible output."
+            return L10n.string("Time pattern produced no visible output.")
         case .emptyDateOutput:
-            return "Date pattern produced no visible output."
+            return L10n.string("Date pattern produced no visible output.")
         }
     }
 }

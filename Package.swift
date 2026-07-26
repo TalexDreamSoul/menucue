@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
   name: "TouchMacer",
+  defaultLocalization: "en",
   platforms: [.macOS(.v14)],
   products: [
     .executable(name: "TouchMacer", targets: ["TouchMacer"]),
@@ -33,6 +34,7 @@ let package = Package(
         "Sparkle",
       ],
       path: "Sources/TouchMacer",
+      resources: [.process("Resources")],
       linkerSettings: [
         .linkedFramework("AppKit"),
         .linkedFramework("ApplicationServices"),

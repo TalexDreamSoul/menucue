@@ -9,6 +9,8 @@ SPARKLE_TOOLS_DIR="${SPARKLE_TOOLS_DIR:-$ROOT_DIR/.build/artifacts/touch-macer/S
 SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-com.touchmacer.clock.sparkle}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-2L5YC85FQ7}"
 EXPECTED_CODESIGN_AUTHORITY="${EXPECTED_CODESIGN_AUTHORITY:-Apple Development: talexdreamsoul@gmail.com (GCTF54QXD3)}"
+EXPECTED_VERSION="${EXPECTED_VERSION:-}"
+EXPECTED_BUILD="${EXPECTED_BUILD:-}"
 RELEASE_BASE_URL="https://github.com/TalexDreamSoul/touch-macer/releases/download"
 
 GENERATE_APPCAST="$SPARKLE_TOOLS_DIR/generate_appcast"
@@ -24,6 +26,10 @@ for executable in "$GENERATE_APPCAST" "$GENERATE_KEYS" "$SIGN_UPDATE"; do
 done
 if [[ ! -f "$INFO_PLIST" ]]; then
     echo "Missing packaged TouchMacer app: $APP_DIR" >&2
+    exit 1
+fi
+if [[ -z "$EXPECTED_VERSION" || -z "$EXPECTED_BUILD" ]]; then
+    echo "EXPECTED_VERSION and EXPECTED_BUILD are required for release packaging." >&2
     exit 1
 fi
 
@@ -80,6 +86,16 @@ EXPECTED_FEED_URL="https://github.com/TalexDreamSoul/touch-macer/releases/downlo
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$INFO_PLIST")" == "$EXPECTED_FEED_URL" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUVerifyUpdateBeforeExtraction' "$INFO_PLIST")" == "true" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SURequireSignedFeed' "$INFO_PLIST")" == "true" ]]
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDevelopmentRegion' "$INFO_PLIST")" == "en" ]]
+for localization in en zh-Hans; do
+    [[ -f "$APP_DIR/Contents/Resources/$localization.lproj/Localizable.strings" ]]
+    [[ -f "$APP_DIR/Contents/Resources/$localization.lproj/InfoPlist.strings" ]]
+    plutil -lint "$APP_DIR/Contents/Resources/$localization.lproj/Localizable.strings" >/dev/null
+    plutil -lint "$APP_DIR/Contents/Resources/$localization.lproj/InfoPlist.strings" >/dev/null
+done
+"$ROOT_DIR/scripts/verify-localizations.swift" \
+    "$APP_DIR/Contents/Resources/en.lproj/Localizable.strings" \
+    "$APP_DIR/Contents/Resources/zh-Hans.lproj/Localizable.strings" >/dev/null
 
 PACKAGED_PUBLIC_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$INFO_PLIST")"
 KEYCHAIN_PUBLIC_KEY="$("$GENERATE_KEYS" --account "$SPARKLE_KEY_ACCOUNT" -p)"
@@ -88,8 +104,17 @@ if [[ "$PACKAGED_PUBLIC_KEY" != "$KEYCHAIN_PUBLIC_KEY" ]]; then
     exit 1
 fi
 
+BUNDLE_IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
 BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")"
+[[ "$BUNDLE_IDENTIFIER" == "com.touchmacer.clock" ]] || {
+    echo "Unexpected bundle identifier: $BUNDLE_IDENTIFIER" >&2
+    exit 1
+}
+[[ "$VERSION" == "$EXPECTED_VERSION" && "$BUILD_NUMBER" == "$EXPECTED_BUILD" ]] || {
+    echo "Expected TouchMacer $EXPECTED_VERSION ($EXPECTED_BUILD), got $VERSION ($BUILD_NUMBER)." >&2
+    exit 1
+}
 ARCHIVE_NAME="$APP_NAME-v$VERSION-macos.zip"
 ARCHIVE_PATH="$UPDATES_DIR/$ARCHIVE_NAME"
 APPCAST_PATH="$UPDATES_DIR/appcast.xml"

@@ -22,7 +22,7 @@ struct QuickActionGrid: View {
         Text("Quick Actions")
           .font(.subheadline.weight(.semibold))
         Spacer()
-        Text("\(model.settings.pinnedQuickActions.count)/7")
+        Text(L10n.format("%d/7", model.settings.pinnedQuickActions.count))
           .font(.caption.weight(.medium))
           .foregroundStyle(.secondary)
       }
@@ -135,7 +135,7 @@ struct QuickActionSettingsView: View {
               .foregroundStyle(.secondary)
           }
           Spacer()
-          Text("\(model.settings.pinnedQuickActions.count) / 7")
+          Text(L10n.format("%d / 7", model.settings.pinnedQuickActions.count))
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(
               model.settings.pinnedQuickActions.count == 7 ? Color.orange : Color.secondary)
@@ -311,9 +311,12 @@ struct QuickActionSettingsView: View {
     powerHelper.removeHelper { result in
       switch result {
       case .success:
-        helperFeedback = "Power Helper removed."
+        helperFeedback = L10n.string("Power Helper removed.")
       case .failure(let error):
-        helperFeedback = error.localizedDescription
+        helperFeedback = L10n.format(
+          "Could not remove Power Helper: %@",
+          error.localizedDescription
+        )
       }
       service.refreshAll()
     }
@@ -425,15 +428,15 @@ private struct QuickActionTile: View {
 
   private var accessibilityValue: String {
     if let reason = item.state.availability.reason {
-      return "Unavailable. \(reason)"
+      return L10n.format("Unavailable. %@", reason)
     }
     if item.state.isRunning {
-      return "Running"
+      return L10n.string("Running")
     }
     if let isOn = item.state.isOn {
-      return isOn ? "On" : "Off"
+      return L10n.string(isOn ? "On" : "Off")
     }
-    return item.kind == .button ? "Button" : "Action"
+    return L10n.string(item.kind == .button ? "Button" : "Action")
   }
 }
 

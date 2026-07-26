@@ -75,38 +75,53 @@ enum PreferenceSyncStatus: Equatable {
 
     var title: String {
         switch self {
-        case .unavailable: return "Unavailable in this build"
-        case .signedOut: return "Sign in to iCloud"
-        case .disabled: return "Off"
-        case .needsOnboarding: return "Set up iCloud Sync"
-        case .needsSourceDecision(.initialMerge): return "Choose initial settings"
-        case .needsSourceDecision(.accountChanged): return "iCloud account changed"
-        case .syncing: return "Syncing…"
-        case .synced: return "Sync active"
-        case .failed: return "Needs attention"
+        case .unavailable: return L10n.string("Unavailable in this build")
+        case .signedOut: return L10n.string("Sign in to iCloud")
+        case .disabled: return L10n.string("Off")
+        case .needsOnboarding: return L10n.string("Set up iCloud Sync")
+        case .needsSourceDecision(.initialMerge): return L10n.string("Choose initial settings")
+        case .needsSourceDecision(.accountChanged): return L10n.string("iCloud account changed")
+        case .syncing: return L10n.string("Syncing...")
+        case .synced: return L10n.string("Sync active")
+        case .failed: return L10n.string("Needs attention")
         }
     }
 
     var message: String {
         switch self {
         case .unavailable:
-            return "This build does not contain the iCloud key-value entitlement. Local settings remain available."
+            return L10n.string(
+                "This build does not contain the iCloud key-value entitlement. Local settings remain available."
+            )
         case .signedOut:
-            return "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac."
+            return L10n.string(
+                "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac."
+            )
         case .disabled:
-            return "Settings are stored only on this Mac. Existing iCloud values are not erased."
+            return L10n.string(
+                "Settings are stored only on this Mac. Existing iCloud values are not erased."
+            )
         case .needsOnboarding:
-            return "Sync portable clock, time-zone, week, and appearance preferences across your Macs."
+            return L10n.string(
+                "Sync portable clock, time-zone, week, and appearance preferences across your Macs."
+            )
         case .needsSourceDecision(.initialMerge):
-            return "Both this Mac and iCloud contain settings. Choose which source should win for the first merge."
+            return L10n.string(
+                "Both this Mac and iCloud contain settings. Choose which source should win for the first merge."
+            )
         case .needsSourceDecision(.accountChanged):
-            return "Choose whether to use settings from the current iCloud account or upload this Mac's settings."
+            return L10n.string(
+                "Choose whether to use settings from the current iCloud account or upload this Mac's settings."
+            )
         case .syncing:
-            return "Checking iCloud for newer preference values."
+            return L10n.string("Checking iCloud for newer preference values.")
         case let .synced(date):
-            return "Last sync activity \(date.formatted(date: .abbreviated, time: .shortened)). iCloud may take a few minutes to update other devices."
+            return L10n.format(
+                "Last sync activity %@. iCloud may take a few minutes to update other devices.",
+                date.formatted(date: .abbreviated, time: .shortened)
+            )
         case let .failed(message):
-            return message
+            return L10n.format("%@", message)
         }
     }
 }
@@ -347,7 +362,11 @@ final class PreferenceSyncService: ObservableObject {
         guard !isWaitingForSourceDecision else { return }
         status = .syncing
         guard store.synchronize() else {
-            status = .failed("iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry.")
+            status = .failed(
+                L10n.string(
+                    "iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry."
+                )
+            )
             return
         }
 
@@ -373,7 +392,9 @@ final class PreferenceSyncService: ObservableObject {
         let reason = notification.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
         switch reason {
         case NSUbiquitousKeyValueStoreQuotaViolationChange:
-            status = .failed("iCloud preference storage is over quota. Local settings are unchanged.")
+            status = .failed(
+                L10n.string("iCloud preference storage is over quota. Local settings are unchanged.")
+            )
         case NSUbiquitousKeyValueStoreAccountChange:
             status = .needsSourceDecision(.accountChanged)
         case NSUbiquitousKeyValueStoreServerChange,
@@ -383,7 +404,9 @@ final class PreferenceSyncService: ObservableObject {
             importHandler?(Array(readCloudEnvelopes().values), false)
             status = .synced(Date())
         default:
-            status = .failed("iCloud reported an unknown preference synchronization state.")
+            status = .failed(
+                L10n.string("iCloud reported an unknown preference synchronization state.")
+            )
         }
     }
 
