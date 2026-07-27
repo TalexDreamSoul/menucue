@@ -13,6 +13,7 @@ final class SettingsStore {
         static let calendarSelectionMode = "calendarSelectionMode"
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let pinnedQuickActions = "pinnedQuickActions"
+        static let metricsSampling = "metricsSampling.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
         static let preferenceSyncOnboardingCompleted = "preferenceSyncOnboardingCompleted"
         static let portableModificationDates = "portableModificationDates.v1"
@@ -69,6 +70,7 @@ final class SettingsStore {
             ) ?? .all,
             selectedCalendarIDs: Set(defaults.stringArray(forKey: Key.selectedCalendarIDs) ?? []),
             pinnedQuickActions: loadPinnedQuickActions(),
+            metricsSampling: loadMetricsSampling(),
             preferenceSyncEnabled: defaults.bool(forKey: Key.preferenceSyncEnabled),
             preferenceSyncOnboardingCompleted: defaults.bool(
                 forKey: Key.preferenceSyncOnboardingCompleted
@@ -95,6 +97,9 @@ final class SettingsStore {
         defaults.set(settings.calendarSelectionMode.rawValue, forKey: Key.calendarSelectionMode)
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
+        if let data = try? encoder.encode(settings.metricsSampling) {
+            defaults.set(data, forKey: Key.metricsSampling)
+        }
         defaults.set(settings.preferenceSyncEnabled, forKey: Key.preferenceSyncEnabled)
         defaults.set(
             settings.preferenceSyncOnboardingCompleted,
@@ -108,6 +113,15 @@ final class SettingsStore {
         )
         defaults.set(settings.iCloudIdentityTokenData, forKey: Key.iCloudIdentityTokenData)
         defaults.set(settings.syncDeviceID, forKey: Key.syncDeviceID)
+    }
+
+    private func loadMetricsSampling() -> MetricsSamplingSettings {
+        guard let data = defaults.data(forKey: Key.metricsSampling),
+              let settings = try? decoder.decode(MetricsSamplingSettings.self, from: data)
+        else {
+            return .default
+        }
+        return settings.normalized
     }
 
     private func loadMenuBarFormat() -> MenuBarFormatSettings {

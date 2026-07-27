@@ -131,6 +131,8 @@ struct AppSettings: Equatable {
     var calendarSelectionMode: CalendarSelectionMode
     var selectedCalendarIDs: Set<String>
     var pinnedQuickActions: [QuickActionReference]
+    /// Machine-local: battery behaviour differs per Mac, so this is not synced.
+    var metricsSampling: MetricsSamplingSettings
     var preferenceSyncEnabled: Bool
     var preferenceSyncOnboardingCompleted: Bool
     var portableModificationDates: [PortableSettingField: Date]
@@ -149,6 +151,7 @@ struct AppSettings: Equatable {
         calendarSelectionMode: CalendarSelectionMode,
         selectedCalendarIDs: Set<String>,
         pinnedQuickActions: [QuickActionReference],
+        metricsSampling: MetricsSamplingSettings = .default,
         preferenceSyncEnabled: Bool = false,
         preferenceSyncOnboardingCompleted: Bool = false,
         portableModificationDates: [PortableSettingField: Date] = [:],
@@ -165,6 +168,7 @@ struct AppSettings: Equatable {
         self.calendarWeekStartDay = calendarWeekStartDay
         self.calendarSelectionMode = calendarSelectionMode
         self.selectedCalendarIDs = selectedCalendarIDs
+        self.metricsSampling = metricsSampling.normalized
         self.pinnedQuickActions = pinnedQuickActions
         self.preferenceSyncEnabled = preferenceSyncEnabled
         self.preferenceSyncOnboardingCompleted = preferenceSyncOnboardingCompleted

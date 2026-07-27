@@ -5,6 +5,11 @@ import IOKit
 protocol SystemSensorReading: AnyObject {
   func readFans() -> [FanReading]
   func readCPUTemperature() -> Double?
+  func readThermalBreakdown() -> [ThermalReading]
+}
+
+extension SystemSensorReading {
+  func readThermalBreakdown() -> [ThermalReading] { [] }
 }
 
 /// Fan speeds and die temperatures, which macOS exposes only through undocumented interfaces.
@@ -48,6 +53,24 @@ final class SystemSensorReader: SystemSensorReading {
       }
     }
     return nil
+  }
+
+  /// Returns every available thermal cluster for the CPU detail panel.
+  func readThermalBreakdown() -> [ThermalReading] {
+    let hidReadings = thermalSensors.clusterTemperatures()
+    guard hidReadings.isEmpty else { return hidReadings }
+
+    let intelKeys: [(key: String, label: String)] = [
+      ("TC0D", L10n.string("CPU die")),
+      ("TC0P", L10n.string("CPU proximity")),
+      ("TG0D", L10n.string("GPU die")),
+      ("TA0P", L10n.string("Ambient")),
+      ("TM0P", L10n.string("Memory")),
+    ]
+    return intelKeys.compactMap { entry in
+      guard let value = smc.readValue(key: entry.key), (1...125).contains(value) else { return nil }
+      return ThermalReading(label: entry.label, celsius: value)
+    }
   }
 }
 
@@ -329,6 +352,56 @@ private final class HIDThermalSensorClient {
 
     return nil
   }
+
+  /// Averages each known cluster prefix into one labelled reading.
+  func clusterTemperatures() -> [ThermalReading] {
+    lock.lock()
+    defer { lock.unlock() }
+
+    if let retryAfter, Date() < retryAfter { return [] }
+    if sensors.isEmpty {
+      discoverSensors()
+      if sensors.isEmpty {
+        scheduleRetry()
+        return []
+      }
+    }
+    guard let copyEvent = Self.copyEvent, let eventFloatValue = Self.eventFloatValue else {
+      scheduleRetry()
+      return []
+    }
+
+    func read(_ sensor: Sensor) -> Double? {
+      guard
+        let event = copyEvent(sensor.service, Self.temperatureEventType, 0, 0)?.takeRetainedValue()
+      else { return nil }
+      let value = eventFloatValue(event, Self.temperatureFieldBase)
+      return (1...125).contains(value) ? value : nil
+    }
+
+    let readings = Self.clusterLabels.compactMap { cluster -> ThermalReading? in
+      let values = sensors
+        .filter { $0.name.hasPrefix(cluster.prefix) }
+        .compactMap { read($0) }
+      guard !values.isEmpty else { return nil }
+      return ThermalReading(
+        label: L10n.string(cluster.label),
+        celsius: values.reduce(0, +) / Double(values.count)
+      )
+    }
+    if !readings.isEmpty { retryAfter = nil }
+    return readings
+  }
+
+  private static let clusterLabels: [(prefix: String, label: String)] = [
+    ("pACC MTR Temp Sensor", "P-cluster"),
+    ("eACC MTR Temp Sensor", "E-cluster"),
+    ("GPU MTR Temp Sensor", "GPU"),
+    ("SOC MTR Temp Sensor", "SoC"),
+    ("PMU tdie", "Die"),
+    ("PMU tdev", "Device"),
+    ("ANE MTR Temp Sensor", "Neural Engine"),
+  ]
 
   private func scheduleRetry() {
     sensors.removeAll()

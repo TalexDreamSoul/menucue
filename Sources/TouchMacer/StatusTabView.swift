@@ -6,11 +6,17 @@ struct StatusTabView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var metrics: SystemMetricsService
   let openAllActions: () -> Void
+  /// Owned here rather than by the popover: hover detail is only meaningful while
+  /// this tab is on screen, and tearing it down on exit stops every extra probe.
+  @StateObject private var detail = SystemDetailService()
+  /// Measured, because the panel can only be kept inside the popover if its height
+  /// is known — a naive above/below flip pushed tall panels off the top edge.
+  @State private var detailPanelHeight: CGFloat = 0
 
   var body: some View {
     ScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
-        SystemMetricsCards(metrics: metrics)
+        SystemMetricsCards(metrics: metrics, detail: detail)
 
         // Pinned actions live here too so the common case needs no tab switch;
         // the Actions tab remains the full catalog.
@@ -27,11 +33,93 @@ struct StatusTabView: View {
       .padding(.vertical, 2)
     }
     .scrollBounceBehavior(.basedOnSize)
+    .overlayPreferenceValue(MetricDetailAnchorKey.self) { anchors in
+      GeometryReader { proxy in
+        if let target = detail.target, let anchor = anchors[target] {
+          detailPanel(for: target, cardFrame: proxy[anchor], container: proxy.size)
+        }
+      }
+      // The panel must never take hover away from the card that opened it.
+      .allowsHitTesting(false)
+    }
+    .animation(PopoverMotion.hover, value: detail.target)
     .onAppear {
+      // Applied before retain() so the first timer is already scheduled at the
+      // battery-appropriate rate rather than being rebuilt one tick later.
+      metrics.applySamplingSettings(model.settings.metricsSampling)
       metrics.retain()
       model.quickActionService.refreshAll()
     }
-    .onDisappear { metrics.release() }
+    .onDisappear {
+      metrics.release()
+      detail.hover(nil)
+    }
+    .onChange(of: model.settings.metricsSampling) { _, sampling in
+      metrics.applySamplingSettings(sampling)
+    }
+  }
+}
+
+extension StatusTabView {
+  static let detailPanelWidth: CGFloat = 244
+  static let detailPanelGap: CGFloat = 6
+
+  /// Prefers below the card, flips above when that overflows, and finally clamps
+  /// into the container so the panel is never cut off by the popover edge.
+  @ViewBuilder
+  fileprivate func detailPanel(
+    for target: MetricDetailTarget,
+    cardFrame: CGRect,
+    container: CGSize
+  ) -> some View {
+    let origin = Self.panelOrigin(
+      cardFrame: cardFrame, container: container, height: detailPanelHeight)
+    let height = detailPanelHeight
+
+    ZStack(alignment: .topLeading) {
+      Color.clear
+      MetricDetailPanel(target: target, detail: detail, snapshot: metrics.snapshot)
+        .frame(width: Self.detailPanelWidth)
+        .background(
+          GeometryReader { panel in
+            Color.clear.preference(
+              key: MetricDetailHeightKey.self, value: panel.size.height)
+          }
+        )
+        .offset(x: origin.x, y: origin.y)
+        // The first frame has no measurement yet; showing it would flash at y = 0.
+        .opacity(height > 0 ? 1 : 0)
+    }
+    .onPreferenceChange(MetricDetailHeightKey.self) { measured in
+      detailPanelHeight = measured
+    }
+  }
+
+  /// Prefers below, flips above when that overflows, and finally clamps into the
+  /// container so a tall panel is never cut off by the popover edge.
+  static func panelOrigin(cardFrame: CGRect, container: CGSize, height: CGFloat) -> CGPoint {
+    let inset = PopoverMetrics.contentPadding
+    let width = detailPanelWidth
+    let x = clamp(
+      cardFrame.midX - width / 2, lower: inset, upper: container.width - width - inset)
+
+    let below = cardFrame.maxY + detailPanelGap
+    let above = cardFrame.minY - detailPanelGap - height
+    let lowestTop = container.height - height - inset
+
+    if below <= lowestTop {
+      return CGPoint(x: x, y: below)
+    }
+    if above >= inset {
+      return CGPoint(x: x, y: above)
+    }
+    // Taller than the room on either side: clamp rather than run off an edge.
+    return CGPoint(x: x, y: clamp(above, lower: inset, upper: max(inset, lowestTop)))
+  }
+
+  static func clamp(_ value: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
+    guard upper > lower else { return lower }
+    return min(upper, max(lower, value))
   }
 }
 
@@ -39,6 +127,7 @@ struct StatusTabView: View {
 /// laid out and snapshot-rendered on its own.
 struct SystemMetricsCards: View {
   @ObservedObject var metrics: SystemMetricsService
+  @ObservedObject var detail: SystemDetailService
 
   private static let userColor = Color.accentColor
   private static let systemColor = Color.orange
@@ -47,21 +136,28 @@ struct SystemMetricsCards: View {
   var body: some View {
     VStack(spacing: PopoverMetrics.cardSpacing) {
       cpuCard
+        .metricDetailSource(.cpu, service: detail)
       Grid(horizontalSpacing: PopoverMetrics.cardSpacing, verticalSpacing: PopoverMetrics.cardSpacing)
       {
         GridRow {
           memoryCard
+            .metricDetailSource(.memory, service: detail)
           diskCard
+            .metricDetailSource(.disk, service: detail)
         }
         // Fanless Macs (MacBook Air, Mac mini M-series) report no tachometers at all.
         if metrics.snapshot.fans.isEmpty {
           GridRow {
-            networkCard.gridCellColumns(2)
+            networkCard
+              .metricDetailSource(.network, service: detail)
+              .gridCellColumns(2)
           }
         } else {
           GridRow {
             fanCard
+            .metricDetailSource(.fan, service: detail)
             networkCard
+            .metricDetailSource(.network, service: detail)
           }
         }
       }
@@ -79,6 +175,8 @@ struct SystemMetricsCards: View {
           .font(.system(size: 13, weight: .bold, design: .rounded))
           .monospacedDigit()
           .foregroundStyle(temperatureColor(temperature))
+          .contentTransition(.numericText())
+          .animation(PopoverMotion.value, value: temperature)
       }
     } content: {
       HStack(alignment: .firstTextBaseline) {
@@ -97,6 +195,8 @@ struct SystemMetricsCards: View {
         Text(SystemMetricsFormatter.percent(snapshot.cpu.busy))
           .font(.system(size: 20, weight: .semibold, design: .rounded))
           .monospacedDigit()
+          .contentTransition(.numericText())
+          .animation(PopoverMotion.value, value: snapshot.cpu.busy)
       }
 
       CPUUsageChart(
@@ -145,6 +245,12 @@ struct SystemMetricsCards: View {
         .monospacedDigit()
         .foregroundStyle(.secondary)
     } content: {
+      // Mirrors the Disk card's volume name so both bars land on the same line
+      // when the two cards share a row.
+      Text(L10n.string("Physical Memory"))
+        .font(.system(size: 11, weight: .semibold))
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
       MetricBar(fraction: memory.fraction, tint: .purple)
       HStack(spacing: 4) {
         MetricReadout(label: "Used", value: SystemMetricsFormatter.capacity(memory.used))
@@ -183,7 +289,7 @@ struct SystemMetricsCards: View {
           value: SystemMetricsFormatter.capacity(disk.total),
           alignment: .trailing)
       }
-      Text("All disks")
+      Text(L10n.string("All disks"))
         .font(.system(size: 9, weight: .medium))
         .foregroundStyle(.tertiary)
       HStack(spacing: 4) {
@@ -224,6 +330,8 @@ struct SystemMetricsCards: View {
             Text(L10n.format("%d RPM", Int(fan.currentRPM)))
               .font(.system(size: 12, weight: .semibold, design: .rounded))
               .monospacedDigit()
+              .contentTransition(.numericText())
+              .animation(PopoverMotion.value, value: fan.currentRPM)
           }
           if fan.maxRPM > fan.minRPM {
             MetricBar(fraction: fan.loadFraction, tint: .cyan, height: 4)

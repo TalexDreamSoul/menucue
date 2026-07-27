@@ -1,7 +1,7 @@
 import Foundation
 
 /// A single CPU load reading expressed as fractions of one wall-clock interval.
-struct CPULoadSample: Equatable {
+struct CPULoadSample: Equatable, Codable {
   var user: Double = 0
   var system: Double = 0
   var nice: Double = 0
@@ -22,7 +22,7 @@ struct CPULoadSample: Equatable {
   }
 }
 
-struct MemoryUsage: Equatable {
+struct MemoryUsage: Equatable, Codable {
   var appMemory: UInt64 = 0
   var wired: UInt64 = 0
   var compressed: UInt64 = 0
@@ -38,7 +38,7 @@ struct MemoryUsage: Equatable {
   }
 }
 
-struct DiskUsage: Equatable {
+struct DiskUsage: Equatable, Codable {
   var volumeName: String = "Macintosh HD"
   var used: UInt64 = 0
   var total: UInt64 = 0
@@ -50,14 +50,14 @@ struct DiskUsage: Equatable {
   }
 }
 
-struct NetworkUsage: Equatable {
+struct NetworkUsage: Equatable, Codable {
   var downloadBytesPerSecond: Double = 0
   var uploadBytesPerSecond: Double = 0
   var interfaceName: String?
   var ipv4Address: String?
 }
 
-struct FanReading: Identifiable, Equatable {
+struct FanReading: Identifiable, Equatable, Codable {
   let index: Int
   let currentRPM: Double
   let minRPM: Double
@@ -73,7 +73,7 @@ struct FanReading: Identifiable, Equatable {
 }
 
 /// Everything the Status tab renders, refreshed as one atomic value.
-struct SystemMetricsSnapshot: Equatable {
+struct SystemMetricsSnapshot: Equatable, Codable {
   var cpu = CPULoadSample()
   var memory = MemoryUsage()
   var disk = DiskUsage()

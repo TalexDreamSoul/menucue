@@ -10,7 +10,6 @@ final class StatusBarController: NSObject {
   private let updateService: UpdateService
   private let languageService: AppLanguageService
   private var settingsWindow: NSWindow?
-  private var quickActionsWindow: NSWindow?
   private var quickEventWindow: NSWindow?
   private var timer: Timer?
   private var settingsCancellable: AnyCancellable?
@@ -81,8 +80,8 @@ final class StatusBarController: NSObject {
         openSettings: { [weak self] in
           self?.showSettingsWindow()
         },
-        openQuickActions: { [weak self] in
-          self?.showQuickActionsWindow()
+        openQuickActionSettings: { [weak self] in
+          self?.showSettingsWindow(initialPane: .quickActions)
         },
         quitApp: {
           NSApp.terminate(nil)
@@ -451,10 +450,7 @@ final class StatusBarController: NSObject {
 
     menu.addItem(NSMenuItem.separator())
     let quickItem = NSMenuItem(
-      title: L10n.string("Quick Time Zone"),
-      action: nil,
-      keyEquivalent: ""
-    )
+      title: L10n.string("Quick Time Zone"), action: nil, keyEquivalent: "")
     menu.setSubmenu(quickTimeZoneMenu(), for: quickItem)
     menu.addItem(quickItem)
 
@@ -523,9 +519,10 @@ final class StatusBarController: NSObject {
     NSApp.terminate(nil)
   }
 
-  private func showSettingsWindow(initialPane: SettingsPane = .dateAndEvents) {
+  private func showSettingsWindow(initialPane: SettingsPane = .overview) {
     popover.performClose(nil)
     model.refreshCalendarData()
+    model.quickActionService.refreshAll()
 
     let hostingController = NSHostingController(
       rootView: SettingsWindowView(
@@ -565,36 +562,6 @@ final class StatusBarController: NSObject {
     window.center()
     window.setFrameAutosaveName("TouchMacerSettingsWindow")
     return window
-  }
-
-  private func showQuickActionsWindow() {
-    popover.performClose(nil)
-    model.quickActionService.refreshAll()
-
-    let hostingController = NSHostingController(
-      rootView: QuickActionsWindowView(model: model) { [weak self] in
-        self?.showSettingsWindow(initialPane: .quickActions)
-      }
-    )
-    hostingController.view.appearance = NSApp.appearance
-
-    let window = quickActionsWindow ?? NSWindow(contentViewController: hostingController)
-    if quickActionsWindow != nil {
-      window.contentViewController = hostingController
-    } else {
-      window.title = L10n.string("TouchMacer Quick Actions")
-      window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-      window.tabbingMode = .disallowed
-      window.setContentSize(NSSize(width: 700, height: 600))
-      window.minSize = NSSize(width: 560, height: 420)
-      window.isReleasedWhenClosed = false
-      window.center()
-      window.setFrameAutosaveName("TouchMacerQuickActionsWindow")
-      quickActionsWindow = window
-    }
-    window.contentViewController?.view.appearance = NSApp.appearance
-    window.makeKeyAndOrderFront(nil)
-    NSApp.activate(ignoringOtherApps: true)
   }
 
   private func showQuickEventWindow() {

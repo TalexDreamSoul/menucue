@@ -87,6 +87,17 @@ enum PreferenceSyncStatus: Equatable {
         }
     }
 
+    /// True when sync needs nothing from the user right now. `.disabled` counts as
+    /// healthy: opting out is a valid end state, not a problem to flag.
+    var isHealthy: Bool {
+        switch self {
+        case .disabled, .syncing, .synced:
+            return true
+        case .unavailable, .signedOut, .needsOnboarding, .needsSourceDecision, .failed:
+            return false
+        }
+    }
+
     var message: String {
         switch self {
         case .unavailable:

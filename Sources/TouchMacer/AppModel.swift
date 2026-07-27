@@ -189,6 +189,14 @@ final class AppModel: ObservableObject {
         preferenceSyncService.retry()
     }
 
+    func updateMetricsSampling(_ update: (inout MetricsSamplingSettings) -> Void) {
+        updateSettings { settings in
+            var sampling = settings.metricsSampling
+            update(&sampling)
+            settings.metricsSampling = sampling.normalized
+        }
+    }
+
     func addPinnedQuickAction(_ reference: QuickActionReference) {
         guard settings.pinnedQuickActions.count < 7 else { return }
         guard !settings.pinnedQuickActions.contains(reference) else { return }

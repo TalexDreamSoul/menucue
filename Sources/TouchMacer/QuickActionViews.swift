@@ -1,11 +1,13 @@
 import SwiftUI
 
+/// Column layout shared by every quick-action grid inside the popover.
+private let popoverActionColumns = Array(
+  repeating: GridItem(.flexible(), spacing: 6), count: 4)
+
 /// Grid of just the pinned actions, for embedding under other popover content.
 struct PinnedQuickActionGrid: View {
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
-
-  private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
 
   init(model: AppModel) {
     self.model = model
@@ -18,7 +20,7 @@ struct PinnedQuickActionGrid: View {
       if items.isEmpty {
         CardPlaceholder(message: L10n.string("Pin actions in Settings to reach them from here."))
       } else {
-        LazyVGrid(columns: columns, spacing: 6) {
+        LazyVGrid(columns: popoverActionColumns, spacing: 6) {
           ForEach(items) { item in
             QuickActionTile(item: item, style: .compact) {
               service.perform(item.reference)
@@ -43,14 +45,10 @@ struct ActionsTabView: View {
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
   let openSettings: () -> Void
-  let openMore: () -> Void
 
-  private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
-
-  init(model: AppModel, openSettings: @escaping () -> Void, openMore: @escaping () -> Void) {
+  init(model: AppModel, openSettings: @escaping () -> Void) {
     self.model = model
     self.openSettings = openSettings
-    self.openMore = openMore
     self.service = model.quickActionService
   }
 
@@ -67,18 +65,19 @@ struct ActionsTabView: View {
               Color.accentColor.opacity(0.10),
               in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
-            .transition(.opacity)
+            .transition(.move(edge: .top).combined(with: .opacity))
         }
 
         PopoverCard(title: "Pinned", systemImage: "pin.fill", tint: .accentColor) {
           Text("\(model.settings.pinnedQuickActions.count)/7")
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.tertiary)
+            .contentTransition(.numericText())
         } content: {
           if pinnedItems.isEmpty {
             CardPlaceholder(message: "Nothing pinned yet. Pin actions in Settings.")
           } else {
-            LazyVGrid(columns: columns, spacing: 6) {
+            LazyVGrid(columns: popoverActionColumns, spacing: 6) {
               ForEach(pinnedItems) { item in
                 QuickActionTile(item: item, style: .compact) {
                   service.perform(item.reference)
@@ -89,15 +88,10 @@ struct ActionsTabView: View {
         }
 
         PopoverCard(title: "More Actions", systemImage: "square.grid.2x2", tint: .secondary) {
-          Button("Manage", action: openSettings)
-            .buttonStyle(.plain)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
-        } content: {
           if unpinnedItems.isEmpty {
             CardPlaceholder(message: "Every available action is pinned.")
           } else {
-            LazyVGrid(columns: columns, spacing: 6) {
+            LazyVGrid(columns: popoverActionColumns, spacing: 6) {
               ForEach(unpinnedItems) { item in
                 QuickActionTile(item: item, style: .compact) {
                   service.perform(item.reference)
@@ -107,14 +101,14 @@ struct ActionsTabView: View {
           }
         }
 
-        Button(action: openMore) {
-          Label("Open Quick Actions Window", systemImage: "macwindow")
+        Button(action: openSettings) {
+          Label("Manage in Settings", systemImage: "slider.horizontal.3")
             .font(.system(size: 11, weight: .medium))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 7)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.98))
         .foregroundStyle(.secondary)
         .background(
           Color.primary.opacity(0.045),
@@ -123,8 +117,9 @@ struct ActionsTabView: View {
       }
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
+      .animation(PopoverMotion.state, value: model.settings.pinnedQuickActions)
+      .animation(PopoverMotion.state, value: service.feedbackMessage)
     }
-    .scrollBounceBehavior(.basedOnSize)
     .onAppear {
       service.refreshAll()
     }
@@ -140,72 +135,17 @@ struct ActionsTabView: View {
   }
 }
 
-struct QuickActionsWindowView: View {
-  @ObservedObject var model: AppModel
-  @ObservedObject private var service: QuickActionService
-  let openSettings: () -> Void
-
-  private let columns = [
-    GridItem(.adaptive(minimum: 118, maximum: 142), spacing: 14)
-  ]
-
-  init(model: AppModel, openSettings: @escaping () -> Void) {
-    self.model = model
-    self.openSettings = openSettings
-    self.service = model.quickActionService
-  }
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 18) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Quick Actions")
-            .font(.title2.weight(.semibold))
-          Text("Run built-in actions and Apple Shortcuts without pinning them.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        Spacer()
-        Button("Manage") {
-          openSettings()
-        }
-      }
-
-      if let feedbackMessage = service.feedbackMessage {
-        Label(feedbackMessage, systemImage: "info.circle")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .padding(10)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.secondary.opacity(0.08))
-          .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-      }
-
-      ScrollView {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
-          ForEach(service.catalogItems) { item in
-            QuickActionTile(item: item, style: .catalog) {
-              service.perform(item.reference)
-            }
-          }
-        }
-        .padding(.vertical, 2)
-      }
-    }
-    .padding(22)
-    .frame(minWidth: 620, minHeight: 520, alignment: .topLeading)
-    .background(Color(nsColor: .windowBackgroundColor))
-    .onAppear {
-      service.refreshAll()
-    }
-  }
-}
-
+/// Quick Actions settings pane. This is also where the full catalog is run from —
+/// there is no separate Quick Actions window, so managing and running live together.
 struct QuickActionSettingsView: View {
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
   @ObservedObject private var powerHelper: PowerHelperManager
   @State private var helperFeedback: String?
+
+  private let catalogColumns = [
+    GridItem(.adaptive(minimum: 116, maximum: 150), spacing: 10)
+  ]
 
   init(model: AppModel) {
     self.model = model
@@ -227,6 +167,7 @@ struct QuickActionSettingsView: View {
           Spacer()
           Text(L10n.format("%d / 7", model.settings.pinnedQuickActions.count))
             .font(.subheadline.weight(.semibold))
+            .contentTransition(.numericText())
             .foregroundStyle(
               model.settings.pinnedQuickActions.count == 7 ? Color.orange : Color.secondary)
         }
@@ -282,8 +223,50 @@ struct QuickActionSettingsView: View {
               .help("Remove")
             }
             .padding(.vertical, 4)
+            .transition(.opacity.combined(with: .move(edge: .top)))
           }
         }
+      }
+      .animation(PopoverMotion.state, value: model.settings.pinnedQuickActions)
+
+      SettingsGroup(spacing: 12) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(L10n.string("All actions"))
+            .font(.headline)
+          Text(
+            L10n.string(
+              "Click a tile to run it now. Use the pin button to show it in the menu-bar popover."
+            )
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
+
+        if let feedbackMessage = service.feedbackMessage {
+          Label(feedbackMessage, systemImage: "info.circle")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+              Color.accentColor.opacity(0.10),
+              in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
+
+        LazyVGrid(columns: catalogColumns, alignment: .leading, spacing: 10) {
+          ForEach(service.catalogItems) { item in
+            QuickActionTile(item: item, style: .catalog) {
+              service.perform(item.reference)
+            }
+            .overlay(alignment: .topTrailing) {
+              pinToggle(for: item)
+                .padding(5)
+            }
+          }
+        }
+        .animation(PopoverMotion.state, value: service.feedbackMessage)
       }
 
       SettingsGroup(spacing: 12) {
@@ -319,6 +302,7 @@ struct QuickActionSettingsView: View {
           Text(helperFeedback)
             .font(.caption2)
             .foregroundStyle(.secondary)
+            .transition(.opacity)
         }
 
         HStack {
@@ -326,45 +310,46 @@ struct QuickActionSettingsView: View {
           helperActionButton
         }
       }
-
-      SettingsGroup(spacing: 12) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Available actions")
-            .font(.headline)
-          Text("Built-in actions and Apple Shortcuts can be added once and reordered above.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-
-        ForEach(availableItems) { item in
-          HStack(spacing: 10) {
-            Image(systemName: item.systemImage)
-              .frame(width: 22)
-            VStack(alignment: .leading, spacing: 2) {
-              Text(item.title)
-              if let reason = item.state.availability.reason {
-                Text(reason)
-                  .font(.caption2)
-                  .foregroundStyle(.secondary)
-                  .lineLimit(2)
-              }
-            }
-            Spacer()
-            Button("Add") {
-              model.addPinnedQuickAction(item.reference)
-            }
-            .disabled(
-              model.settings.pinnedQuickActions.count >= 7
-                || !item.state.availability.isAvailable
-            )
-          }
-          .padding(.vertical, 3)
-        }
-      }
+      .animation(PopoverMotion.state, value: powerHelper.registrationState)
     }
     .onAppear {
       service.refreshAll()
     }
+  }
+
+  /// Pin/unpin control layered on a catalog tile. Kept outside the tile's own
+  /// Button label so the two hit areas stay independent.
+  @ViewBuilder
+  private func pinToggle(for item: QuickActionItem) -> some View {
+    let isPinned = model.settings.pinnedQuickActions.contains(item.reference)
+    let isFull = model.settings.pinnedQuickActions.count >= 7
+
+    Button {
+      if isPinned {
+        model.removePinnedQuickAction(item.reference)
+      } else {
+        model.addPinnedQuickAction(item.reference)
+      }
+    } label: {
+      Image(systemName: isPinned ? "pin.fill" : "pin")
+        .font(.system(size: 9, weight: .semibold))
+        .foregroundStyle(isPinned ? Color.accentColor : Color.secondary)
+        .frame(width: 18, height: 18)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.9), in: Circle())
+        .contentShape(Circle())
+    }
+    .buttonStyle(PressableButtonStyle(pressedScale: 0.88))
+    .disabled(!isPinned && (isFull || !item.state.availability.isAvailable))
+    .help(
+      L10n.string(
+        isPinned ? "Unpin from popover" : isFull ? "Pin limit reached (7)" : "Pin to popover"
+      )
+    )
+    .accessibilityLabel(
+      isPinned
+        ? L10n.format("Unpin %@", item.title)
+        : L10n.format("Pin %@", item.title)
+    )
   }
 
   @ViewBuilder
@@ -411,38 +396,63 @@ struct QuickActionSettingsView: View {
       service.refreshAll()
     }
   }
-
-  private var availableItems: [QuickActionItem] {
-    let pinned = Set(model.settings.pinnedQuickActions)
-    return service.catalogItems.filter { !pinned.contains($0.reference) }
-  }
 }
 
 private enum QuickActionTileStyle {
+  /// Menu-bar popover: four to a row, so the label carries the meaning and the
+  /// glyph is only a landmark.
   case compact
+  /// Settings pane: room for the availability reason under the label.
   case catalog
 
   var height: CGFloat {
     switch self {
     case .compact: return 60
-    case .catalog: return 126
+    case .catalog: return 86
+    }
+  }
+
+  var cornerRadius: CGFloat {
+    switch self {
+    case .compact: return 11
+    case .catalog: return 12
     }
   }
 
   var iconSize: CGFloat {
     switch self {
-    case .compact: return 24
-    case .catalog: return 34
+    case .compact: return 13
+    case .catalog: return 16
+    }
+  }
+
+  var labelSize: CGFloat {
+    switch self {
+    case .compact: return 10
+    case .catalog: return 11
+    }
+  }
+
+  var verticalPadding: CGFloat {
+    switch self {
+    case .compact: return 7
+    case .catalog: return 10
     }
   }
 }
 
+/// A Control Center style tile: the whole rounded rect is the control surface,
+/// and an active toggle fills it with the accent color rather than tinting a puck.
 private struct QuickActionTile: View {
   let item: QuickActionItem
   let style: QuickActionTileStyle
   let action: () -> Void
 
   @State private var confirmsDestructiveAction = false
+  @State private var isHovering = false
+
+  private var isOn: Bool { item.state.isOn == true }
+  private var isAvailable: Bool { item.state.availability.isAvailable }
 
   var body: some View {
     Button {
@@ -452,43 +462,50 @@ private struct QuickActionTile: View {
         action()
       }
     } label: {
-      VStack(spacing: style == .compact ? 3 : 8) {
+      VStack(spacing: style == .compact ? 5 : 6) {
         ZStack {
-          Circle()
-            .fill(iconBackground)
           if item.state.isRunning {
             ProgressView()
               .controlSize(.small)
+              .scaleEffect(0.7)
           } else {
             Image(systemName: item.systemImage)
-              .font(.system(size: style.iconSize, weight: .medium))
+              .font(.system(size: style.iconSize, weight: .semibold))
               .foregroundStyle(iconForeground)
+              .symbolEffect(.bounce, value: isOn)
           }
         }
-        .frame(width: style == .compact ? 34 : 54, height: style == .compact ? 34 : 54)
+        .frame(height: style.iconSize + 4)
 
         Text(item.title)
-          .font(style == .compact ? .caption2 : .caption)
-          .fontWeight(.medium)
+          .font(.system(size: style.labelSize, weight: .medium))
+          .foregroundStyle(labelForeground)
           .multilineTextAlignment(.center)
           .lineLimit(2)
-          .minimumScaleFactor(0.72)
+          .minimumScaleFactor(0.8)
 
-        if style == .catalog,
-          let reason = item.state.availability.reason
-        {
+        if style == .catalog, let reason = item.state.availability.reason {
           Text(reason)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
+            .font(.system(size: 9))
+            .foregroundStyle(.tertiary)
             .multilineTextAlignment(.center)
             .lineLimit(2)
         }
       }
-      .frame(maxWidth: .infinity, minHeight: style.height, alignment: .top)
-      .contentShape(Rectangle())
+      .padding(.horizontal, 4)
+      .padding(.vertical, style.verticalPadding)
+      .frame(maxWidth: .infinity, minHeight: style.height)
+      .background(tileFill, in: tileShape)
+      .overlay(tileShape.strokeBorder(tileStroke, lineWidth: 1))
+      .contentShape(tileShape)
     }
-    .buttonStyle(.plain)
-    .opacity(item.state.availability.isAvailable ? 1 : 0.62)
+    .buttonStyle(PressableButtonStyle())
+    .opacity(isAvailable ? 1 : 0.55)
+    .onHover { hovering in
+      guard isAvailable else { return }
+      withAnimation(PopoverMotion.hover) { isHovering = hovering }
+    }
+    .animation(PopoverMotion.state, value: item.state)
     .help(item.state.availability.reason ?? item.title)
     .accessibilityLabel(item.title)
     .accessibilityValue(accessibilityValue)
@@ -504,16 +521,29 @@ private struct QuickActionTile: View {
     }
   }
 
-  private var iconBackground: Color {
-    guard item.state.availability.isAvailable else { return Color.secondary.opacity(0.12) }
-    if item.state.isOn == true {
-      return Color.accentColor
-    }
-    return Color.secondary.opacity(0.13)
+  private var tileShape: RoundedRectangle {
+    RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+  }
+
+  private var tileFill: Color {
+    guard isAvailable else { return Color.primary.opacity(0.03) }
+    if isOn { return Color.accentColor }
+    return Color.primary.opacity(isHovering ? 0.10 : 0.05)
+  }
+
+  private var tileStroke: Color {
+    guard isAvailable, !isOn else { return .clear }
+    return Color.primary.opacity(isHovering ? 0.12 : 0.06)
   }
 
   private var iconForeground: Color {
-    item.state.isOn == true ? .white : .primary
+    if isOn { return .white }
+    return isAvailable ? .primary : .secondary
+  }
+
+  private var labelForeground: Color {
+    if isOn { return .white }
+    return isAvailable ? .primary.opacity(0.85) : .secondary
   }
 
   private var accessibilityValue: String {

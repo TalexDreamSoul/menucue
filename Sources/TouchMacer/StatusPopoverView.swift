@@ -44,7 +44,9 @@ enum PopoverTab: String, CaseIterable, Identifiable {
 struct StatusPopoverView: View {
   @ObservedObject var model: AppModel
   let openSettings: () -> Void
-  let openQuickActions: () -> Void
+  /// Opens the Settings window on the Quick Actions pane, which is also where the
+  /// full action catalog is run from.
+  let openQuickActionSettings: () -> Void
   let quitApp: () -> Void
   @StateObject private var metrics = SystemMetricsService()
   @State private var selectedTab: PopoverTab = .status
@@ -71,7 +73,7 @@ struct StatusPopoverView: View {
       PopoverFooter(
         bootDate: metrics.bootDate,
         openSettings: openSettings,
-        openQuickActions: openQuickActions,
+        openQuickActionSettings: openQuickActionSettings,
         newEvent: openQuickEventEditor,
         quitApp: quitApp
       )
@@ -85,43 +87,56 @@ struct StatusPopoverView: View {
     }
   }
 
+  /// Tabs cross-fade with a short rise. Kept directionless so the animation costs
+  /// nothing to reason about when tabs are reordered.
+  private static let tabTransition: AnyTransition = .asymmetric(
+    insertion: .opacity.combined(with: .offset(y: 8)),
+    removal: .opacity
+  )
+
   @ViewBuilder
   private var tabContent: some View {
     switch selectedTab {
     case .status:
       StatusTabView(model: model, metrics: metrics) {
-        withAnimation(.snappy(duration: 0.2)) { selectedTab = .actions }
+        withAnimation(PopoverMotion.navigation) { selectedTab = .actions }
       }
+      .transition(Self.tabTransition)
     case .calendar:
       calendarTab
+        .transition(Self.tabTransition)
     case .actions:
-      ActionsTabView(model: model, openSettings: openSettings, openMore: openQuickActions)
+      ActionsTabView(model: model, openSettings: openQuickActionSettings)
+        .transition(Self.tabTransition)
     }
   }
 
   private var calendarTab: some View {
-    TimelineView(.periodic(from: Date(), by: 1)) { context in
-      ScrollView {
-        VStack(spacing: PopoverMetrics.cardSpacing) {
+    ScrollView {
+      VStack(spacing: PopoverMetrics.cardSpacing) {
+        // Scoped to the clock card. Wrapping the whole ScrollView in a 1 Hz
+        // TimelineView rebuilt the calendar and agenda every second, which fought
+        // with scroll momentum.
+        TimelineView(.periodic(from: Date(), by: 1)) { context in
           clockCard(date: context.date)
-          MonthCalendarView(
-            monthDate: $visibleMonthDate,
-            selectedDate: $selectedCalendarDate,
-            events: model.events,
-            timeZone: model.settings.overviewTimeZone,
-            weekStartDay: model.settings.calendarWeekStartDay
-          )
-          DailyGuideCard(
-            date: selectedCalendarDate,
-            timeZone: model.settings.overviewTimeZone
-          )
-          eventsSection
         }
-        .padding(.horizontal, PopoverMetrics.contentPadding)
-        .padding(.vertical, 2)
+        MonthCalendarView(
+          monthDate: $visibleMonthDate,
+          selectedDate: $selectedCalendarDate,
+          events: model.events,
+          timeZone: model.settings.overviewTimeZone,
+          weekStartDay: model.settings.calendarWeekStartDay
+        )
+        DailyGuideCard(
+          date: selectedCalendarDate,
+          timeZone: model.settings.overviewTimeZone
+        )
+        eventsSection
       }
-      .scrollBounceBehavior(.basedOnSize)
+      .padding(.horizontal, PopoverMetrics.contentPadding)
+      .padding(.vertical, 2)
     }
+    .scrollBounceBehavior(.basedOnSize)
   }
 
   private func clockCard(date: Date) -> some View {
@@ -456,7 +471,7 @@ struct SettingsWindowView: View {
     model: AppModel,
     updateService: UpdateService,
     languageService: AppLanguageService,
-    initialPane: SettingsPane = .dateAndEvents
+    initialPane: SettingsPane = .overview
   ) {
     self.model = model
     self.updateService = updateService
@@ -478,7 +493,10 @@ struct SettingsWindowView: View {
         model: model,
         updateService: updateService,
         languageService: languageService,
-        pane: selectedPane
+        pane: selectedPane,
+        selectPane: { pane in
+          withAnimation(PopoverMotion.navigation) { selectedPane = pane }
+        }
       )
     }
     .frame(minWidth: 700, idealWidth: 760, minHeight: 520, idealHeight: 640, alignment: .topLeading)
@@ -492,6 +510,7 @@ struct SettingsWindowView: View {
 }
 
 enum SettingsPane: String, CaseIterable, Identifiable {
+  case overview
   case dateAndEvents
   case quickActions
   case menuBarTimeZones
@@ -505,6 +524,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
+    case .overview: return L10n.string("Overview")
     case .dateAndEvents: return L10n.string("Date & Events")
     case .quickActions: return L10n.string("Quick Actions")
     case .menuBarTimeZones: return L10n.string("Menu Bar")
@@ -518,10 +538,13 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
+    case .overview:
+      return L10n.string(
+        "This Mac at a glance, sampling behavior, and anything needing attention.")
     case .dateAndEvents:
       return L10n.string("Calendar display, overview time zone, and week layout.")
     case .quickActions:
-      return L10n.string("Pinned actions, ordering, availability, and Apple Shortcuts.")
+      return L10n.string("Run any action, pin your favorites, and manage Apple Shortcuts.")
     case .menuBarTimeZones:
       return L10n.string("Status item clocks and rotation behavior.")
     case .appearance:
@@ -539,6 +562,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var systemImage: String {
     switch self {
+    case .overview: return "gauge.with.dots.needle.33percent"
     case .dateAndEvents: return "calendar"
     case .quickActions: return "square.grid.2x2"
     case .menuBarTimeZones: return "menubar.rectangle"
@@ -879,6 +903,7 @@ private struct SettingsContentView: View {
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
   let pane: SettingsPane
+  let selectPane: (SettingsPane) -> Void
   @State private var pendingTimeZoneID = TimeZone.autoupdatingCurrent.identifier
 
   var body: some View {
@@ -896,6 +921,9 @@ private struct SettingsContentView: View {
   @ViewBuilder
   private var selectedPaneContent: some View {
     switch pane {
+    case .overview:
+      OverviewSettingsView(
+        model: model, updateService: updateService, selectPane: selectPane)
     case .dateAndEvents:
       overviewSettingsSection
     case .quickActions:
@@ -1228,7 +1256,7 @@ private struct SettingsContentView: View {
   }
 
   private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.2"
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.3"
   }
 
   private var automaticUpdatesBinding: Binding<Bool> {
@@ -1344,34 +1372,64 @@ private struct ClockCard: View {
   let date: Date
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Text(clock.title)
-          .font(.subheadline.weight(.medium))
+    HStack(spacing: 8) {
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 5) {
+          // Real signal, not decoration: tells you at a glance whether it is a
+          // reasonable hour to contact someone there.
+          Image(systemName: isDaytime ? "sun.max.fill" : "moon.stars.fill")
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(isDaytime ? Color.orange : Color.indigo)
+          Text(clock.title)
+            .font(.system(size: 13, weight: .semibold))
+            .lineLimit(1)
+        }
+        Text(clock.subtitle)
+          .font(.system(size: 9.5))
+          .foregroundStyle(.tertiary)
           .lineLimit(1)
-        Spacer(minLength: 8)
+      }
+      Spacer(minLength: 8)
+      VStack(alignment: .trailing, spacing: 2) {
         Text(timeText)
           .font(.system(size: 16, weight: .semibold, design: .rounded))
           .monospacedDigit()
-      }
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Text(clock.subtitle)
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-        Spacer(minLength: 8)
         Text(dateText)
-          .font(.caption2.weight(.medium))
+          .font(.system(size: 9.5, weight: .semibold))
           .foregroundStyle(.secondary)
       }
     }
-    .padding(7)
+    .padding(.horizontal, 9)
+    .padding(.vertical, 7)
+    // Region flag bled off the trailing edge as a watermark. Stacked behind the
+    // fill so it sits under the text, and clipped by the card's own shape.
+    .background(alignment: .trailing) {
+      Text(clock.flag)
+        .font(.system(size: 54))
+        .opacity(0.32)
+        .offset(x: 8)
+        .accessibilityHidden(true)
+    }
+    // Wash pulled from the flag's own two dominant hues, so every region reads
+    // differently without a hand-maintained country palette.
+    .background(tint.gradient)
     .background(Color(nsColor: .controlBackgroundColor))
     .overlay(
       RoundedRectangle(cornerRadius: 10, style: .continuous)
-        .stroke(Color.primary.opacity(0.10), lineWidth: 1)
+        .stroke(tint.primary.opacity(0.30), lineWidth: 1)
     )
     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+  }
+
+  private var tint: FlagTint {
+    FlagPalette.tint(for: clock.flag)
+  }
+
+  private var isDaytime: Bool {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = clock.timeZone
+    let hour = calendar.component(.hour, from: date)
+    return (6..<18).contains(hour)
   }
 
   private var timeText: String {
@@ -1399,11 +1457,14 @@ private struct MonthCalendarView: View {
   let weekStartDay: WeekStartDay
   @State private var hoveredDate: Date?
 
-  private let weekNumberColumnWidth: CGFloat = 24
-  private let dateCellSize: CGFloat = 26
+  private let weekNumberColumnWidth: CGFloat = 22
+  private let dateCellHeight: CGFloat = 27
+  private let weekdayRowHeight: CGFloat = 20
+  /// Day columns flex so the grid spans the whole card. Fixed-width columns left
+  /// roughly a third of the card empty on the trailing edge.
   private var columns: [GridItem] {
     [GridItem(.fixed(weekNumberColumnWidth), spacing: 0)]
-      + Array(repeating: GridItem(.fixed(dateCellSize), spacing: 0), count: 7)
+      + Array(repeating: GridItem(.flexible(minimum: 24), spacing: 0), count: 7)
   }
 
   private var weekdayTitles: [String] {
@@ -1416,91 +1477,105 @@ private struct MonthCalendarView: View {
     VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 4) {
         Text(monthName)
-          .font(.headline.weight(.bold))
+          .font(.system(size: 13, weight: .bold))
+        // The month stays outside the Menu: `.borderlessButton` renders only the
+        // first text element of a custom label, which silently dropped the year.
         Menu {
           ForEach(yearRange, id: \.self) { year in
             Button {
-              setYear(year)
+              withAnimation(PopoverMotion.navigation) { setYear(year) }
             } label: {
               Text(verbatim: String(year))
             }
           }
         } label: {
           Text(yearTitle)
-            .font(.headline.weight(.bold))
-            .foregroundStyle(.primary)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText())
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
 
-        Spacer()
-        Button {
-          changeMonth(by: -1)
-        } label: {
-          Image(systemName: "chevron.left")
+        Spacer(minLength: 4)
+
+        CalendarNavButton(systemImage: "chevron.left", help: "Previous month") {
+          withAnimation(PopoverMotion.navigation) { changeMonth(by: -1) }
         }
-        Button("Today") {
-          monthDate = Date()
-          selectedDate = Date()
+        CalendarNavButton(title: "Today", help: "Jump to today") {
+          withAnimation(PopoverMotion.navigation) {
+            monthDate = Date()
+            selectedDate = Date()
+          }
         }
-        Button {
-          changeMonth(by: 1)
-        } label: {
-          Image(systemName: "chevron.right")
+        CalendarNavButton(systemImage: "chevron.right", help: "Next month") {
+          withAnimation(PopoverMotion.navigation) { changeMonth(by: 1) }
         }
       }
-      .controlSize(.small)
+      .animation(PopoverMotion.navigation, value: monthName)
 
-      LazyVGrid(columns: columns, alignment: .leading, spacing: 0) {
+      LazyVGrid(columns: columns, alignment: .center, spacing: 0) {
         Text("")
-          .frame(width: weekNumberColumnWidth, height: 20)
+          .frame(width: weekNumberColumnWidth, height: weekdayRowHeight)
         ForEach(Array(weekdayTitles.enumerated()), id: \.offset) { _, title in
           Text(title)
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .frame(width: dateCellSize, height: 20)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity)
+            .frame(height: weekdayRowHeight)
         }
 
         ForEach(weeks) { week in
           Text(verbatim: String(week.number))
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
-            .frame(width: weekNumberColumnWidth, height: dateCellSize, alignment: .center)
+            .font(.system(size: 9, weight: .medium, design: .rounded))
+            .foregroundStyle(.quaternary)
+            .frame(width: weekNumberColumnWidth, height: dateCellHeight, alignment: .center)
 
           ForEach(week.days) { day in
             Button {
-              selectedDate = day.date
-              monthDate = day.date
+              withAnimation(PopoverMotion.state) {
+                selectedDate = day.date
+                monthDate = day.date
+              }
             } label: {
               VStack(spacing: 2) {
                 Text(verbatim: String(day.number))
-                  .font(
-                    .system(size: 13, weight: day.isSelected ? .bold : .semibold, design: .rounded)
-                  )
-                  .foregroundStyle(day.isInMonth ? Color.primary : Color.secondary.opacity(0.38))
-                HStack(spacing: 1) {
+                  .font(.system(size: 12.5, weight: dayWeight(for: day), design: .rounded))
+                  .foregroundStyle(dayForeground(for: day))
+                HStack(spacing: 2) {
                   ForEach(Array(day.eventColors.enumerated()), id: \.offset) { _, color in
                     Circle()
-                      .fill(color)
-                      .frame(width: 3.5, height: 3.5)
+                      .fill(day.isSelected ? Color.white.opacity(0.85) : color)
+                      .frame(width: 3, height: 3)
                   }
                 }
-                .frame(height: 4)
+                .frame(height: 3)
               }
-              .frame(width: dateCellSize, height: dateCellSize)
+              // The chip is sized independently of the flexible column so the
+              // selection reads as a rounded square instead of a full-width bar.
+              .frame(width: 32, height: 25)
+              .background(
+                dayChipFill(for: day),
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+              )
+              .frame(maxWidth: .infinity)
+              .frame(height: dateCellHeight)
               .contentShape(Rectangle())
-              .background(dayBackground(for: day))
-              .overlay(monthBoundary(for: day))
-              .overlay(dayBorder(for: day))
             }
             .buttonStyle(.plain)
             .help(dayHelpText(for: day))
             .onHover { isHovering in
-              hoveredDate = isHovering ? day.date : nil
+              withAnimation(PopoverMotion.hover) {
+                // Only the cell that owns the current hover may clear it, otherwise
+                // the exit event of the previous cell wipes the new one.
+                hoveredDate = isHovering ? day.date : (isHovered(day) ? nil : hoveredDate)
+              }
             }
           }
         }
       }
+      .overlay(monthOutline)
+      .animation(PopoverMotion.navigation, value: monthStart)
 
     }
     .padding(10)
@@ -1604,7 +1679,6 @@ private struct MonthCalendarView: View {
         id: date,
         date: date,
         number: calendar.component(.day, from: date),
-        column: (offset + leadingDays) % 7,
         isInMonth: calendar.component(.month, from: date) == currentMonth,
         isToday: calendar.isDate(date, inSameDayAs: Date()),
         isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
@@ -1647,74 +1721,126 @@ private struct MonthCalendarView: View {
     return calendar.range(of: .day, in: .month, for: date)?.count ?? 30
   }
 
-  private func monthBoundary(for day: CalendarDay) -> some View {
+  /// Hairline outline tracing the visible month. Built as one continuous path so
+  /// the staircase corners can be filleted — the previous per-cell edges were four
+  /// separate rectangles and could only ever meet at right angles.
+  private var monthOutline: some View {
     GeometryReader { proxy in
-      let lineWidth: CGFloat = 1.4
-      let color = Color.primary.opacity(0.72)
-      ZStack {
-        if drawsMonthBoundary(day, dayOffset: -7) {
-          Rectangle()
-            .fill(color)
-            .frame(height: lineWidth)
-            .position(x: proxy.size.width / 2, y: lineWidth / 2)
-        }
-        if drawsMonthBoundary(day, dayOffset: 7) {
-          Rectangle()
-            .fill(color)
-            .frame(height: lineWidth)
-            .position(x: proxy.size.width / 2, y: proxy.size.height - lineWidth / 2)
-        }
-        if day.column == 0 || drawsMonthBoundary(day, dayOffset: -1) {
-          Rectangle()
-            .fill(color)
-            .frame(width: lineWidth)
-            .position(x: lineWidth / 2, y: proxy.size.height / 2)
-        }
-        if day.column == 6 || drawsMonthBoundary(day, dayOffset: 1) {
-          Rectangle()
-            .fill(color)
-            .frame(width: lineWidth)
-            .position(x: proxy.size.width - lineWidth / 2, y: proxy.size.height / 2)
-        }
-      }
+      let cellWidth = (proxy.size.width - weekNumberColumnWidth) / 7
+      let cellHeight = (proxy.size.height - weekdayRowHeight) / CGFloat(max(1, weeks.count))
+      monthOutlinePath(
+        cellWidth: cellWidth,
+        cellHeight: cellHeight,
+        radius: min(7, cellHeight / 2 - 1)
+      )
+      .stroke(
+        Color.primary.opacity(0.16),
+        style: StrokeStyle(lineWidth: 1, lineJoin: .round)
+      )
     }
-    .opacity(day.isInMonth ? 1 : 0)
+    .allowsHitTesting(false)
   }
 
-  private func drawsMonthBoundary(_ day: CalendarDay, dayOffset: Int) -> Bool {
-    guard day.isInMonth,
-      let adjacentDate = calendar.date(byAdding: .day, value: dayOffset, to: day.date)
-    else { return false }
-    return calendar.component(.month, from: adjacentDate)
-      != calendar.component(.month, from: monthStart)
+  /// The visible month is always one contiguous run of cells, so its outline is a
+  /// staircase with at most eight corners.
+  private func monthOutlinePath(cellWidth: CGFloat, cellHeight: CGFloat, radius: CGFloat) -> Path {
+    let firstIndex = leadingDays
+    let lastIndex = leadingDays + daysInVisibleMonth - 1
+    let firstRow = firstIndex / 7
+    let firstColumn = firstIndex % 7
+    let lastRow = lastIndex / 7
+    let lastColumn = lastIndex % 7
+
+    func corner(column: Int, row: Int) -> CGPoint {
+      CGPoint(
+        x: weekNumberColumnWidth + CGFloat(column) * cellWidth,
+        y: weekdayRowHeight + CGFloat(row) * cellHeight
+      )
+    }
+
+    // Clockwise from the first day of the month.
+    let corners = [
+      corner(column: firstColumn, row: firstRow),
+      corner(column: 7, row: firstRow),
+      corner(column: 7, row: lastRow),
+      corner(column: lastColumn + 1, row: lastRow),
+      corner(column: lastColumn + 1, row: lastRow + 1),
+      corner(column: 0, row: lastRow + 1),
+      corner(column: 0, row: firstRow + 1),
+      corner(column: firstColumn, row: firstRow + 1),
+    ]
+    return Self.roundedPath(through: Self.pruningStraightRuns(corners), radius: radius)
   }
 
-  private func dayBackground(for day: CalendarDay) -> some ShapeStyle {
-    if day.isSelected {
-      return Color.blue.opacity(0.16)
+  /// Months starting on the first weekday, or ending on the last, degenerate some
+  /// corners into duplicates or straight runs. Filleting those would bulge the line.
+  private static func pruningStraightRuns(_ points: [CGPoint]) -> [CGPoint] {
+    var distinct: [CGPoint] = []
+    for point in points where !(distinct.last.map { isSamePoint($0, point) } ?? false) {
+      distinct.append(point)
     }
-    if isHovered(day) {
-      return Color.blue.opacity(0.08)
+    if let first = distinct.first, let last = distinct.last, distinct.count > 1,
+      isSamePoint(first, last)
+    {
+      distinct.removeLast()
     }
-    if day.isToday {
-      return Color.orange.opacity(0.12)
+    guard distinct.count > 2 else { return distinct }
+
+    return distinct.indices.compactMap { index in
+      let point = distinct[index]
+      let previous = distinct[(index - 1 + distinct.count) % distinct.count]
+      let next = distinct[(index + 1) % distinct.count]
+      let cross =
+        (point.x - previous.x) * (next.y - point.y) - (point.y - previous.y) * (next.x - point.x)
+      return abs(cross) < 0.01 ? nil : point
     }
-    return Color.clear
   }
 
-  private func dayBorder(for day: CalendarDay) -> some View {
-    RoundedRectangle(cornerRadius: 9, style: .continuous)
-      .stroke(dayBorderColor(for: day), lineWidth: day.isSelected ? 2 : 1)
+  private static func isSamePoint(_ lhs: CGPoint, _ rhs: CGPoint) -> Bool {
+    abs(lhs.x - rhs.x) < 0.01 && abs(lhs.y - rhs.y) < 0.01
   }
 
-  private func dayBorderColor(for day: CalendarDay) -> Color {
-    if day.isSelected {
-      return .blue
+  private static func roundedPath(through corners: [CGPoint], radius: CGFloat) -> Path {
+    var path = Path()
+    guard corners.count > 2, radius > 0 else {
+      guard let start = corners.first else { return path }
+      path.move(to: start)
+      corners.dropFirst().forEach { path.addLine(to: $0) }
+      path.closeSubpath()
+      return path
     }
-    if isHovered(day) {
-      return .blue.opacity(0.45)
+
+    // Starting mid-edge keeps the first arc from being clipped by the initial move.
+    let last = corners[corners.count - 1]
+    path.move(to: CGPoint(x: (last.x + corners[0].x) / 2, y: (last.y + corners[0].y) / 2))
+    for index in corners.indices {
+      path.addArc(
+        tangent1End: corners[index],
+        tangent2End: corners[(index + 1) % corners.count],
+        radius: radius
+      )
     }
+    path.closeSubpath()
+    return path
+  }
+
+  /// Selection is a filled chip and today is a tinted chip; the rest is carried by
+  /// type color rather than per-cell borders.
+  private func dayChipFill(for day: CalendarDay) -> Color {
+    if day.isSelected { return .accentColor }
+    if day.isToday { return .accentColor.opacity(0.14) }
+    if isHovered(day) { return .primary.opacity(0.07) }
     return .clear
+  }
+
+  private func dayForeground(for day: CalendarDay) -> Color {
+    if day.isSelected { return .white }
+    if day.isToday { return .accentColor }
+    return day.isInMonth ? .primary : .secondary.opacity(0.4)
+  }
+
+  private func dayWeight(for day: CalendarDay) -> Font.Weight {
+    (day.isSelected || day.isToday) ? .bold : .medium
   }
 
   private func isHovered(_ day: CalendarDay) -> Bool {
@@ -1751,11 +1877,48 @@ private struct MonthCalendarView: View {
   }
 }
 
+/// Month navigation control. Uses the popover's own hover language rather than the
+/// stock bordered button, which reads far too heavy inside a card.
+private struct CalendarNavButton: View {
+  var systemImage: String?
+  var title: String?
+  let help: String
+  let action: () -> Void
+  @State private var isHovering = false
+
+  var body: some View {
+    Button(action: action) {
+      Group {
+        if let systemImage {
+          Image(systemName: systemImage)
+            .font(.system(size: 10, weight: .bold))
+            .frame(width: 22, height: 20)
+        } else if let title {
+          Text(L10n.string(title))
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 8)
+            .frame(height: 20)
+        }
+      }
+      .foregroundStyle(isHovering ? Color.primary : Color.secondary)
+      .background(
+        Color.primary.opacity(isHovering ? 0.09 : 0.05),
+        in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+      )
+      .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+    .buttonStyle(PressableButtonStyle(pressedScale: 0.92))
+    .onHover { hovering in
+      withAnimation(PopoverMotion.hover) { isHovering = hovering }
+    }
+    .help(L10n.string(help))
+  }
+}
+
 private struct CalendarDay: Identifiable {
   let id: Date
   let date: Date
   let number: Int
-  let column: Int
   let isInMonth: Bool
   let isToday: Bool
   let isSelected: Bool
