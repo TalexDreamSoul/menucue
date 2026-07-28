@@ -651,3 +651,210 @@ final class WakeEventIdentityTests: XCTestCase {
     XCTAssertEqual(events[0].reason, "Opening the lid", "the newer wording should win")
   }
 }
+
+final class LogStreamingShapeTests: XCTestCase {
+  /// Builds input shaped like this Mac's real `pmset -g log`.
+  ///
+  /// Generated rather than committed: the real file is 24 MB, its content is
+  /// machine-specific and would need scrubbing, and what the test cares about is the
+  /// *shape* — 98.6% Assertions, a sprinkling of the domains this feature reads.
+  private func syntheticLog(totalLines: Int) -> String {
+    var lines: [String] = []
+    lines.reserveCapacity(totalLines)
+    for index in 0..<totalLines {
+      // 1 line in 72 is interesting, matching the measured 228 kept of 106,318.
+      if index % 72 == 0 {
+        lines.append(
+          "2026-07-26 08:17:36 -0700 DarkWake            "
+            + "\tDarkWake from Deep Idle [CDNP] : due to lid SMC.OutboxNotEmpty Using BATT")
+      } else if index % 2_657 == 0 {
+        lines.append(
+          "2026-07-26 08:15:28 -0700 Wake Requests       "
+            + "\t[*process=dasd request=SleepService deltaSecs=946 "
+            + "wakeAt=2026-07-26 08:31:14 info=\"upkeep\"]")
+      } else {
+        lines.append(
+          "2026-07-26 08:17:17 -0700 Assertions          "
+            + "\tPID \(index % 90_000)(some-process) Summary UserIsActive "
+            + "\"com.apple.something.\(index)\" 00:20:21  id:0x0x9000\(index) "
+            + "[System: PrevIdle DeclUser IntPrevDisp kDisp]")
+      }
+    }
+    return lines.joined(separator: "\n")
+  }
+
+  func testTheStreamKeepsAFractionOfWhatItReads() {
+    let text = syntheticLog(totalLines: 60_000)
+    let inputBytes = text.utf8.count
+    XCTAssertGreaterThan(inputBytes, 8_000_000, "the fixture should be big enough to matter")
+
+    let pipe = Pipe()
+    let capture = LineFilteringCapture { line in
+      PowerDiagnosticsParser.isInterestingLogLine(line)
+        || PowerAttributionParser.isWakeRequestLine(line)
+    }
+    DispatchQueue.global().async {
+      pipe.fileHandleForWriting.write(Data(text.utf8))
+      pipe.fileHandleForWriting.closeFile()
+    }
+    capture.read(from: pipe.fileHandleForReading)
+    let result = capture.snapshot()
+
+    XCTAssertEqual(result.bytesSeen, inputBytes, "the whole stream must still be read")
+
+    // The assertion is on the *ratio*, not on wall clock: a timing bound would be
+    // flaky under load, which is exactly how an earlier version of this test failed.
+    let keptBytes = result.lines.reduce(0) { $0 + $1.utf8.count }
+    XCTAssertLessThan(
+      Double(keptBytes) / Double(inputBytes), 0.05,
+      "the filter retained \(keptBytes) of \(inputBytes) bytes")
+
+    // And it kept the right things, not merely few things.
+    XCTAssertFalse(
+      result.lines.contains { $0.contains("Assertions") },
+      "an Assertions line survived the filter")
+    XCTAssertTrue(result.lines.contains { $0.contains("DarkWake") })
+    XCTAssertTrue(result.lines.contains { $0.contains("Wake Requests") })
+  }
+
+  func testBothDomainsSurviveOnePassSoTheLogIsReadOnce() throws {
+    let text = syntheticLog(totalLines: 6_000)
+    let pipe = Pipe()
+    let capture = LineFilteringCapture { line in
+      PowerDiagnosticsParser.isInterestingLogLine(line)
+        || PowerAttributionParser.isWakeRequestLine(line)
+    }
+    DispatchQueue.global().async {
+      pipe.fileHandleForWriting.write(Data(text.utf8))
+      pipe.fileHandleForWriting.closeFile()
+    }
+    capture.read(from: pipe.fileHandleForReading)
+    let kept = capture.snapshot().lines.joined(separator: "\n")
+
+    // One pass has to yield both halves; two passes meant two 24 MB reads.
+    XCTAssertFalse(try PowerDiagnosticsParser.parseWakeEvents(kept).isEmpty)
+    XCTAssertFalse(PowerAttributionParser.parseScheduledWakes(kept).isEmpty)
+  }
+}
+
+final class ClearHistoryReversibilityTests: XCTestCase {
+  private let when = Date(timeIntervalSince1970: 1_760_000_000)
+
+  private func store() -> (WakeHistoryStore, URL) {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("clear-\(UUID().uuidString).json")
+    return (WakeHistoryStore(fileURL: url), url)
+  }
+
+  private func wake(_ offset: TimeInterval, _ reason: String) -> WakeEvent {
+    WakeEvent(
+      timestamp: when.addingTimeInterval(offset), kind: .wake, reason: reason,
+      occurrence: 0, utcOffsetSeconds: 0)
+  }
+
+  func testClearingHidesRatherThanDeletes() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let now = when.addingTimeInterval(600)
+
+    try history.merge([wake(-120, "old"), wake(-60, "older")], now: now)
+    try history.clear(now: when)
+
+    let afterClear = try history.load(now: now)
+    XCTAssertTrue(afterClear.events.isEmpty, "clearing must hide what came before")
+    XCTAssertEqual(afterClear.hiddenEventCount, 2)
+    XCTAssertEqual(afterClear.clearedAt, when)
+
+    // The point of the change: it can be undone.
+    try history.restore()
+    let restored = try history.load(now: now)
+    XCTAssertEqual(restored.events.count, 2)
+    XCTAssertNil(restored.clearedAt)
+    XCTAssertEqual(restored.hiddenEventCount, 0)
+  }
+
+  func testNewWakesAfterAClearAreStillShown() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let now = when.addingTimeInterval(600)
+
+    try history.merge([wake(-60, "before")], now: now)
+    try history.clear(now: when)
+    try history.merge([wake(60, "after")], now: now)
+
+    let loaded = try history.load(now: now)
+    XCTAssertEqual(loaded.events.map(\.reason), ["after"])
+  }
+
+  func testAWindowTheAppMissedIsNoLongerLostForever() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let now = when.addingTimeInterval(600)
+
+    try history.clear(now: when)
+    // pmset still remembers what happened before the clear; ingesting it used to be
+    // refused outright, so a genuinely missed window could never be recovered.
+    try history.merge([wake(-300, "missed while the app was closed")], now: now)
+
+    XCTAssertTrue(try history.load(now: now).events.isEmpty, "still hidden, as asked")
+    try history.restore()
+    XCTAssertEqual(try history.load(now: now).events.count, 1, "and recoverable")
+  }
+}
+
+/// The store being reversible is only half of it; the service has to *say* so.
+final class ClearHistoryPublishingTests: XCTestCase {
+  private struct StubProbe: PowerDiagnosticsProbing {
+    let events: [WakeEvent]
+    func batteryStatus() throws -> BatteryStatus? { nil }
+    func wakeStatistics() throws -> WakeStatistics {
+      WakeStatistics(sleepCount: 0, darkWakeCount: 0, userWakeCount: 0)
+    }
+    func wakeEvents() throws -> [WakeEvent] { events }
+    func powerProfiles() throws -> PowerProfiles { PowerProfiles() }
+  }
+
+  func testClearingImmediatelyPublishesWhatItHid() throws {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let probe = StubProbe(events: [
+      WakeEvent(
+        timestamp: Date().addingTimeInterval(-3_600), kind: .wake, reason: "lid",
+        occurrence: 0, utcOffsetSeconds: 0)
+    ])
+    let service = PowerDiagnosticsService(
+      probe: probe,
+      historyStore: WakeHistoryStore(fileURL: directory.appendingPathComponent("h.json")),
+      notificationCenter: NotificationCenter(),
+      batteryRefreshInterval: 3_600)
+
+    service.refresh()
+    try settle(until: { !service.snapshot.events.isEmpty }, "history ingested")
+
+    service.clearHistory()
+    // The affordance has to appear on the clear itself. Reading it back only on the
+    // next refresh would leave the user with no visible way out of what they just did.
+    try settle(until: { service.hiddenEventCount == 1 }, "clear published its count")
+    XCTAssertNotNil(service.clearedAt)
+    XCTAssertTrue(service.snapshot.events.isEmpty)
+
+    service.restoreHistory()
+    try settle(until: { service.hiddenEventCount == 0 }, "restore published")
+    XCTAssertNil(service.clearedAt)
+    XCTAssertEqual(service.snapshot.events.count, 1)
+  }
+
+  /// Polls the main run loop: the service hops between its own queue and main, so a
+  /// fixed sleep would be both slower and flakier than waiting for the condition.
+  private func settle(
+    until condition: @escaping () -> Bool, _ what: String, timeout: TimeInterval = 5
+  ) throws {
+    let deadline = Date().addingTimeInterval(timeout)
+    while !condition() {
+      guard Date() < deadline else { return XCTFail("timed out waiting for: \(what)") }
+      RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+    }
+  }
+}

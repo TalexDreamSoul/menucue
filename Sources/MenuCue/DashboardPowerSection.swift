@@ -210,6 +210,24 @@ struct DashboardPowerSection: View {
       .font(.caption)
       .foregroundStyle(.tertiary)
     } content: {
+      // States *when* this updates rather than how. There is no fixed cadence to
+      // quote any more — the log is read at launch and then only when the Mac wakes —
+      // and "every 15 minutes" would now be a lie while "event-driven" answers a
+      // question nobody asked. What a person actually wants to know is whether this
+      // runs in the background, and what it costs.
+      Text(L10n.string("Updated whenever your Mac wakes."))
+        .font(.caption)
+        .foregroundStyle(.tertiary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      // A clear used to be permanent and invisible: the records were gone and nothing
+      // said so. They are now only hidden, and the way back is on screen.
+      if let clearedAt = diagnostics.clearedAt, diagnostics.hiddenEventCount > 0 {
+        ClearedHistoryNote(clearedAt: clearedAt, hiddenCount: diagnostics.hiddenEventCount) {
+          diagnostics.restoreHistory()
+        }
+      }
+
       if diagnostics.migrationDroppedRecords > 0 {
         UnsupportedNote(
           message: L10n.format(
@@ -264,5 +282,40 @@ struct DashboardPowerSection: View {
     case .darkWake: return .purple
     case .wake: return .green
     }
+  }
+}
+
+/// Tells the user what a previous clear is hiding, and offers the way back.
+///
+/// Its own view rather than an inline `HStack` so it can be rendered and inspected on
+/// its own — the sentence is long, the languages disagree about how long, and whether
+/// it truncates is not something a unit test can see.
+struct ClearedHistoryNote: View {
+  let clearedAt: Date
+  let hiddenCount: Int
+  let restore: () -> Void
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 8) {
+      Text(
+        L10n.format(
+          "%d earlier wakes are hidden since you cleared history on %@",
+          hiddenCount,
+          clearedAt.formatted(date: .abbreviated, time: .omitted))
+      )
+      .font(.caption)
+      .foregroundStyle(.tertiary)
+      // The sentence wraps rather than truncates: a clipped explanation of hidden data
+      // is worse than a second line.
+      .fixedSize(horizontal: false, vertical: true)
+      // Sits directly after the sentence rather than being pushed to the trailing
+      // edge. On a wide Dashboard a `Spacer` put ~700pt between the explanation and
+      // the way to act on it, which reads as two unrelated things.
+      Button(L10n.string("Show them"), action: restore)
+        .buttonStyle(.link)
+        .font(.caption)
+        .fixedSize()
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }

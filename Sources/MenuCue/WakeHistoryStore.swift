@@ -3,6 +3,11 @@ import Foundation
 struct WakeHistorySnapshot: Equatable {
   let events: [WakeEvent]
   let dailySummaries: [WakeDailySummary]
+  /// When the user last cleared, if they have. Records before this are on disk but
+  /// withheld, so the pane can offer to bring them back.
+  var clearedAt: Date?
+  /// How many records the watermark is hiding.
+  var hiddenEventCount: Int = 0
 }
 
 final class WakeHistoryStore {
@@ -58,8 +63,19 @@ final class WakeHistoryStore {
   }
 
   func load(now: Date = Date(), calendar: Calendar = .current) throws -> WakeHistorySnapshot {
-    let retained = retainedEvents(try readContainer().events, now: now)
-    return WakeHistorySnapshot(events: retained, dailySummaries: summaries(retained, calendar: calendar))
+    let container = try readContainer()
+    // Clearing hides; it does not delete. Anything at or before the watermark is
+    // withheld from the caller but stays on disk, so the action is undoable.
+    let visible = container.clearedAt.map { watermark in
+      container.events.filter { $0.timestamp > watermark }
+    } ?? container.events
+    let retained = retainedEvents(visible, now: now)
+    return WakeHistorySnapshot(
+      events: retained,
+      dailySummaries: summaries(retained, calendar: calendar),
+      clearedAt: container.clearedAt,
+      hiddenEventCount: container.events.count - visible.count
+    )
   }
 
   func merge(
@@ -69,15 +85,26 @@ final class WakeHistoryStore {
   ) throws {
     let container = try readContainer()
     var byID = Dictionary(uniqueKeysWithValues: container.events.map { ($0.id, $0) })
-    for event in incoming where container.clearedAt.map({ event.timestamp > $0 }) ?? true {
+    // Everything is ingested, including events older than the watermark. Refusing them
+    // at merge time is what made Clear permanent *and* silently lost a window the app
+    // had genuinely missed; the watermark now filters at read time instead.
+    for event in incoming {
       byID[event.id] = event
     }
     let retained = retainedEvents(Array(byID.values), now: now)
     try write(retained, clearedAt: container.clearedAt)
   }
 
+  /// Hides everything up to now. The records stay; `restore()` brings them back.
   func clear(now: Date = Date()) throws {
-    try write([], clearedAt: now)
+    let container = try readContainer()
+    try write(container.events, clearedAt: now)
+  }
+
+  /// Undoes a clear.
+  func restore() throws {
+    let container = try readContainer()
+    try write(container.events, clearedAt: nil)
   }
 
   private func readContainer() throws -> Container {
@@ -164,9 +191,10 @@ final class WakeHistoryStore {
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let data = try encoder.encode(
       Container(version: Self.currentVersion, events: events, clearedAt: clearedAt))
-    // Skip the write when nothing changed. Every refresh used to decode and re-encode
-    // the whole file, which does not scale with the record counts the old fabricated
-    // events produced.
+    // Encode everything, then compare bytes and skip the write if they match. This
+    // saves the disk write, not the encoding — calling it "rewrite only what changed"
+    // would overstate it. Worth having because a refresh runs on every wake and almost
+    // always produces an identical file.
     if let existing = try? Data(contentsOf: fileURL), existing == data { return }
     try data.write(to: fileURL, options: .atomic)
     writeCount += 1

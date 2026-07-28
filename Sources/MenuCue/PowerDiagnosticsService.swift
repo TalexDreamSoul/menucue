@@ -11,6 +11,10 @@ final class PowerDiagnosticsService: ObservableObject {
   /// Records the one-time v1 migration removed. Surfaced once rather than deleting
   /// the user's data silently.
   @Published private(set) var migrationDroppedRecords = 0
+  /// When history was last cleared, and how much that is hiding. Both `nil`/zero when
+  /// nothing has been cleared.
+  @Published private(set) var clearedAt: Date?
+  @Published private(set) var hiddenEventCount = 0
 
   private let probe: PowerDiagnosticsProbing
   private let historyStore: WakeHistoryStore
@@ -130,6 +134,8 @@ final class PowerDiagnosticsService: ObservableObject {
           self.snapshot.events = history.events
           self.snapshot.dailySummaries = history.dailySummaries
           self.snapshot.scheduledWakes = scheduled
+          self.clearedAt = history.clearedAt
+          self.hiddenEventCount = history.hiddenEventCount
         }
       }
     }
@@ -181,6 +187,8 @@ final class PowerDiagnosticsService: ObservableObject {
       guard let self else { return }
       var next = previous
       var errors: [String] = []
+      var clearedAt: Date?
+      var hiddenCount = 0
 
       do { next.wakeStatistics = try self.probe.wakeStatistics() }
       catch { errors.append(error.localizedDescription) }
@@ -194,6 +202,8 @@ final class PowerDiagnosticsService: ObservableObject {
         next.events = history.events
         next.dailySummaries = history.dailySummaries
         next.scheduledWakes = reading.scheduled
+        clearedAt = history.clearedAt
+        hiddenCount = history.hiddenEventCount
       } catch { errors.append(error.localizedDescription) }
       // Assertions are cheap and current; a failure here must not blank the history.
       do { next.assertions = try self.probe.sleepAssertions() }
@@ -211,8 +221,19 @@ final class PowerDiagnosticsService: ObservableObject {
         guard requestGeneration == self.generation else { return }
         self.historyFileSizeBytes = self.historyStore.fileSizeBytes
         self.migrationDroppedRecords = self.historyStore.migrationDroppedRecords
+        self.clearedAt = clearedAt
+        self.hiddenEventCount = hiddenCount
         self.snapshot = next
       }
+    }
+  }
+
+  /// Brings back everything a previous clear hid.
+  func restoreHistory() {
+    queue.async { [weak self] in
+      guard let self else { return }
+      try? self.historyStore.restore()
+      DispatchQueue.main.async { self.refresh() }
     }
   }
 
@@ -221,9 +242,15 @@ final class PowerDiagnosticsService: ObservableObject {
       guard let self else { return }
       do {
         try self.historyStore.clear()
+        // Read back rather than assume. These counts drive the "show them again"
+        // affordance, and publishing them here is what makes the clear look undoable
+        // at the moment it happens rather than only after the next refresh.
+        let history = try? self.historyStore.load()
         DispatchQueue.main.async {
           self.snapshot.events = []
           self.snapshot.dailySummaries = []
+          self.clearedAt = history?.clearedAt
+          self.hiddenEventCount = history?.hiddenEventCount ?? 0
         }
       } catch {
         DispatchQueue.main.async { self.snapshot.errorMessage = error.localizedDescription }

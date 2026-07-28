@@ -24,6 +24,7 @@
 "%d day ago" = "%d 天前";
 "%d days ago" = "%d 天前";
 "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened." = "已移除 %d 条早期记录：它们描述的是计划中的唤醒，而非真实发生的唤醒。";
+"%d earlier wakes are hidden since you cleared history on %@" = "已隐藏 %d 条更早的唤醒（记录在 %@ 被清空）";
 "%d event" = "%d 个日程";
 "%d events" = "%d 个日程";
 "%d fans" = "%d 个风扇";
@@ -485,6 +486,7 @@
 "Show Overview" = "显示概览";
 "Show metric details" = "显示指标详情";
 "Show seconds" = "显示秒数";
+"Show them" = "显示";
 "Sign in to iCloud" = "登录 iCloud";
 "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac." = "请在系统设置中登录 iCloud 后重试。本地更改仍保留在这台 Mac 上。";
 "Simplified Chinese" = "简体中文";
@@ -580,6 +582,7 @@
 "Untitled Event" = "无标题日程";
 "Update Required" = "需要更新";
 "Update failed: %@" = "更新失败：%@";
+"Updated whenever your Mac wakes." = "每次 Mac 唤醒后更新。";
 "Updates" = "更新";
 "Upload" = "上传";
 "Uptime" = "运行时间";

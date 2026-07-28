@@ -24,6 +24,7 @@
 "%d day ago" = "%d day ago";
 "%d days ago" = "%d days ago";
 "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened." = "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened.";
+"%d earlier wakes are hidden since you cleared history on %@" = "%d earlier wakes are hidden since you cleared history on %@";
 "%d event" = "%d event";
 "%d events" = "%d events";
 "%d fans" = "%d fans";
@@ -485,6 +486,7 @@
 "Show Overview" = "Show Overview";
 "Show metric details" = "Show metric details";
 "Show seconds" = "Show seconds";
+"Show them" = "Show them";
 "Sign in to iCloud" = "Sign in to iCloud";
 "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac." = "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac.";
 "Simplified Chinese" = "Simplified Chinese";
@@ -580,6 +582,7 @@
 "Untitled Event" = "Untitled Event";
 "Update Required" = "Update Required";
 "Update failed: %@" = "Update failed: %@";
+"Updated whenever your Mac wakes." = "Updated whenever your Mac wakes.";
 "Updates" = "Updates";
 "Upload" = "Upload";
 "Uptime" = "Uptime";
