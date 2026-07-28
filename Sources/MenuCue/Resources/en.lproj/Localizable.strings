@@ -274,6 +274,7 @@
 "Last checked %@." = "Last checked %@.";
 "Last reading" = "Last reading";
 "Last sync activity %@. iCloud may take a few minutes to update other devices." = "Last sync activity %@. iCloud may take a few minutes to update other devices.";
+"Last woke at %@" = "Last woke at %@";
 "Launch MenuCue at login" = "Launch MenuCue at login";
 "Launch at Login is available when MenuCue runs from its app bundle." = "Launch at Login is available when MenuCue runs from its app bundle.";
 "Learning" = "Learning";
@@ -606,6 +607,7 @@
 "You can also hold Esc for 3 seconds." = "You can also hold Esc for 3 seconds.";
 "You — keyboard, trackpad or mouse" = "You — keyboard, trackpad or mouse";
 "Your Mac last woke at %@" = "Your Mac last woke at %@";
+"and %d more" = "and %d more";
 "iCloud Account Changed" = "iCloud Account Changed";
 "iCloud Sync" = "iCloud Sync";
 "iCloud account changed" = "iCloud account changed";
@@ -617,7 +619,9 @@
 "macOS denied the requested Automation action." = "macOS denied the requested Automation action.";
 "macOS requires approval before MenuCue can start at login." = "macOS requires approval before MenuCue can start at login.";
 "macOS returned an unknown Helper status." = "macOS returned an unknown Helper status.";
+"no record for today" = "no record for today";
 "of %@" = "of %@";
+"since you last restarted" = "since you last restarted";
 "systemsetup returned an unreadable time zone." = "systemsetup returned an unreadable time zone.";
 "unknown" = "unknown";
 "up %@" = "up %@";

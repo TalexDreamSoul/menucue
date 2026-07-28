@@ -413,7 +413,18 @@ final class ProcessEnergyModelTests: XCTestCase {
         userWakeCount: 0)
     ]
 
-    XCTAssertEqual(snapshot.darkWakeCount(on: today, calendar: calendar), 0)
+    // `nil`, not `0`. This test's intent — never borrow another day's figure — is
+    // unchanged. What changed is that "no record for today" and "today had none" are
+    // now distinguishable; they both used to render "0 dark wakes today", and while
+    // the log was blowing the size cap every user saw the first dressed as the second.
+    XCTAssertNil(snapshot.darkWakeCount(on: today, calendar: calendar))
+
+    var withToday = snapshot
+    withToday.dailySummaries.append(
+      WakeDailySummary(
+        day: calendar.startOfDay(for: today), sleepCount: 0, darkWakeCount: 0,
+        userWakeCount: 0))
+    XCTAssertEqual(withToday.darkWakeCount(on: today, calendar: calendar), 0)
   }
 
   func testTopParserUsesPIDAndEnergyButDoesNotTrustTruncatedNameAsIdentity() throws {

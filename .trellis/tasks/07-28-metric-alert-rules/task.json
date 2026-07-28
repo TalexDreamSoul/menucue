@@ -1,7 +1,7 @@
 {
-  "id": "notification-channels",
-  "name": "notification-channels",
-  "title": "Configurable external notification channels",
+  "id": "metric-alert-rules",
+  "name": "metric-alert-rules",
+  "title": "Metric alert rules and background monitor",
   "description": "",
   "status": "planning",
   "dev_type": null,
@@ -18,12 +18,8 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [
-    "07-28-notification-transport",
-    "07-28-metric-alert-rules",
-    "07-28-notification-settings-ui"
-  ],
-  "parent": null,
+  "children": [],
+  "parent": "07-28-notification-channels",
   "relatedFiles": [],
   "notes": "",
   "meta": {}

@@ -274,6 +274,7 @@
 "Last checked %@." = "上次检查：%@。";
 "Last reading" = "最近读数";
 "Last sync activity %@. iCloud may take a few minutes to update other devices." = "上次同步活动：%@。iCloud 可能需要几分钟才能更新其他设备。";
+"Last woke at %@" = "上次唤醒于 %@";
 "Launch MenuCue at login" = "登录时启动 MenuCue";
 "Launch at Login is available when MenuCue runs from its app bundle." = "从应用包运行 MenuCue 时才可使用登录时启动。";
 "Learning" = "学习";
@@ -606,6 +607,7 @@
 "You can also hold Esc for 3 seconds." = "也可按住 Esc 3 秒退出。";
 "You — keyboard, trackpad or mouse" = "你——键盘、触控板或鼠标";
 "Your Mac last woke at %@" = "你的 Mac 上次在 %@ 唤醒";
+"and %d more" = "另有 %d 项";
 "iCloud Account Changed" = "iCloud 账户已更改";
 "iCloud Sync" = "iCloud 同步";
 "iCloud account changed" = "iCloud 账户已更改";
@@ -617,7 +619,9 @@
 "macOS denied the requested Automation action." = "macOS 拒绝了请求的自动化操作。";
 "macOS requires approval before MenuCue can start at login." = "MenuCue 需要获得 macOS 批准才能在登录时启动。";
 "macOS returned an unknown Helper status." = "macOS 返回了未知的助手状态。";
+"no record for today" = "今天暂无记录";
 "of %@" = "共 %@";
+"since you last restarted" = "自上次重启以来";
 "systemsetup returned an unreadable time zone." = "systemsetup 返回了无法识别的时区。";
 "unknown" = "未知";
 "up %@" = "已运行 %@";

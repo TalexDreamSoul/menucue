@@ -20,6 +20,7 @@ struct PowerTabView: View {
     ScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
         batteryCard
+        sleepBlockersCard
         wakeCard
         profilesCard
         processCard
@@ -124,6 +125,46 @@ struct PowerTabView: View {
     }
   }
 
+  /// Only shown when something is actually holding the Mac awake. An always-present
+  /// card saying "nothing" would cost a fifth of the popover to say nothing.
+  @ViewBuilder
+  private var sleepBlockersCard: some View {
+    let blockers = diagnostics.snapshot.sleepBlockers
+    if !blockers.isEmpty {
+      PopoverCard(title: "Keeping Awake", systemImage: "eye.fill", tint: .yellow) {
+        Text("\(blockers.count)")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(.tertiary)
+      } content: {
+        VStack(spacing: 4) {
+          ForEach(blockers.prefix(4)) { assertion in
+            HStack(spacing: 6) {
+              Text(assertion.process)
+                .font(.system(size: 10, weight: .semibold))
+                .lineLimit(1)
+              Text(assertion.localized ?? assertion.reason)
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+              Spacer(minLength: 4)
+              Text(assertion.heldDescription)
+                .font(.system(size: 10, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(assertion.heldSeconds >= 14_400 ? .red : .secondary)
+            }
+          }
+          if blockers.count > 4 {
+            Text(L10n.format("and %d more", blockers.count - 4))
+              .font(.system(size: 9))
+              .foregroundStyle(.tertiary)
+              .frame(maxWidth: .infinity, alignment: .leading)
+          }
+        }
+      }
+    }
+  }
+
   private var wakeCard: some View {
     PopoverCard(title: "Sleep & Wake", systemImage: "moon.zzz.fill", tint: .indigo) {
       HStack(spacing: 7) {
@@ -142,11 +183,37 @@ struct PowerTabView: View {
         .disabled(diagnostics.snapshot.events.isEmpty)
       }
     } content: {
+      // The answer first. The counts below are context for it, not the point.
+      if let latest = diagnostics.snapshot.latestWake {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(
+            L10n.format(
+              "Last woke at %@",
+              latest.event.timestamp.formatted(date: .omitted, time: .shortened))
+          )
+          .font(.system(size: 12, weight: .semibold))
+          Text(latest.cause.sentence)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+
       if let stats = diagnostics.snapshot.wakeStatistics {
-        HStack(spacing: 6) {
-          WakeCount(label: "Sleep", value: stats.sleepCount, color: .blue)
-          WakeCount(label: "Dark Wake", value: stats.darkWakeCount, color: .orange)
-          WakeCount(label: "User Wake", value: stats.userWakeCount, color: .green)
+        VStack(alignment: .leading, spacing: 3) {
+          HStack(spacing: 6) {
+            WakeCount(label: "Sleep", value: stats.sleepCount, color: .blue)
+            WakeCount(label: "Dark Wake", value: stats.darkWakeCount, color: .orange)
+            WakeCount(label: "User Wake", value: stats.userWakeCount, color: .green)
+          }
+          // These come from `pmset -g stats`, which counts from boot and resets on
+          // restart. Stacking them unlabelled next to a 30-day figure and a today
+          // figure was three different windows with nothing to tell them apart.
+          Text(L10n.string("since you last restarted"))
+            .font(.system(size: 9))
+            .foregroundStyle(.tertiary)
         }
       }
 
@@ -156,11 +223,15 @@ struct PowerTabView: View {
             .font(.system(size: 9, weight: .medium))
             .foregroundStyle(.secondary)
           Spacer()
-          Text(L10n.format(
-            "%d dark wakes today",
-            diagnostics.snapshot.darkWakeCount(on: Date())))
-            .font(.system(size: 9, weight: .semibold))
-            .foregroundStyle(.orange)
+          if let today = diagnostics.snapshot.darkWakeCount(on: Date()) {
+            Text(L10n.format("%d dark wakes today", today))
+              .font(.system(size: 9, weight: .semibold))
+              .foregroundStyle(.orange)
+          } else {
+            Text(L10n.string("no record for today"))
+              .font(.system(size: 9))
+              .foregroundStyle(.tertiary)
+          }
         }
       }
 
@@ -171,7 +242,13 @@ struct PowerTabView: View {
       } else {
         VStack(spacing: 5) {
           ForEach(Array(recent)) { event in
-            WakeEventRow(event: event)
+            WakeEventRow(
+              event: event,
+              cause: PowerAttributionParser.attribute(
+                wakeAt: event.timestamp,
+                interruptToken: event.reason,
+                scheduled: diagnostics.snapshot.scheduledWakes
+              ))
           }
         }
       }
@@ -447,6 +524,10 @@ private struct WakeCount: View {
 
 private struct WakeEventRow: View {
   let event: WakeEvent
+  /// The attributed cause. Falls back to the interrupt token's plain reading, so this
+  /// row no longer shows `smc.sysState.Wake(0x70070000) wifibt SMC.OutboxNo…` clipped
+  /// at 9pt.
+  let cause: WakeCause
 
   var body: some View {
     HStack(spacing: 6) {
@@ -455,9 +536,13 @@ private struct WakeEventRow: View {
         .font(.system(size: 9, design: .monospaced))
         .foregroundStyle(.secondary)
         .frame(width: 58, alignment: .leading)
-      Text(event.reason)
-        .font(.system(size: 9, weight: .medium))
+      Text(cause.sentence)
+        .font(.system(size: 10))
         .lineLimit(1)
+        .truncationMode(.tail)
+        // The raw token stays reachable on hover, since the plain reading is a
+        // translation and a translation can be wrong.
+        .help(event.reason)
       Spacer(minLength: 0)
     }
   }
