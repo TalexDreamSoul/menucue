@@ -8,13 +8,13 @@ Give users one native Notifications settings pane for device identity, four inde
 
 - Add a Notifications sidebar pane consistent with the existing settings shell and localization patterns.
 - Default device display name from the Mac name/hostname and allow local override/reset.
-- Persist non-secret channel metadata, enablement, rules, and templates through `AppModel`/`SettingsStore`; use the notification configuration service for Keychain intents and runtime validation/test status.
+- Persist non-secret channel metadata, enablement, rules, and templates through `AppModel`/`SettingsStore`; use the notification configuration service for Keychain intents and runtime validation/test status. Feishu webhook URL, generic Webhook endpoint/bearer token, Bark device key, and Telegram bot token are always Keychain values.
 - Show Feishu, Webhook, Bark, and Telegram rows with configure, credential removal, enable, validation, and test actions.
 - Prevent channel enablement until required non-secret/secret fields validate.
 - Provide a rule list with add/edit/delete/enable actions and readable condition/runtime summaries.
 - Build the editor from metric catalog metadata: metric/event, optional target, operator, threshold/severity, sustained duration, recovery boundary/duration, cooldown, and enabled state.
 - Give each rule alert title/body templates and each metric rule recovery title/body templates.
-- Implement a fixed `{{variable}}` parser/renderer with allowed-variable insertion menu, field-level errors, representative preview, output limits, and reset defaults.
+- Integrate the shared fixed `{{variable}}` parser/renderer with an allowed-variable insertion menu, field-level errors, representative preview, output limits, and reset defaults.
 - Keep secrets masked, transient drafts out of `AppSettings`, and all notification settings out of portable iCloud fields.
 - Cover keyboard navigation, VoiceOver names, minimum/default window sizes, loading/testing/success/failure/unavailable states, and English/Simplified Chinese strings.
 

@@ -74,8 +74,8 @@ Let users identify each Mac, create metric/event alert rules, customize variable
 ## Child Tasks
 
 - `07-28-notification-transport`: shared message/channel contracts, Keychain store, four concrete senders, fan-out coordinator, retries, and delivery tests.
-- `07-28-metric-alert-rules`: metric catalog, targeted background probes, rule state machine, dark-wake bridge, runtime cursors, and rule tests.
-- `07-28-notification-settings-ui`: device identity, channel/rule persistence, settings pane, channel forms, rule builder, template editor, preview, and localization.
+- `07-28-metric-alert-rules`: metric catalog, template parser/renderer, targeted background probes, rule state machine, atomic runtime/outbox store, dark-wake bridge, and rule tests.
+- `07-28-notification-settings-ui`: device identity, channel/rule persistence, settings pane, channel forms, rule/template editors, preview, and localization.
 
 Implementation order is transport, then rules, then UI/integration. The parent owns final cross-child verification.
 

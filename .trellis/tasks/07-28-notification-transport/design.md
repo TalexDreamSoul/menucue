@@ -14,6 +14,10 @@ protocol NotificationChannel: Sendable {
 }
 protocol NotificationSecretStoring { /* data by stable account key */ }
 protocol NotificationHTTPTransport { func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) }
+protocol NotificationOutboxClaiming {
+  func claimPending(now: Date) async throws -> [NotificationOutboxClaim]
+  func acknowledge(_ outcome: NotificationDeliveryOutcome) async throws
+}
 ```
 
 Concrete channels are initialized only after typed validation. The factory resolves Keychain references and returns type-erased protocol values.
@@ -25,11 +29,13 @@ Concrete channels are initialized only after typed validation. The factory resol
 - Bark: settings store base URL/group; Keychain stores device key. POST JSON with key/title/body/group. Decode Bark application result.
 - Telegram: Keychain stores bot token; settings store chat/thread IDs. POST form or JSON to fixed hosted API method and decode `ok`/description/retry parameters.
 
-All response/error mapping strips endpoint/token/key values before constructing descriptions. Cap response bytes and request timeout. Permit only HTTPS and reject URL user-info/fragments.
+All response/error mapping strips endpoint/token/key values before constructing descriptions. Cap response bytes and request timeout. Permit only HTTPS and reject URL user-info/fragments. A URLSession task delegate rejects every redirect; no scoped channel requires redirects.
 
 ## Delivery state
 
-The coordinator records pending before network work, fans out with independent tasks, and records success or terminal/transient failure by `(eventID, kind)`. A fake retry clock makes backoff tests deterministic. Never hold Keychain data in receipts or durable delivery state.
+The coordinator idempotently leases pending messages from `NotificationOutboxClaiming`, fans out only unacknowledged channels, and records success or terminal/transient failure by `(eventID, kind)`. The concrete atomic store is supplied by the rule/monitor child; transport tests use a crash-aware fake. A fake retry clock makes backoff tests deterministic. Never hold Keychain data in receipts or durable delivery state.
+
+Keychain uses service `com.tagzxia.app.menucue.notifications`, stable channel/field accounts, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, and `kSecAttrSynchronizable = false`. Tests assert complete SecItem query attributes rather than merely mocking successful reads.
 
 ## Compatibility
 

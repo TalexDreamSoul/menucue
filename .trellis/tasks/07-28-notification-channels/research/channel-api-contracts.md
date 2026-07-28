@@ -75,14 +75,14 @@ There is no universal third-party payload contract. MenuCue must own and version
 
 Minimum configuration:
 
-- HTTPS endpoint URL
+- HTTPS endpoint URL (stored in Keychain because query/path tokens are common)
 - optional bearer token (secret)
 
 Send `Content-Type: application/json`, `User-Agent: MenuCue/<version>`, and `X-MenuCue-Event-ID`. Arbitrary headers, methods, and body code are out of scope because they turn a notification setting into a request-programming surface with unclear secret handling.
 
 ## Keychain and local settings
 
-Apple describes Keychain Services as encrypted storage for small secret values. Store Bark device key, Feishu webhook URL/signing secret, Telegram bot token, and generic Webhook bearer token under stable service/account identifiers. Store only non-secret channel metadata, enablement, rule definitions, device display name, and templates in `AppSettings`/`SettingsStore`.
+Apple describes Keychain Services as encrypted storage for small secret values. Store Bark device key, Feishu webhook URL/signing secret, generic Webhook endpoint/bearer token, and Telegram bot token under service `com.tagzxia.app.menucue.notifications` with stable channel/field account names, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, and `kSecAttrSynchronizable = false`. The accessibility choice supports locked/background delivery after the first user unlock while the ThisDeviceOnly/non-synchronizable policy keeps secrets machine-local. Store only non-secret channel metadata, enablement, rule definitions, device display name, and templates in `AppSettings`/`SettingsStore`.
 
 Follow the project contract:
 
@@ -103,6 +103,8 @@ Lists such as top processes, sleep assertions, scheduled wakes, wake history row
 
 ## Delivery and retry constraints
 
+- Reject URLSession redirects by default. Initial HTTPS validation is insufficient: following HTTPS-to-HTTP or cross-origin redirects can leak token-bearing URLs, Authorization headers, or notification content.
+- Enforce limits against the API's actual encoding: Feishu's 20 KB body is a UTF-8 byte limit; Telegram `sendMessage` text is limited to 1–4096 characters after entity parsing. Use a conservative channel-neutral rendered limit plus adapter-specific encoded-body checks.
 - Use one logical delivery record per `(eventID, channelKind)`.
 - Fan out independently; one channel failure cannot cancel siblings.
 - Retry only timeouts, connection loss, HTTP 408/429, and 5xx with bounded exponential delay and a maximum attempt count.

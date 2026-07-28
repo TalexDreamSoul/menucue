@@ -15,6 +15,9 @@ final class AppModel: ObservableObject {
     /// backfill all read the same history; three services would mean three concurrent
     /// `pmset` runs over the same 24 MB log.
     let powerDiagnosticsService = PowerDiagnosticsService()
+    /// Shared for the same reason: the popover, the Dashboard and the background
+    /// sampler all contribute to and read one history.
+    let processEnergyService = ProcessEnergyService()
 
     private let settingsStore: SettingsStore
     private let calendarService: CalendarService
@@ -193,11 +196,24 @@ final class AppModel: ObservableObject {
         preferenceSyncService.retry()
     }
 
-    /// Called the first time the user looks at power, so history keeps accruing after
-    /// the window closes.
+    /// Called every time the user looks at power, so history keeps accruing after the
+    /// window closes.
+    ///
+    /// Starting the timer here rather than only at launch is the point: persisting the
+    /// preference alone meant the very session in which someone first opened the pane
+    /// was the one session that did not backfill, and the promised "what woke my Mac
+    /// overnight" only began working the *next* time the app started.
+    /// `startBackgroundMonitoring` is idempotent, so calling this on every appearance
+    /// is free.
     func enablePowerMonitoring() {
-        guard !settings.powerMonitoringEnabled else { return }
-        updateSettings { $0.powerMonitoringEnabled = true }
+        if !settings.powerMonitoringEnabled {
+            updateSettings { $0.powerMonitoringEnabled = true }
+        }
+        powerDiagnosticsService.startBackgroundMonitoring()
+        // Same reasoning, same pairing as `StatusBarController.configurePowerMonitoring`.
+        // Starting only one of the two here would leave "what kept running" blank for
+        // the whole first session while "what woke my Mac" filled in.
+        processEnergyService.startBackgroundSampling()
     }
 
     func updateMetricsSampling(_ update: (inout MetricsSamplingSettings) -> Void) {

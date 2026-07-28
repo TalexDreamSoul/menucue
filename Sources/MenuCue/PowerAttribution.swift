@@ -94,6 +94,43 @@ enum WakeReasonDictionary {
   }
 }
 
+/// Turns a `pmset` sleep reason into something a person can read.
+///
+/// Separate from `WakeReasonDictionary` because a sleep is not a wake. Running the
+/// sleep reasons through the wake table produced sentences that were flatly untrue:
+/// `Clamshell Sleep` came out as "Woken by Clamshell Sleep", and `Maintenance Sleep`
+/// matched the `Maintenance` needle and came out as "A scheduled background task" —
+/// the reading for a wake the Mac had *not* just had.
+enum SleepReasonDictionary {
+  /// Ordered: the first match wins, so specific reasons precede general ones.
+  static let entries: [(needle: String, plain: String)] = [
+    ("Clamshell", "You closed the lid"),
+    ("Sleep Service", "Back to sleep after background work"),
+    ("Maintenance", "Back to sleep after background work"),
+    ("Low Power", "Went to sleep to save power"),
+    ("Idle", "Went to sleep after being idle"),
+    ("Software Sleep", "An app asked it to sleep"),
+    ("Menu Item", "You asked it to sleep"),
+  ]
+
+  /// The plain reading, or `nil` when the reason is not recognized.
+  static func plainLanguage(for reason: String) -> String? {
+    for entry in entries where reason.localizedCaseInsensitiveContains(entry.needle) {
+      return L10n.string(entry.plain)
+    }
+    return nil
+  }
+
+  /// One sentence for a sleep row. An unrecognized reason is shown verbatim rather
+  /// than dressed up as something the parser does not actually know.
+  static func sentence(for reason: String) -> String {
+    let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return L10n.string("Went to sleep") }
+    if let plain = plainLanguage(for: trimmed) { return plain }
+    return L10n.format("Went to sleep — %@", trimmed)
+  }
+}
+
 // MARK: - What is holding the Mac awake
 
 /// One power assertion currently held by a process.
@@ -107,8 +144,20 @@ struct SleepAssertion: Identifiable, Equatable {
   /// `pmset`'s own human sentence, when it supplies one.
   let localized: String?
   let heldSeconds: Int
+  /// `pmset`'s own handle for this assertion — the `[0x0004a2cf00018173]` field.
+  ///
+  /// Identity, not decoration. One process holds several assertions of the same type
+  /// with the same name as a matter of course: `coreaudiod` takes one per audio
+  /// client, so on this Mac `pid 413(coreaudiod)` appears twice with an identical
+  /// `PreventUserIdleSystemSleep` / `com.apple.audio.…preventuseridlesleep` pair.
+  /// Keying on pid + type + reason collapsed those two into one `id`, which is
+  /// undefined behaviour in a SwiftUI `ForEach` — measured as 8 blockers sharing 7
+  /// ids on a live read.
+  let handle: String
 
-  var id: String { "\(pid)|\(type)|\(reason)" }
+  var id: String {
+    handle.isEmpty ? "\(pid)|\(type)|\(reason)|\(heldSeconds)" : handle
+  }
 
   /// Assertions that stop the Mac sleeping, as opposed to only the display.
   var preventsSystemSleep: Bool {
@@ -145,6 +194,17 @@ enum PowerAttributionParser {
   /// 2026-07-27 17:51:13 -0700 Wake Requests	[process=mDNSResponder request=Maintenance
   ///   deltaSecs=7198 wakeAt=2026-07-27 19:51:11 info="upkeep wake"] [*process=dasd …]
   /// ```
+  /// Byte-level filter for the `Wake Requests` domain, so one streaming pass can keep
+  /// both these lines and the wake events without allocating a String per line.
+  static func isWakeRequestLine(_ line: Data.SubSequence) -> Bool {
+    let prefixLength = 26
+    guard line.count > prefixLength else { return false }
+    let domain = line[line.index(line.startIndex, offsetBy: prefixLength)...]
+    return domain.starts(with: wakeRequestsPrefix)
+  }
+
+  private static let wakeRequestsPrefix = Array("Wake Requests".utf8)
+
   static func parseScheduledWakes(_ text: String) -> [ScheduledWake] {
     let lineFormatter = DateFormatter()
     lineFormatter.locale = Locale(identifier: "en_US_POSIX")
@@ -251,6 +311,24 @@ enum PowerAttributionParser {
     return WakeReasonDictionary.cause(forInterrupt: interruptToken)
   }
 
+  /// The one sentence for one row of history — the only thing either surface should
+  /// call, so the popover and the Dashboard cannot drift apart.
+  ///
+  /// A `Sleep` row is never attributed. `Wake Requests` is logged a second or two
+  /// *after* the machine sleeps, so its winning request routinely lands inside the
+  /// attribution tolerance of the sleep that preceded it: on this Mac a real sleep at
+  /// 17:51:11 rendered as "dasd asked for it, to next scheduled timeline refresh"
+  /// because a wake had been scheduled for 17:50:34. Attributing only wakes makes
+  /// that impossible rather than merely unlikely.
+  static func sentence(for event: WakeEvent, scheduled: [ScheduledWake]) -> String {
+    guard event.kind != .sleep else {
+      return SleepReasonDictionary.sentence(for: event.reason)
+    }
+    return attribute(
+      wakeAt: event.timestamp, interruptToken: event.reason, scheduled: scheduled
+    ).sentence
+  }
+
   /// `com.apple.dasd:0:com.apple.MobileAccessoryUpdater.deviceIdleCheck` is not a
   /// sentence. Take the most specific segment and space out its camel case.
   static func readableInfo(_ info: String) -> String {
@@ -260,12 +338,24 @@ enum PowerAttributionParser {
     // leaf: returning `tail` here printed the whole `com.apple.searchd.heartbeat`.
     guard leaf.count > 2, leaf.contains(where: \.isUppercase) else { return leaf }
 
+    // Break at camel-case boundaries only. Breaking at *every* capital shredded runs
+    // of them: `DHCP lease renewal` came out of a live read as `d h c p lease renewal`,
+    // and `user-invisible-Weekly Usage Report,625` came out with doubled spaces.
+    let characters = Array(leaf)
     var words: [String] = []
     var current = ""
-    for character in leaf {
-      if character.isUppercase, !current.isEmpty {
+    for (index, character) in characters.enumerated() {
+      let previous = index > 0 ? characters[index - 1] : nil
+      let next = index + 1 < characters.count ? characters[index + 1] : nil
+      // `wakeUp` → break before `U`. `HTTPServer` → break before `S`, not inside
+      // `HTTP`. `DHCP lease` → no break at all.
+      let startsWord =
+        character.isUppercase && !current.isEmpty
+        && ((previous?.isLowercase ?? false) || (previous?.isNumber ?? false)
+          || ((previous?.isUppercase ?? false) && (next?.isLowercase ?? false)))
+      if startsWord {
         words.append(current)
-        current = String(character).lowercased()
+        current = String(character)
       } else {
         current.append(character)
       }
@@ -309,7 +399,7 @@ enum PowerAttributionParser {
         pending = SleepAssertion(
           pid: existing.pid, process: existing.process, type: existing.type,
           reason: existing.reason, localized: localized.isEmpty ? nil : localized,
-          heldSeconds: existing.heldSeconds)
+          heldSeconds: existing.heldSeconds, handle: existing.handle)
         continue
       }
       // A non-indented, non-pid line ends the current block.
@@ -333,6 +423,9 @@ enum PowerAttributionParser {
 
     // Duration is the first HH:MM:SS after the assertion id.
     guard let bracketEnd = rest.firstIndex(of: "]") else { return nil }
+    let handle = rest.firstIndex(of: "[").map { open in
+      String(rest[rest.index(after: open)..<bracketEnd])
+    } ?? ""
     let afterBracket = rest[rest.index(after: bracketEnd)...]
       .trimmingCharacters(in: .whitespaces)
     let fields = afterBracket.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
@@ -348,7 +441,7 @@ enum PowerAttributionParser {
 
     return SleepAssertion(
       pid: pid, process: process, type: type, reason: reason,
-      localized: nil, heldSeconds: heldSeconds)
+      localized: nil, heldSeconds: heldSeconds, handle: handle)
   }
 
   /// `89:44:59` — hours can exceed 24, so this is not a date.

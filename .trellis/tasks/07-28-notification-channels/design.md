@@ -10,14 +10,16 @@ Planning for user review. No implementation is activated.
 Existing typed probes/events
   -> AlertObservation adapters
   -> AlertMetricCatalog / AlertRuleEngine
-  -> AlertEvent (stable event ID, context variables)
   -> NotificationTemplateRenderer
-  -> NotificationMessage
-  -> NotificationDeliveryCoordinator
+  -> NotificationRuntimeStore.atomicCommit(
+       rule state + source cursor + rendered NotificationMessage outbox record)
+  -> NotificationDeliveryCoordinator.claim(event ID)
        -> any NotificationChannel (Feishu/Webhook/Bark/Telegram)
        -> NotificationSecretStore (Keychain)
-       -> NotificationRuntimeStore (local cursors/outcomes)
+       -> NotificationRuntimeStore.ack(per-channel outcome)
 ```
+
+`NotificationRuntimeStore` is the single durability owner for rule state, source cursors, rendered-message snapshots, outbox claims, attempts, and per-channel acknowledgements. There is no callback-only handoff between a committed rule transition and a pending delivery record.
 
 Views edit typed local configuration through `AppModel` and invoke test/validation intents on a notification settings service. Views never read UserDefaults, Keychain, URLSession responses, or probe values directly.
 
@@ -53,19 +55,23 @@ The catalog, not the UI, owns metric IDs, units, supported operators, default th
 
 ### Template boundary
 
-`NotificationTemplateRenderer` parses only `{{identifier}}` tokens against a versioned allowlist. It reports exact unknown-token/range errors and renders from a typed `NotificationVariableContext`. Escaping is the channel encoder's responsibility; template output is plain text.
+`NotificationTemplateRenderer` parses only `{{identifier}}` tokens against a versioned allowlist. It reports exact unknown-token/range errors and renders from a typed `NotificationVariableContext`. Escaping is the channel encoder's responsibility; template output is plain text. The combined rendered title/newline/body is capped at 4,000 Swift `Character` values, then each adapter validates its final encoded request (including Feishu's 20 KB UTF-8 JSON-body limit and Telegram's 4,096-character text limit).
 
 ## Metric catalog
 
 ### Direct scalar metrics
 
-- CPU: aggregate busy percent, maximum selected/core busy percent, 1/5/15-minute load average.
-- GPU: device and renderer utilization percent; GPU in-use memory bytes when available.
-- Memory: used percent; kernel pressure severity; swap used bytes/percent.
-- Storage: selected volume used percent/free bytes; aggregate disk read/write bytes per second; read/write operations per second.
-- Network: aggregate or selected-interface download/upload bytes per second.
-- Sensors: CPU temperature, selected thermal sensor temperature, selected fan RPM/load percent.
-- Battery/power: battery level percent, charge/discharge watts, percent per hour when available.
+The authoritative field-by-field catalog is `research/metric-inventory.md`. Inclusion requires a user-visible, time-varying scalar or ordered value, a stable target identity, a truthful unit, and meaningful incident/recovery semantics.
+
+Included families are:
+
+- CPU: aggregate busy/user/system/idle, per-core busy, and 1/5/15-minute load average.
+- GPU: device/renderer utilization and in-use memory.
+- Memory: used/app/wired/compressed/cached bytes, used percent, pressure severity, and swap used bytes/percent.
+- Storage: selected volume used/free bytes and used percent; aggregate read/write rates and operation rates.
+- Network: current-primary and selected-interface download/upload rates.
+- Sensors: aggregate CPU and selected thermal temperatures; selected fan RPM/load.
+- Battery/power: level, signed flow watts/percent-per-hour, charging state, and AC state.
 
 ### Event metrics
 
@@ -73,7 +79,9 @@ The catalog, not the UI, owns metric IDs, units, supported operators, default th
 
 ### Explicit exclusions
 
-Top-process/process-energy rankings, sleep assertions, scheduled wakes, wake-history rows, and power profiles are lists or configuration, not stable scalar observations. Treating them as numbers would erase target identity and create misleading generic rules. They require future typed event/list rule kinds.
+Top-process/process-energy rankings, sleep assertions, scheduled wakes, wake-history rows, power profiles, static capacities/hardware facts, monotonic lifetime counters, and presentation-only histories are excluded for the reasons recorded in the inventory.
+
+Before thermal rules ship, `ThermalReading` gains a nonlocalized `sensorID` sourced from the HID cluster identifier or Intel SMC key. `label` remains localized display text. Existing label-based values are never migrated by guessing; an unresolved target is shown as unavailable.
 
 ## Rule state machine
 
@@ -91,7 +99,15 @@ idle -> pendingAlert -> active -> pendingRecovery -> cooldown -> idle
 - A relapse during `pendingRecovery` returns to `active` without another alert.
 - Cooldown suppresses new alert events until expiry; observations still update status.
 
-Event rules deduplicate by source event ID and apply cooldown where configured. Persist state transitions and source cursors atomically in `NotificationRuntimeStore`; no transport result may mutate wake history or metric caches.
+Event rules deduplicate by source event ID and apply cooldown where configured. A transition is not considered committed until `NotificationRuntimeStore` atomically writes the next rule state/source cursor and the rendered `NotificationMessage` outbox record together. The coordinator idempotently claims stable event IDs and writes per-channel acknowledgements back to the same store.
+
+Crash behavior is therefore explicit:
+
+- before atomic commit: neither state nor event exists and evaluation may safely repeat;
+- after commit/before claim: the event remains pending;
+- after claim/before remote result: the claim lease expires and delivery retries;
+- after remote acceptance/before acknowledgement: remote duplication remains possible for APIs without idempotency, but the logical event is not lost;
+- after acknowledgement: that channel is terminal for the event.
 
 ## Background monitoring
 
@@ -99,11 +115,15 @@ Create an app-lifetime `AlertMonitoringService`, configured from local rules by 
 
 The monitor groups enabled metrics by provider and runs only required providers. Cheap counters may share a 15-second base cadence. Expensive GPU/sensor/volume providers use catalog minimum cadences and coalesce rules that need the same sample. Counter-based providers retain private baselines and discard the first unprimed rate sample.
 
-Rule changes reconfigure timers atomically. No metric rules means no timer and no metric probes. Dark wake remains event/backfill driven. Sleep/wake pauses timers and resumes with fresh counter baselines; it never interprets the sleep interval as load.
+Rule changes reconfigure timers atomically. No enabled metric rules means no notification-owned metric timer or probe. Existing opt-in Power history may continue for its own feature.
+
+Wake observation/history reconciliation becomes reference-counted: the existing Power-history feature and enabled dark-wake rules each retain it. Zero references means no wake observer or history timer. Dark-wake-only monitoring runs history reconciliation, never the full profiles/assertions/scheduled-wake refresh. When a normalized post-baseline dark wake is discovered, its state/message outbox transaction commits first, then delivery is attempted immediately; pending work resumes on the next full wake. macOS does not guarantee execution during every dark wake, so “immediate” means as soon as reconciliation discovers the event.
+
+Sleep/wake pauses metric timers and resumes with fresh counter baselines; it never interprets the sleep interval as load.
 
 ## Delivery
 
-`NotificationDeliveryCoordinator` creates one durable delivery record for each `(alertEventID, channelKind)`, then fans out with a task group. Outcomes are independent.
+`NotificationDeliveryCoordinator` idempotently leases pending outbox records, then fans out unacknowledged channels with a task group. Outcomes and retry schedules are independently acknowledged in the same runtime store.
 
 Retry only transient transport failures, HTTP 408/429, and 5xx, with capped exponential backoff and bounded `Retry-After`. Mark terminal API/auth/validation failures immediately. Generic Webhook gets `X-MenuCue-Event-ID`; other APIs do not guarantee idempotency, so a lost response can yield a duplicate remote message even though MenuCue keeps one logical delivery record.
 
@@ -114,7 +134,7 @@ Channel adapters:
 - Bark: POST JSON to validated base URL/device-key endpoint; require successful Bark response code.
 - Telegram: `sendMessage` with chat/thread target; require `ok == true`.
 
-All URLSession errors pass through a redacting typed error mapper. Never expose request URLs containing tokens.
+All adapters use a URLSession whose task delegate rejects redirects by default. A future redirect allowance would require same-origin HTTPS validation and explicit sensitive-header stripping, but no channel in this scope needs it. URLSession and API errors pass through a redacting typed mapper; request URLs containing tokens are never surfaced. Tests cover HTTPS-to-HTTP, cross-host, loop/excess redirects, and token-bearing error paths.
 
 ## Persistence and secrets
 
@@ -124,12 +144,7 @@ Non-secret local settings:
 - channel enabled/configured markers and non-secret fields;
 - rules and templates.
 
-Keychain items:
-
-- Feishu webhook URL and optional signing secret;
-- Webhook bearer token;
-- Bark device key;
-- Telegram bot token.
+Keychain items use service namespace `com.tagzxia.app.menucue.notifications`, stable channel/field account identifiers, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, and `kSecAttrSynchronizable = false`. This allows app-owned credentials after the first user unlock while keeping them device-local. Tests inspect add/update queries and cover duplicate, missing, locked/access-denied, migration, and corrupt-data behavior.
 
 A generic Webhook endpoint may itself contain a secret query token; store the full endpoint in Keychain as well. Bark server base URL and Telegram chat/thread IDs remain local settings. None of these fields joins `PortableSettingField` or iCloud envelopes.
 
@@ -154,4 +169,4 @@ Use native Picker, Toggle, TextField/SecureField, Stepper, Menu, and tab/segment
 - Child 1 transport is independently testable with mock URLProtocol and mock Keychain.
 - Child 2 rule engine is independently testable with fake clocks/providers/senders.
 - Child 3 wires configuration and UI after both contracts stabilize.
-- Rollback removes additive notification files/wiring and local keys; never delete Keychain entries silently on app downgrade. Provide explicit channel credential removal in UI.
+- Rollback removes additive notification code/wiring and stops its workers; never delete Keychain entries silently on app downgrade. Provide explicit channel credential removal in UI.

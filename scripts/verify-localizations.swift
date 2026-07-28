@@ -23,14 +23,21 @@ func loadStrings(at path: String) -> [String: String] {
 }
 
 func formatArguments(in value: String) -> [String] {
-  let pattern = #"%(?!%)(?:\d+\$)?[-+# 0']*(?:\d+|\*)?(?:\.\d+|\.\*)?(?:hh|h|ll|l|q|z|t|j)?[@aAcCdDeEfFgGiIoOsSuUxX]"#
+  // `%%` is matched first and then discarded, so the scanner steps over *both* of its
+  // characters. Skipping only the first with a `%(?!%)` lookahead left the second `%`
+  // free to start a match against the following text: a space is a valid flag and `o`
+  // is a valid conversion, so `"%d%% of the time"` reported a phantom `% o` argument
+  // and disagreed with a translation that says the same thing in fewer words.
+  let pattern = #"%%|%(?:\d+\$)?[-+# 0']*(?:\d+|\*)?(?:\.\d+|\.\*)?(?:hh|h|ll|l|q|z|t|j)?[@aAcCdDeEfFgGiIoOsSuUxX]"#
   guard let expression = try? NSRegularExpression(pattern: pattern) else {
     fail("Unable to compile format-argument verifier.")
   }
   let range = NSRange(value.startIndex..<value.endIndex, in: value)
   return expression.matches(in: value, range: range).compactMap { match in
     guard let range = Range(match.range, in: value) else { return nil }
-    return String(value[range])
+    let argument = String(value[range])
+    // An escaped literal percent is not an argument.
+    return argument == "%%" ? nil : argument
   }
 }
 

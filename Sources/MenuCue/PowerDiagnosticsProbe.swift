@@ -340,12 +340,24 @@ protocol PowerDiagnosticsProbing {
   func powerProfiles() throws -> PowerProfiles
   func sleepAssertions() throws -> [SleepAssertion]
   func scheduledWakes() throws -> [ScheduledWake]
+  /// Both halves of the wake picture from **one** read of the log.
+  func wakeLog() throws -> WakeLogReading
+}
+
+/// What one pass over `pmset -g log` yields.
+struct WakeLogReading {
+  var events: [WakeEvent] = []
+  var scheduled: [ScheduledWake] = []
+  var bytesRead = 0
 }
 
 extension PowerDiagnosticsProbing {
-  // Defaulted so existing test doubles keep compiling; the real probe overrides both.
+  // Defaulted so existing test doubles keep compiling; the real probe overrides them.
   func sleepAssertions() throws -> [SleepAssertion] { [] }
   func scheduledWakes() throws -> [ScheduledWake] { [] }
+  func wakeLog() throws -> WakeLogReading {
+    WakeLogReading(events: try wakeEvents(), scheduled: try scheduledWakes())
+  }
 }
 
 struct SystemPowerDiagnosticsProbe: PowerDiagnosticsProbing {
@@ -384,6 +396,27 @@ struct SystemPowerDiagnosticsProbe: PowerDiagnosticsProbing {
   func wakeStatistics() throws -> WakeStatistics {
     let output = try runner.run("/usr/bin/pmset", arguments: ["-g", "stats"])
     return try PowerDiagnosticsParser.parseWakeStats(output.standardOutput)
+  }
+
+  /// One pass, both results.
+  ///
+  /// `wakeEvents()` and `scheduledWakes()` each spawned their own `pmset -g log`,
+  /// which on this Mac is 25 MB and several seconds *each*, repeated on every refresh
+  /// and every background backfill. They read the same file for adjacent domains, so
+  /// there was never a reason for two.
+  func wakeLog() throws -> WakeLogReading {
+    var reader = runner
+    reader.timeout = 45
+    let output = try reader.runStreaming("/usr/bin/pmset", arguments: ["-g", "log"]) { line in
+      PowerDiagnosticsParser.isInterestingLogLine(line)
+        || PowerAttributionParser.isWakeRequestLine(line)
+    }
+    let text = output.lines.joined(separator: "\n")
+    return WakeLogReading(
+      events: try PowerDiagnosticsParser.parseWakeEvents(text),
+      scheduled: PowerAttributionParser.parseScheduledWakes(text),
+      bytesRead: output.bytesRead
+    )
   }
 
   func wakeEvents() throws -> [WakeEvent] {

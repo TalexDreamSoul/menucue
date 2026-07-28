@@ -10,6 +10,7 @@
 "%@ failed with status %d." = "%@失败，状态码为 %d。";
 "%@ failed." = "%@失败。";
 "%@ free" = "%@ 可用";
+"%@ of the time" = "%@ 的时间";
 "%@ total" = "%@ 总计";
 "%@ used" = "%@ 已用";
 "%@ – %@" = "%@ – %@";
@@ -78,6 +79,7 @@
 "Allow Accessibility access, then try Clean Keyboard again." = "请允许辅助功能访问，然后重试“清洁键盘”。";
 "Ambient" = "环境";
 "An alarm or timer" = "闹钟或计时器";
+"An app asked it to sleep" = "某个 App 请求进入睡眠";
 "App" = "应用";
 "App appearance and optional macOS Light/Dark automation." = "应用外观及可选的 macOS 浅色/深色自动切换。";
 "App memory" = "应用内存";
@@ -106,6 +108,7 @@
 "Automatically check and download updates" = "自动检查并下载更新";
 "Available actions" = "可用操作";
 "Avoid" = "忌";
+"Back to sleep after background work" = "完成后台任务后重新进入睡眠";
 "Battery" = "电池";
 "Battery %d%%" = "电池 %d%%";
 "Battery Flow" = "电池流";
@@ -267,7 +270,9 @@
 "Keep Screen On enabled." = "已启用屏幕常亮。";
 "Keep Settings on This Mac" = "将设置保留在这台 Mac 上";
 "Keep on This Mac" = "保留在这台 Mac 上";
+"Keeping Awake" = "阻止休眠";
 "Keeping Your Mac Awake" = "正在阻止 Mac 休眠";
+"Keeps Running" = "持续运行";
 "Kept on this Mac" = "保留在这台 Mac 上";
 "Language & Region" = "语言与地区";
 "Last Wake" = "最近一次唤醒";
@@ -357,6 +362,7 @@
 "None" = "无";
 "Normal" = "正常";
 "Not Installed" = "未安装";
+"Not enough samples yet." = "样本还不够。";
 "Nothing is preventing sleep." = "没有任何程序在阻止休眠。";
 "Nothing pinned yet. Pin actions in Settings." = "尚未固定操作。可在设置中固定。";
 "Now sampling every %@" = "当前每 %@ 采样一次";
@@ -595,6 +601,10 @@
 "Week starts" = "每周起始日";
 "Weekday" = "星期";
 "Weekly" = "每周";
+"Went to sleep" = "已进入睡眠";
+"Went to sleep after being idle" = "闲置后进入睡眠";
+"Went to sleep to save power" = "为节省电量进入睡眠";
+"Went to sleep — %@" = "已进入睡眠 — %@";
 "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance." = "启用后，MenuCue 会通过 macOS 自动化权限切换系统浅色/深色外观。关闭后，仅此应用预览所选外观。";
 "Wired" = "联动内存";
 "Woken by %@" = "由 %@ 唤醒";
@@ -604,10 +614,13 @@
 "Written since boot" = "开机以来写入";
 "Yearly" = "每年";
 "Yes" = "是";
+"You asked it to sleep" = "你让它进入了睡眠";
 "You can also hold Esc for 3 seconds." = "也可按住 Esc 3 秒退出。";
+"You closed the lid" = "你合上了上盖";
 "You — keyboard, trackpad or mouse" = "你——键盘、触控板或鼠标";
 "Your Mac last woke at %@" = "你的 Mac 上次在 %@ 唤醒";
 "and %d more" = "另有 %d 项";
+"avg %@ · peak %@" = "平均 %@ · 峰值 %@";
 "iCloud Account Changed" = "iCloud 账户已更改";
 "iCloud Sync" = "iCloud 同步";
 "iCloud account changed" = "iCloud 账户已更改";

@@ -98,6 +98,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
   private func configurePowerMonitoring() {
     guard model.settings.powerMonitoringEnabled else { return }
     model.powerDiagnosticsService.startBackgroundMonitoring()
+    // "What has been running" needs samples over a window, so this one accumulates
+    // too — on a slower cadence, because each sample costs a second of `top`.
+    model.processEnergyService.startBackgroundSampling()
   }
 
   private func configurePopover() {

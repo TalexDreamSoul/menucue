@@ -9,6 +9,8 @@ final class ProcessEnergyService: ObservableObject {
   @Published private(set) var sampledAt: Date?
   @Published private(set) var isRefreshing = false
   @Published private(set) var errorMessage: String?
+  /// What has been running over the retained window, as opposed to in this instant.
+  @Published private(set) var history = ProcessEnergyHistory()
   @Published var viewMode: ViewMode = .apps
 
   private let probe: ProcessEnergyProbing
@@ -22,17 +24,66 @@ final class ProcessEnergyService: ObservableObject {
   private var generation = 0
   private var lastRefreshStartedAt: Date?
 
+  private let historyStore: ProcessEnergyHistoryStore?
+  private var backgroundTimer: Timer?
+
   init(
     probe: ProcessEnergyProbing = SystemProcessEnergyProbe(),
     refreshInterval: TimeInterval = 15,
+    historyStore: ProcessEnergyHistoryStore? = .applicationStore(),
     now: @escaping () -> Date = Date.init
   ) {
     self.probe = probe
     self.refreshInterval = max(0.001, refreshInterval)
+    self.historyStore = historyStore
     self.now = now
+    if let historyStore, let restored = try? historyStore.load(now: now()) {
+      history = restored
+    }
   }
 
-  deinit { timer?.invalidate() }
+  /// Samples on a slow cadence with nothing on screen, so "what has been running" can
+  /// be answered for a window rather than for the instant a tab was opened.
+  ///
+  /// Deliberately much slower than the foreground rate: this is about persistence, and
+  /// a `top -l 2` costs about a second of wall clock each time.
+  func startBackgroundSampling(interval: TimeInterval = 300) {
+    guard backgroundTimer == nil else { return }
+    sampleIntoHistory()
+    let timer = Timer(timeInterval: max(60, interval), repeats: true) { [weak self] _ in
+      self?.sampleIntoHistory()
+    }
+    RunLoop.main.add(timer, forMode: .common)
+    backgroundTimer = timer
+  }
+
+  func stopBackgroundSampling() {
+    backgroundTimer?.invalidate()
+    backgroundTimer = nil
+  }
+
+  /// One sample folded into the history, without disturbing the live readout.
+  private func sampleIntoHistory() {
+    let sampledAt = now()
+    queue.async { [weak self] in
+      guard let self else { return }
+      guard let entries = try? self.probe.sample(limit: 20) else { return }
+      DispatchQueue.main.async {
+        self.history.record(entries, at: sampledAt)
+        try? self.historyStore?.save(self.history)
+      }
+    }
+  }
+
+  func clearHistory() {
+    history = ProcessEnergyHistory()
+    try? historyStore?.clear()
+  }
+
+  deinit {
+    timer?.invalidate()
+    backgroundTimer?.invalidate()
+  }
 
   func retain() {
     activationCount += 1
@@ -83,6 +134,9 @@ final class ProcessEnergyService: ObservableObject {
         let groups = ProcessEnergyAggregator.groups(from: entries)
         DispatchQueue.main.async {
           guard self.activationCount > 0, self.generation == refreshGeneration else { return }
+          // A foreground sample is as good a data point as a background one.
+          self.history.record(entries, at: self.now())
+          try? self.historyStore?.save(self.history)
           self.entries = entries
           self.groups = groups
           self.sampledAt = self.now()

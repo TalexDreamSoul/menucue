@@ -10,7 +10,7 @@ Planning for user review. Start child tasks, not this parent.
 
 Owns `07-28-notification-transport`.
 
-- RED: lock message/config/error/receipt contracts; request/response fixtures for all four APIs; Keychain and retry tests.
+- RED: lock message/config/error/receipt/outbox-claim contracts; request/response fixtures for all four APIs; Keychain attributes, redirect rejection, UTF-8 limits, and retry tests.
 - GREEN: implement secret store, HTTP client boundary, four channels, channel factory, and independent fan-out coordinator.
 - REFACTOR: centralize status/body limits, redaction, URL validation, retry classification, and JSON encoding.
 
@@ -26,13 +26,14 @@ swift test --filter NotificationDelivery
 
 Owns `07-28-metric-alert-rules`; depends on transport contracts, but tests use fake channels.
 
-- RED: catalog completeness, value normalization, rule state transitions, timestamps, hysteresis, recovery, cooldown, relaunch, unavailable samples, dark-wake dedup, and targeted-provider lifecycle.
-- GREEN: implement catalog, providers/adapters, rule engine, runtime store, monitor scheduling, template context events, and wake bridge.
+- RED: inventory completeness, stable thermal identity/legacy handling, primary-network identity changes, independent GPU maxima semantics, value normalization, template parsing/rendering, rule state transitions, timestamps, hysteresis, recovery, cooldown, relaunch, unavailable samples, dark-wake dedup, reference-counted wake lifecycle, and targeted-provider lifecycle.
+- GREEN: implement catalog, stable sensor identity, template renderer, providers/adapters, rule engine, one atomic runtime/outbox store, monitor scheduling, and wake bridge.
 - REFACTOR: ensure probes are grouped/coalesced and first counter-rate samples cannot alert.
 
 Gate:
 
 ```sh
+swift test --filter NotificationTemplate
 swift test --filter AlertMetric
 swift test --filter AlertRule
 swift test --filter AlertMonitoring
@@ -43,7 +44,7 @@ swift test --filter DarkWakeAlert
 
 Owns `07-28-notification-settings-ui`; depends on both previous children.
 
-- RED: non-secret persistence, device-name fallback, template parser/renderer, supported-variable filtering, settings pane routing, form validation, and enablement tests.
+- RED: non-secret persistence, device-name fallback, supported-variable filtering, template-editor integration/preview, settings pane routing, form validation, and enablement tests.
 - GREEN: implement `Notifications` pane, channel forms/test state, rules list/editor, variable insertion/preview/reset, and app-lifetime wiring.
 - REFACTOR: keep catalog metadata and validation out of SwiftUI; remove repeated channel form structure without erasing channel-specific fields.
 
@@ -60,8 +61,9 @@ swift test --filter AlertRuleSettings
 
 - Verify device name and one alert/recovery preview across all four channel encoders.
 - Verify concurrent fan-out with mixed success, retry, authentication failure, and one disabled channel.
-- Verify all catalog providers with available/unavailable fixtures and UI-closed monitor lifecycle.
-- Verify dark-wake backfill does not replay historical events as new alerts on first enablement.
+- Check no-rule, metric-only, dark-wake-only, existing-Power-history-only, and combined reference-count lifecycles with probe counters.
+- Verify immediate dark-wake atomic enqueue plus coordinator kick and full-wake pending-outbox resume do not replay historical events on first enablement.
+- Run crash injection before/after atomic transition commit, claim lease, remote result, and acknowledgement; prove no logical event is lost or created twice.
 - Inspect UserDefaults/iCloud envelopes/test output for secrets.
 - Check the Notifications pane at default 900x680 and minimum 720x540 sizes, keyboard navigation, VoiceOver labels, long Chinese strings, disabled/loading/error states, and no nested cards.
 - Run full gate:
@@ -70,7 +72,7 @@ swift test --filter AlertRuleSettings
 swift test
 ./scripts/verify-localizations.swift
 ./scripts/build-app.sh
-codesign --verify --deep --strict .build/MenuCue.app
+codesign --verify --deep --strict .build/app/MenuCue.app
 ```
 
 ## Rollback points

@@ -142,7 +142,10 @@ struct DashboardView: View {
     case .sensors:
       DashboardSensorsSection(metrics: metrics, dashboard: dashboard)
     case .power:
-      DashboardPowerSection(model: model, diagnostics: model.powerDiagnosticsService)
+      DashboardPowerSection(
+        model: model,
+        diagnostics: model.powerDiagnosticsService,
+        energy: model.processEnergyService)
     }
   }
 }

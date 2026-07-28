@@ -291,6 +291,9 @@ final class ProcessEnergyServiceLifecycleTests: XCTestCase {
     let service = ProcessEnergyService(
       probe: probe,
       refreshInterval: 1,
+      // No store: the default is the real one under Application Support, so leaving it
+      // in made `swift test` read and rewrite the developer's own accumulated history.
+      historyStore: nil,
       now: { currentDate })
 
     service.retain()
@@ -330,7 +333,8 @@ final class ProcessEnergyServiceLifecycleTests: XCTestCase {
       _ = unblockProbe.wait(timeout: .now() + 2)
       return [entry]
     }
-    let service = ProcessEnergyService(probe: probe, refreshInterval: 0.01)
+    let service = ProcessEnergyService(
+      probe: probe, refreshInterval: 0.01, historyStore: nil)
 
     service.retain()
     wait(for: [probeStarted], timeout: 1)

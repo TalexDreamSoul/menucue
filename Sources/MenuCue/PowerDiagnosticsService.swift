@@ -80,21 +80,30 @@ final class PowerDiagnosticsService: ObservableObject {
 
     queue.async { [weak self] in
       guard let self else { return }
-      var events: [WakeEvent] = []
+      var scheduled: [ScheduledWake] = []
       var failed = false
       do {
-        events = try self.probe.wakeEvents()
-        try self.historyStore.merge(events)
+        let reading = try self.probe.wakeLog()
+        scheduled = reading.scheduled
+        try self.historyStore.merge(reading.events)
       } catch {
         failed = true
       }
       let history = (try? self.historyStore.load())
       DispatchQueue.main.async {
         self.refreshInFlight = false
+        defer {
+          // A press that arrived while this backfill was running was recorded and must
+          // still be served. Without this it was dropped: `pmset -g log` takes several
+          // seconds, so the window is wide, and the user saw a Refresh button that did
+          // nothing at all.
+          if self.refreshPending { self.refresh() }
+        }
         guard requestGeneration == self.generation else { return }
         if let history, !failed {
           self.snapshot.events = history.events
           self.snapshot.dailySummaries = history.dailySummaries
+          self.snapshot.scheduledWakes = scheduled
         }
       }
     }
@@ -129,6 +138,10 @@ final class PowerDiagnosticsService: ObservableObject {
   func refresh() {
     if refreshInFlight {
       refreshPending = true
+      // The request was accepted, not ignored. The background backfill sets
+      // `refreshInFlight` without ever setting this, so a press landing during one
+      // left the button enabled and idle-looking for the whole `pmset -g log` run.
+      isRefreshing = true
       return
     }
     refreshInFlight = true
@@ -148,26 +161,29 @@ final class PowerDiagnosticsService: ObservableObject {
       do { next.profiles = try self.probe.powerProfiles() }
       catch { errors.append(error.localizedDescription) }
       do {
-        let events = try self.probe.wakeEvents()
-        try self.historyStore.merge(events)
+        // One pass over the log yields both; two calls meant two 25 MB reads.
+        let reading = try self.probe.wakeLog()
+        try self.historyStore.merge(reading.events)
         let history = try self.historyStore.load()
         next.events = history.events
         next.dailySummaries = history.dailySummaries
+        next.scheduledWakes = reading.scheduled
       } catch { errors.append(error.localizedDescription) }
       // Assertions are cheap and current; a failure here must not blank the history.
       do { next.assertions = try self.probe.sleepAssertions() }
-      catch { errors.append(error.localizedDescription) }
-      do { next.scheduledWakes = try self.probe.scheduledWakes() }
       catch { errors.append(error.localizedDescription) }
       next.refreshedAt = Date()
       next.errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
 
       DispatchQueue.main.async {
-        guard requestGeneration == self.generation else { return }
-        self.snapshot = next
+        // Clear the in-flight state before the staleness check. Returning early with
+        // it still set would wedge the service: nothing else ever clears it, so every
+        // later refresh would queue behind a run that had already finished.
         self.isRefreshing = false
         self.refreshInFlight = false
-        if self.refreshPending { self.refresh() }
+        defer { if self.refreshPending { self.refresh() } }
+        guard requestGeneration == self.generation else { return }
+        self.snapshot = next
       }
     }
   }

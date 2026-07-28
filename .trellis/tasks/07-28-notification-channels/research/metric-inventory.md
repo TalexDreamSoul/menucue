@@ -4,7 +4,7 @@
 
 The first release exposes every current value that is:
 
-1. time-varying and user-visible in MenuCue;
+1. time-varying and currently user-visible in MenuCue;
 2. scalar or ordered categorical;
 3. obtainable with a stable target identity and truthful unit;
 4. meaningful as a threshold/state incident with alert and recovery semantics.
@@ -23,9 +23,9 @@ Static capacities/hardware facts, formatting-only derivatives, monotonic lifetim
 | `cpu.load.1m` | `LoadAverage.one` | runnable threads | system | above/below | cheap sysctl |
 | `cpu.load.5m` | `LoadAverage.five` | runnable threads | system | above/below | cheap sysctl |
 | `cpu.load.15m` | `LoadAverage.fifteen` | runnable threads | system | above/below | cheap sysctl |
-| `gpu.device.utilization` | `GPUStats.deviceUtilization` | percent | busiest accelerator | above/below | expensive IOKit |
-| `gpu.renderer.utilization` | `GPUStats.rendererUtilization` | percent | busiest accelerator | above/below | expensive IOKit |
-| `gpu.memory.inUse` | `GPUStats.inUseMemory` | bytes | busiest accelerator | above/below | expensive IOKit |
+| `gpu.device.utilization` | `GPUStats.deviceUtilization` | percent | independent maximum across accelerators | above/below | expensive IOKit |
+| `gpu.renderer.utilization` | `GPUStats.rendererUtilization` | percent | independent maximum across accelerators | above/below | expensive IOKit |
+| `gpu.memory.inUse` | `GPUStats.inUseMemory` | bytes | independent maximum across accelerators | above/below | expensive IOKit |
 | `memory.used` | `MemoryUsage.used` | bytes | system | above/below | cheap host stats |
 | `memory.used.percent` | `MemoryUsage.fraction` | percent | system | above/below | cheap host stats |
 | `memory.app` | `MemoryUsage.appMemory` | bytes | system | above/below | cheap host stats |
@@ -42,8 +42,8 @@ Static capacities/hardware facts, formatting-only derivatives, monotonic lifetim
 | `disk.write.rate` | `DiskUsage.writeBytesPerSecond` | bytes/second | aggregate | above/below | cheap counter |
 | `disk.read.operations` | `DiskIORates.readOperationsPerSecond` | operations/second | aggregate | above/below | medium IOKit |
 | `disk.write.operations` | `DiskIORates.writeOperationsPerSecond` | operations/second | aggregate | above/below | medium IOKit |
-| `network.download.rate` | `NetworkUsage.downloadBytesPerSecond` | bytes/second | aggregate/primary | above/below | cheap counter |
-| `network.upload.rate` | `NetworkUsage.uploadBytesPerSecond` | bytes/second | aggregate/primary | above/below | cheap counter |
+| `network.download.rate` | `NetworkUsage.downloadBytesPerSecond` | bytes/second | current primary IPv4 interface | above/below | cheap counter |
+| `network.upload.rate` | `NetworkUsage.uploadBytesPerSecond` | bytes/second | current primary IPv4 interface | above/below | cheap counter |
 | `network.interface.downloadRate` | `NetworkInterfaceInfo.downloadBytesPerSecond` | bytes/second | BSD interface name | above/below | medium route data |
 | `network.interface.uploadRate` | `NetworkInterfaceInfo.uploadBytesPerSecond` | bytes/second | BSD interface name | above/below | medium route data |
 | `sensor.cpu.temperature` | `SystemMetricsSnapshot.cpuTemperature` | degrees Celsius | aggregate CPU | above/below | medium sensor |
@@ -51,7 +51,6 @@ Static capacities/hardware facts, formatting-only derivatives, monotonic lifetim
 | `fan.speed` | `FanReading.currentRPM` | RPM | fan index | above/below | medium SMC |
 | `fan.load` | `FanReading.loadFraction` | percent | fan index | above/below | medium SMC |
 | `battery.level` | `BatteryStatus.percentage` | percent | internal battery | above/below | cheap IOPowerSources |
-| `battery.timeRemaining` | `BatteryStatus.timeRemainingMinutes` | minutes | internal battery | above/below | cheap IOPowerSources |
 | `battery.flow.watts` | `BatteryFlow.watts` | watts (signed) | internal battery | above/below | cheap IOPowerSources/IORegistry |
 | `battery.flow.percentPerHour` | `BatteryFlow.percentPerHour` | percent/hour (signed) | internal battery | above/below | cheap IOPowerSources/IORegistry |
 | `battery.charging` | `BatteryStatus.isCharging` | boolean | internal battery | is/is-not | cheap IOPowerSources |
@@ -62,7 +61,7 @@ Static capacities/hardware facts, formatting-only derivatives, monotonic lifetim
 
 `ThermalReading.id` currently returns the localized `label`, which is not stable across language changes and cannot distinguish multiple `.other` sensors. Before thermal rules ship, add a nonlocalized `sensorID` sourced from the HID cluster identifier or Intel SMC key. Keep `label` display-only. Add migration behavior that marks any unknown/legacy target unavailable rather than guessing.
 
-Fan index, logical core index, BSD interface name, and mounted-volume path are the existing stable target identifiers. Target disappearance makes a rule unavailable; it does not retarget automatically.
+Fan index, logical core index, BSD interface name, and mounted-volume path are the existing stable target identifiers. The primary-network metrics deliberately follow the current primary IPv4 interface and reset their pending/active state plus counter baseline when that interface identity changes. GPU metrics are aggregate maxima with no selectable device target: each field is independently maximized across accelerators and may come from a different device. Target disappearance makes a targeted rule unavailable; it does not retarget automatically.
 
 ## Excluded inventory
 
@@ -74,6 +73,7 @@ Fan index, logical core index, BSD interface name, and mounted-volume path are t
 | `DiskIORates.totalBytesRead/totalBytesWritten` | Monotonic since-boot counters; a fixed threshold would alert once forever and reset on boot. Rate metrics carry operational meaning. |
 | Interface raw counters | Documented 32-bit wrapping values and never displayed as absolute totals. |
 | `WakeStatistics` and `WakeDailySummary` counts | Monotonic/aggregate windows with reboot/day semantics; dark-wake source events provide exact deduplication and incident identity. |
+| `BatteryStatus.timeRemainingMinutes` | Typed probe value is not currently displayed anywhere in MenuCue, so it fails the first-release user-visible inclusion rule. |
 | Battery source/charging unknown (`nil`) | Availability state, not a value. Boolean rules evaluate only known values. |
 | Power profiles/settings | User/system configuration, not observed load/health metrics. |
 | Sleep assertions/scheduled wakes/wake-history rows | Typed lists/events requiring identity-specific rule designs. Dark wake is separately supported. |

@@ -35,6 +35,10 @@ struct PowerTabView: View {
       }
       helper.refreshStatus()
       updateSampling(isVisible: popoverPresentation.isVisible)
+      // Opening this tab is the opt-in, exactly as it is on the Dashboard. Only the
+      // Dashboard called this, so a user who lives in the popover — the majority —
+      // never got the background backfill the feature is built around.
+      model.enablePowerMonitoring()
     }
     .onDisappear {
       updateSampling(isVisible: false)
@@ -244,11 +248,8 @@ struct PowerTabView: View {
           ForEach(Array(recent)) { event in
             WakeEventRow(
               event: event,
-              cause: PowerAttributionParser.attribute(
-                wakeAt: event.timestamp,
-                interruptToken: event.reason,
-                scheduled: diagnostics.snapshot.scheduledWakes
-              ))
+              sentence: PowerAttributionParser.sentence(
+                for: event, scheduled: diagnostics.snapshot.scheduledWakes))
           }
         }
       }
@@ -524,10 +525,11 @@ private struct WakeCount: View {
 
 private struct WakeEventRow: View {
   let event: WakeEvent
-  /// The attributed cause. Falls back to the interrupt token's plain reading, so this
-  /// row no longer shows `smc.sysState.Wake(0x70070000) wifibt SMC.OutboxNo…` clipped
-  /// at 9pt.
-  let cause: WakeCause
+  /// The row's one sentence, from `PowerAttributionParser.sentence(for:scheduled:)`.
+  /// Falls back to the interrupt token's plain reading, so this row no longer shows
+  /// `smc.sysState.Wake(0x70070000) wifibt SMC.OutboxNo…` clipped at 9pt — and a
+  /// sleep is described as a sleep rather than attributed to a scheduled wake.
+  let sentence: String
 
   var body: some View {
     HStack(spacing: 6) {
@@ -536,7 +538,7 @@ private struct WakeEventRow: View {
         .font(.system(size: 9, design: .monospaced))
         .foregroundStyle(.secondary)
         .frame(width: 58, alignment: .leading)
-      Text(cause.sentence)
+      Text(sentence)
         .font(.system(size: 10))
         .lineLimit(1)
         .truncationMode(.tail)

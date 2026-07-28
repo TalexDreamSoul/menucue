@@ -272,6 +272,94 @@ final class SleepAssertionParsingTests: XCTestCase {
     XCTAssertEqual(PowerAttributionParser.parseDuration("89:44:59"), 89 * 3_600 + 44 * 60 + 59)
     XCTAssertEqual(PowerAttributionParser.parseDuration("nonsense"), 0)
   }
+
+  func testOneProcessHoldingTheSameAssertionTwiceKeepsTwoIdentities() throws {
+    // `coreaudiod` takes one assertion per audio client, so the captured machine has
+    // two entries with the same pid, type and name. Keying identity on those three
+    // collapsed them into one `id`, which is undefined behaviour in a SwiftUI ForEach
+    // — a live read showed 8 blockers sharing 7 ids.
+    let assertions = PowerAttributionParser.parseAssertions(try fixture("pmset-assertions.txt"))
+    let repeated = Dictionary(grouping: assertions) { "\($0.pid)|\($0.type)|\($0.reason)" }
+      .filter { $0.value.count > 1 }
+    XCTAssertFalse(repeated.isEmpty, "fixture should exercise the collision")
+
+    XCTAssertEqual(
+      Set(assertions.map(\.id)).count, assertions.count,
+      "two assertions shared an id")
+    for assertion in assertions {
+      XCTAssertFalse(assertion.handle.isEmpty, "pmset always prints the assertion id")
+    }
+  }
+
+  func testAnAssertionWithNoLocalizedLineIsStillReported() {
+    // The first block has no continuation at all and the last has one; both must land.
+    let text = """
+      Listed by owning process:
+         pid 832(UURemote): [0x00000045000180ca] 90:02:03 PreventUserIdleSystemSleep named: "UURemote Disable Idle System Sleep"
+         pid 818(NeteaseMusic): [0x00049c87000181ee] 00:50:26 PreventUserIdleSystemSleep named: "NetEase CloudMusic is playing music"
+      \tCreated for PID: 523.
+      """
+    let assertions = PowerAttributionParser.parseAssertions(text)
+    XCTAssertEqual(assertions.map(\.process), ["UURemote", "NeteaseMusic"])
+    XCTAssertNil(assertions[0].localized)
+    XCTAssertEqual(assertions[1].heldSeconds, 50 * 60 + 26)
+  }
+}
+
+final class WakeRowSentenceTests: XCTestCase {
+  private func sleepEvent(at date: Date, reason: String) -> WakeEvent {
+    WakeEvent(timestamp: date, kind: .sleep, reason: reason, occurrence: 0, utcOffsetSeconds: 0)
+  }
+
+  func testASleepIsNeverAttributedToAScheduledWake() {
+    // `Wake Requests` is logged a second or two *after* the machine sleeps, so its
+    // winning request lands inside the attribution tolerance of that very sleep. On
+    // the captured machine a real sleep at 17:51:11 rendered as "dasd asked for it,
+    // to next scheduled timeline refresh".
+    let sleptAt = Date()
+    let scheduled = ScheduledWake(
+      loggedAt: sleptAt.addingTimeInterval(2), wakeAt: sleptAt.addingTimeInterval(-37),
+      process: "dasd", request: "SleepService",
+      info: "com.apple.dasd:0:com.apple.chronod.nextScheduledTimelineRefresh", isWinning: true)
+
+    let sentence = PowerAttributionParser.sentence(
+      for: sleepEvent(at: sleptAt, reason: "Clamshell Sleep"), scheduled: [scheduled])
+    XCTAssertFalse(sentence.contains("dasd"), "a sleep was blamed on a wake request")
+    XCTAssertFalse(sentence.contains("asked for it"))
+  }
+
+  func testSleepReasonsReadAsSleeping() {
+    // Every one of these came off the captured machine. Run through the wake table
+    // they read "Woken by Clamshell Sleep" and "A scheduled background task".
+    for reason in ["Clamshell Sleep", "Maintenance Sleep", "Sleep Service Back to Sleep"] {
+      let sentence = PowerAttributionParser.sentence(
+        for: sleepEvent(at: Date(), reason: reason), scheduled: [])
+      XCTAssertFalse(sentence.lowercased().contains("woken"), "sleep row said \(sentence)")
+    }
+    XCTAssertEqual(
+      PowerAttributionParser.sentence(
+        for: sleepEvent(at: Date(), reason: "Clamshell Sleep"), scheduled: []),
+      "You closed the lid")
+  }
+
+  func testAnUnknownSleepReasonIsShownVerbatimRatherThanGuessedAt() {
+    let sentence = PowerAttributionParser.sentence(
+      for: sleepEvent(at: Date(), reason: "XYZ.Unheard.Of"), scheduled: [])
+    XCTAssertTrue(sentence.contains("XYZ.Unheard.Of"))
+  }
+
+  func testAWakeStillGoesThroughAttribution() {
+    let at = Date()
+    let event = WakeEvent(
+      timestamp: at, kind: .darkWake, reason: "rtc/SleepService", occurrence: 0,
+      utcOffsetSeconds: 0)
+    let scheduled = ScheduledWake(
+      loggedAt: at.addingTimeInterval(-900), wakeAt: at, process: "dasd",
+      request: "SleepService", info: "com.apple.dasd:0:com.apple.searchd.heartbeat",
+      isWinning: true)
+    XCTAssertTrue(
+      PowerAttributionParser.sentence(for: event, scheduled: [scheduled]).contains("dasd"))
+  }
 }
 
 final class ReadableInfoTests: XCTestCase {
@@ -294,6 +382,23 @@ final class ReadableInfoTests: XCTestCase {
 
   func testPlainTextIsLeftAlone() {
     XCTAssertEqual(PowerAttributionParser.readableInfo("upkeep wake"), "upkeep wake")
+  }
+
+  func testAnAcronymIsNotShreddedIntoSingleLetters() {
+    // A live read rendered this as "mDNSResponder asked for it, to d h c p lease
+    // renewal", because every capital started a new word.
+    XCTAssertEqual(
+      PowerAttributionParser.readableInfo("DHCP lease renewal"), "dhcp lease renewal")
+    // An acronym running into a word still breaks in the right place.
+    XCTAssertEqual(PowerAttributionParser.readableInfo("HTTPServerRefresh"), "http server refresh")
+  }
+
+  func testWordsAreNotDoubledUpBySurroundingSpaces() {
+    // `com.apple.alarm.user-invisible-Weekly Usage Report,625` came out with doubled
+    // spaces between every word.
+    let readable = PowerAttributionParser.readableInfo(
+      "com.apple.alarm.user-invisible-Weekly Usage Report,625")
+    XCTAssertFalse(readable.contains("  "), "doubled spaces: \(readable)")
   }
 }
 
@@ -333,6 +438,23 @@ final class BatteryRegistryParsingTests: XCTestCase {
       """
     let flow = try PowerDiagnosticsParser.parseBatteryRegistry(text)
     XCTAssertLessThan(flow.watts, 0)
+  }
+
+  func testTheNestedVoltageIsNotPreferredWhenTheTwoDisagree() throws {
+    // The fixture's nested and top-level `Voltage` happen to hold the same number, so
+    // the test above passes either way — it proves the parse succeeds, not that it
+    // read the right key. This reproduces the real file's ordering (nested blob first,
+    // top-level property after) with values that disagree, so reading the wrong one
+    // fails loudly.
+    let text = """
+        "BatteryData" = {"Voltage"=8000,"Qmax"=(1,2),"StateOfCharge"=71}
+        "InstantAmperage" = 1000
+        "Voltage" = 12000
+        "AppleRawMaxCapacity" = 8000
+      """
+    let flow = try PowerDiagnosticsParser.parseBatteryRegistry(text)
+    // 12.0 V × 1.0 A, not 8.0 V × 1.0 A.
+    XCTAssertEqual(flow.watts, 12.0, accuracy: 0.0001)
   }
 
   func testANestedKeyAloneIsNotEnough() {

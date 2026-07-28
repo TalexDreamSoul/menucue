@@ -67,7 +67,6 @@ struct StatusPopoverView: View {
   /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
   @ObservedObject var swipeRelay: SwipeRelay
   @StateObject private var metrics = SystemMetricsService()
-  @StateObject private var processEnergy = ProcessEnergyService()
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
   @State private var selectedCalendarDate = Date()
@@ -182,7 +181,7 @@ struct StatusPopoverView: View {
       PowerTabView(
         model: model,
         diagnostics: model.powerDiagnosticsService,
-        processEnergy: processEnergy)
+        processEnergy: model.processEnergyService)
         .transition(tabTransition)
     case .calendar:
       calendarTab

@@ -4,7 +4,7 @@
 
 - Add settings-store round-trip/migration tests proving notification data is local and secrets are absent.
 - Add device-name fallback/override/reset tests.
-- Add template lexer/validation/rendering/default/preview tests, including Unicode and output limits.
+- Add template-editor model tests for catalog-supported variables, insertion, validation display, representative preview, and reset using the shared renderer.
 - Add settings-pane routing and model tests for channel/rule enablement, validation, test states, target disappearance, and catalog-driven control metadata.
 
 ## GREEN

@@ -8,7 +8,7 @@ Add `SettingsPane.notifications` between Quick Actions and iCloud-adjacent devic
 
 `AppSettings` contains only non-secret `NotificationSettings`: device-name override, non-secret channel fields/enablement, and rule definitions/templates. `AppModel.updateSettings` remains the mutation path. A `NotificationConfigurationService: ObservableObject` owns Keychain draft/write/delete operations plus per-channel validation/test state.
 
-The template parser/renderer and metric catalog are model code. SwiftUI asks them for fields, units, supported variables, validation, and preview; it does not duplicate switch logic.
+The template parser/renderer and metric catalog are shared model code from the alert-rules child. SwiftUI asks them for fields, units, supported variables, validation, and preview; it does not duplicate switch logic.
 
 ## Information architecture
 

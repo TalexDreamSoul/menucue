@@ -10,6 +10,7 @@
 "%@ failed with status %d." = "%@ failed with status %d.";
 "%@ failed." = "%@ failed.";
 "%@ free" = "%@ free";
+"%@ of the time" = "%@ of the time";
 "%@ total" = "%@ total";
 "%@ used" = "%@ used";
 "%@ – %@" = "%@ – %@";
@@ -78,6 +79,7 @@
 "Allow Accessibility access, then try Clean Keyboard again." = "Allow Accessibility access, then try Clean Keyboard again.";
 "Ambient" = "Ambient";
 "An alarm or timer" = "An alarm or timer";
+"An app asked it to sleep" = "An app asked it to sleep";
 "App" = "App";
 "App appearance and optional macOS Light/Dark automation." = "App appearance and optional macOS Light/Dark automation.";
 "App memory" = "App memory";
@@ -106,6 +108,7 @@
 "Automatically check and download updates" = "Automatically check and download updates";
 "Available actions" = "Available actions";
 "Avoid" = "Avoid";
+"Back to sleep after background work" = "Back to sleep after background work";
 "Battery" = "Battery";
 "Battery %d%%" = "Battery %d%%";
 "Battery Flow" = "Battery Flow";
@@ -267,7 +270,9 @@
 "Keep Screen On enabled." = "Keep Screen On enabled.";
 "Keep Settings on This Mac" = "Keep Settings on This Mac";
 "Keep on This Mac" = "Keep on This Mac";
+"Keeping Awake" = "Keeping Awake";
 "Keeping Your Mac Awake" = "Keeping Your Mac Awake";
+"Keeps Running" = "Keeps Running";
 "Kept on this Mac" = "Kept on this Mac";
 "Language & Region" = "Language & Region";
 "Last Wake" = "Last Wake";
@@ -357,6 +362,7 @@
 "None" = "None";
 "Normal" = "Normal";
 "Not Installed" = "Not Installed";
+"Not enough samples yet." = "Not enough samples yet.";
 "Nothing is preventing sleep." = "Nothing is preventing sleep.";
 "Nothing pinned yet. Pin actions in Settings." = "Nothing pinned yet. Pin actions in Settings.";
 "Now sampling every %@" = "Now sampling every %@";
@@ -595,6 +601,10 @@
 "Week starts" = "Week starts";
 "Weekday" = "Weekday";
 "Weekly" = "Weekly";
+"Went to sleep" = "Went to sleep";
+"Went to sleep after being idle" = "Went to sleep after being idle";
+"Went to sleep to save power" = "Went to sleep to save power";
+"Went to sleep — %@" = "Went to sleep — %@";
 "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance." = "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance.";
 "Wired" = "Wired";
 "Woken by %@" = "Woken by %@";
@@ -604,10 +614,13 @@
 "Written since boot" = "Written since boot";
 "Yearly" = "Yearly";
 "Yes" = "Yes";
+"You asked it to sleep" = "You asked it to sleep";
 "You can also hold Esc for 3 seconds." = "You can also hold Esc for 3 seconds.";
+"You closed the lid" = "You closed the lid";
 "You — keyboard, trackpad or mouse" = "You — keyboard, trackpad or mouse";
 "Your Mac last woke at %@" = "Your Mac last woke at %@";
 "and %d more" = "and %d more";
+"avg %@ · peak %@" = "avg %@ · peak %@";
 "iCloud Account Changed" = "iCloud Account Changed";
 "iCloud Sync" = "iCloud Sync";
 "iCloud account changed" = "iCloud account changed";

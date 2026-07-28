@@ -8,6 +8,7 @@ import SwiftUI
 struct DashboardPowerSection: View {
   @ObservedObject var model: AppModel
   @ObservedObject var diagnostics: PowerDiagnosticsService
+  @ObservedObject var energy: ProcessEnergyService
 
   var body: some View {
     let snapshot = diagnostics.snapshot
@@ -15,12 +16,13 @@ struct DashboardPowerSection: View {
     VStack(spacing: DashboardMetrics.cardSpacing) {
       latestWakeCard(snapshot)
       sleepBlockersCard(snapshot)
+      keepsRunningCard
       wakeHistoryCard(snapshot)
     }
     .onAppear {
       diagnostics.retain()
-      // Looking at this once is the opt-in. From here on history keeps accruing with
-      // the window closed, which is the only way an overnight wake can be explained.
+      // Looking at this is the opt-in. From here on history keeps accruing with the
+      // window closed, which is the only way an overnight wake can be explained.
       model.enablePowerMonitoring()
     }
     .onDisappear { diagnostics.release() }
@@ -127,6 +129,70 @@ struct DashboardPowerSection: View {
     }
   }
 
+  // MARK: - What keeps running
+
+  /// Persistence, not the instantaneous readout.
+  ///
+  /// The live figure is a one-second `top` sample, which answers "what is hot right
+  /// now". A daemon that wakes every 30 seconds reads 0.0 in almost every such sample
+  /// and can still be the reason the fans are on — so this ranks by how much of the
+  /// window a process was present for.
+  @ViewBuilder
+  private var keepsRunningCard: some View {
+    DashboardCard(
+      title: L10n.string("Keeps Running"), systemImage: "repeat", tint: .indigo
+    ) {
+      if let started = energy.history.windowStart {
+        Text(started, style: .relative)
+          .font(.caption)
+          .foregroundStyle(.tertiary)
+      }
+    } content: {
+      let top = energy.history.topByPersistence(limit: 8)
+      if top.isEmpty {
+        UnsupportedNote(message: L10n.string("Not enough samples yet."))
+      } else {
+        let samples = energy.history.totalSamples
+        VStack(spacing: 8) {
+          ForEach(top) { record in
+            VStack(alignment: .leading, spacing: 3) {
+              HStack(spacing: 8) {
+                Text(record.name)
+                  .font(.callout.weight(.semibold))
+                  .lineLimit(1)
+                  .truncationMode(.middle)
+                Spacer(minLength: 8)
+                // The percent sign is formatted into the value rather than living in
+                // the key: `%%` adjacent to text is fragile, and percent formatting is
+                // a locale decision anyway.
+                Text(
+                  L10n.format(
+                    "%@ of the time",
+                    SystemMetricsFormatter.percent(record.presence(inWindowOf: samples)))
+                )
+                  .font(.callout.weight(.medium))
+                  .monospacedDigit()
+                  .foregroundStyle(.secondary)
+              }
+              MetricBar(
+                fraction: record.presence(inWindowOf: samples), tint: .indigo, height: 5)
+              // Average and peak together: an average alone hides a spike, and a peak
+              // alone makes an idle process look busy.
+              Text(
+                L10n.format(
+                  "avg %@ · peak %@",
+                  String(format: "%.1f", record.averageImpact),
+                  String(format: "%.1f", record.peakImpact))
+              )
+              .font(.caption)
+              .foregroundStyle(.tertiary)
+            }
+          }
+        }
+      }
+    }
+  }
+
   // MARK: - History
 
   @ViewBuilder
@@ -144,18 +210,17 @@ struct DashboardPowerSection: View {
       } else {
         VStack(spacing: 8) {
           ForEach(Array(wakes)) { event in
-            let cause = PowerAttributionParser.attribute(
-              wakeAt: event.timestamp,
-              interruptToken: event.reason,
-              scheduled: snapshot.scheduledWakes
-            )
+            // Same helper the popover uses, so the two surfaces cannot word the same
+            // event differently.
+            let sentence = PowerAttributionParser.sentence(
+              for: event, scheduled: snapshot.scheduledWakes)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
               Text(event.timestamp.formatted(date: .abbreviated, time: .shortened))
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 132, alignment: .leading)
-              Text(cause.sentence)
+              Text(sentence)
                 .font(.callout)
                 .lineLimit(1)
                 .truncationMode(.tail)
