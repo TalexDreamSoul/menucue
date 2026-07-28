@@ -8,16 +8,57 @@ import SwiftUI
 struct DashboardView: View {
   @ObservedObject var model: AppModel
   let initialSection: DashboardSection
+  /// Sideways flicks recognized by the AppKit container hosting the window.
+  @ObservedObject var swipeRelay: SwipeRelay
 
   /// A denser window than the popover's 48: this chart is several times wider.
   @StateObject private var metrics = SystemMetricsService(historyCapacity: 120)
   @StateObject private var dashboard = DashboardMetricsService()
   @State private var section: DashboardSection
+  /// Which way the next tab change travels, so the content slides toward the gesture.
+  @State private var navigationDirection = 1
+  @FocusState private var isFocused: Bool
 
-  init(model: AppModel, initialSection: DashboardSection) {
+  init(model: AppModel, initialSection: DashboardSection, swipeRelay: SwipeRelay) {
     self.model = model
     self.initialSection = initialSection
+    self.swipeRelay = swipeRelay
     self._section = State(initialValue: initialSection)
+  }
+
+  /// Every entry point — click, arrow key, wheel, swipe — goes through here so they
+  /// all animate identically.
+  private func select(_ next: DashboardSection, direction: Int) {
+    guard next != section else { return }
+    navigationDirection = direction
+    withAnimation(PopoverMotion.navigation) { section = next }
+  }
+
+  private func move(by offset: Int) {
+    let tabs = DashboardSection.allCases
+    guard let index = tabs.firstIndex(of: section) else { return }
+    select(tabs[(index + offset + tabs.count) % tabs.count], direction: offset)
+  }
+
+  private var tabSelection: Binding<DashboardSection> {
+    Binding(
+      get: { section },
+      set: { next in
+        let tabs = DashboardSection.allCases
+        guard let from = tabs.firstIndex(of: section), let to = tabs.firstIndex(of: next) else {
+          return
+        }
+        select(next, direction: to >= from ? 1 : -1)
+      }
+    )
+  }
+
+  private var tabTransition: AnyTransition {
+    let forward = navigationDirection >= 0
+    return .asymmetric(
+      insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
+      removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity)
+    )
   }
 
   var body: some View {
@@ -31,7 +72,7 @@ struct DashboardView: View {
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         }
-        DashboardTabBar(selection: $section)
+        DashboardTabBar(selection: tabSelection)
       }
       .padding(.horizontal, 28)
       .padding(.top, 28)
@@ -44,11 +85,28 @@ struct DashboardView: View {
           .padding(.horizontal, 28)
           .padding(.vertical, 20)
           .frame(maxWidth: .infinity, alignment: .leading)
+          .transition(tabTransition)
       }
       .scrollBounceBehavior(.basedOnSize)
+      // The outgoing and incoming tabs overlap while sliding.
+      .clipped()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .focusable()
+    .focused($isFocused)
+    .focusEffectDisabled()
+    .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .down) { press in
+      // Same rule as the popover: a modifier means the user wants a real shortcut.
+      guard PopoverTab.allowsNavigation(modifiers: press.modifiers) else { return .ignored }
+      move(by: press.key == .leftArrow ? -1 : 1)
+      return .handled
+    }
+    .onChange(of: swipeRelay.command) { _, command in
+      guard let command else { return }
+      move(by: command.direction)
+    }
     .onAppear {
+      isFocused = true
       // Applied before retain() so the first timer already runs at the
       // battery-appropriate rate rather than being rebuilt one tick later.
       metrics.applySamplingSettings(model.settings.metricsSampling)

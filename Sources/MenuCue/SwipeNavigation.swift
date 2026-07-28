@@ -88,9 +88,12 @@ struct SwipeRecognizer {
 
 /// Carries a recognized swipe from the AppKit container down into SwiftUI.
 ///
+/// Shared by the popover and the Dashboard pane: both are tab strips that should
+/// answer the same sideways flick.
+///
 /// The direction alone is not enough to publish: two swipes the same way would look
 /// identical and the second would not be observed, so each carries a sequence number.
-final class PopoverSwipeRelay: ObservableObject {
+final class SwipeRelay: ObservableObject {
   struct Command: Equatable {
     let direction: Int
     let sequence: Int
@@ -105,7 +108,7 @@ final class PopoverSwipeRelay: ObservableObject {
   }
 }
 
-/// Hosts the popover's SwiftUI content and turns a sideways flick into a tab change.
+/// Hosts SwiftUI content and turns a sideways flick over it into a tab change.
 ///
 /// This is the documented AppKit route for exactly this problem: an `NSScrollView`
 /// that cannot use a scroll event on a given axis walks up the responder chain for a
@@ -113,8 +116,8 @@ final class PopoverSwipeRelay: ObservableObject {
 /// event monitor was tried first and never fired reliably; forwarding puts the
 /// decision where AppKit already routes it, and leaves vertical scrolling untouched
 /// because the scroll view consumes that itself before any forwarding happens.
-final class PopoverSwipeContainerView: NSView {
-  let relay = PopoverSwipeRelay()
+final class SwipeForwardingView: NSView {
+  let relay = SwipeRelay()
   private var recognizer = SwipeRecognizer()
 
   /// Opting into the horizontal axis is what makes `NSScrollView` forward here.
@@ -153,19 +156,19 @@ final class PopoverSwipeContainerView: NSView {
   }
 }
 
-/// View controller for the popover: a `PopoverSwipeContainerView` with the SwiftUI
-/// content as its only child, so the container is an ancestor of every scroll view
-/// inside and can receive their forwarded horizontal events.
-final class PopoverContainerController<Content: View>: NSViewController {
+/// A `SwipeForwardingView` with the SwiftUI content as its only child, so the
+/// container is an ancestor of every scroll view inside and can receive their
+/// forwarded horizontal events.
+final class SwipeForwardingController<Content: View>: NSViewController {
   private let hosting: NSHostingController<Content>
 
-  var relay: PopoverSwipeRelay {
+  var relay: SwipeRelay {
     containerView.relay
   }
 
-  private var containerView: PopoverSwipeContainerView {
+  private var containerView: SwipeForwardingView {
     // `loadView` always installs this exact type.
-    view as! PopoverSwipeContainerView
+    view as! SwipeForwardingView
   }
 
   init(rootView: Content) {
@@ -179,7 +182,7 @@ final class PopoverContainerController<Content: View>: NSViewController {
   }
 
   override func loadView() {
-    view = PopoverSwipeContainerView(frame: .zero)
+    view = SwipeForwardingView(frame: .zero)
   }
 
   override func viewDidLoad() {

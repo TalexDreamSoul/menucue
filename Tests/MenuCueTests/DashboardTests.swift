@@ -320,10 +320,10 @@ final class SwipeRecognizerTests: XCTestCase {
 @MainActor
 final class PopoverSwipeContainerTests: XCTestCase {
   func testContainerOptsIntoHorizontalForwardingOnly() throws {
-    let controller = PopoverContainerController(rootView: Text("x").frame(width: 360, height: 620))
+    let controller = SwipeForwardingController(rootView: Text("x").frame(width: 360, height: 620))
     _ = controller.view
     controller.viewDidLoad()
-    let container = try XCTUnwrap(controller.view as? PopoverSwipeContainerView)
+    let container = try XCTUnwrap(controller.view as? SwipeForwardingView)
 
     // This opt-in is the entire mechanism: NSScrollView only forwards an axis it was
     // asked for. Claiming the vertical axis too would steal ordinary scrolling.
@@ -332,7 +332,7 @@ final class PopoverSwipeContainerTests: XCTestCase {
   }
 
   func testSwiftUIContentIsAChildOfTheContainer() throws {
-    let controller = PopoverContainerController(rootView: Text("x").frame(width: 360, height: 620))
+    let controller = SwipeForwardingController(rootView: Text("x").frame(width: 360, height: 620))
     _ = controller.view
     controller.viewDidLoad()
 
@@ -344,7 +344,7 @@ final class PopoverSwipeContainerTests: XCTestCase {
   }
 
   func testRepeatedSwipesInTheSameDirectionAreEachObserved() {
-    let relay = PopoverSwipeRelay()
+    let relay = SwipeRelay()
     var observed: [Int] = []
     let cancellable = relay.$command.sink { command in
       if let command { observed.append(command.direction) }
@@ -356,5 +356,54 @@ final class PopoverSwipeContainerTests: XCTestCase {
 
     // Publishing the bare direction would drop the second swipe as a duplicate.
     XCTAssertEqual(observed, [1, 1, -1])
+  }
+}
+
+@MainActor
+final class SettingsWindowSizingTests: XCTestCase {
+  /// Stands in for a settings pane whose content is far taller than the window.
+  private var tallPane: some View {
+    VStack(spacing: 0) {
+      VStack(alignment: .leading, spacing: 14) { Text("Dashboard").font(.title2) }.padding(28)
+      Divider()
+      ScrollView {
+        VStack(spacing: 12) {
+          ForEach(0..<50, id: \.self) { Text("row \($0)").frame(maxWidth: .infinity, minHeight: 40) }
+        }
+        .padding(20)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+  }
+
+  private func fittingHeight(_ view: some View) -> CGFloat {
+    NSHostingController(rootView: AnyView(view)).view.fittingSize.height
+  }
+
+  func testDroppingTheIdealHeightMakesTheWindowAskForTheWholeContent() {
+    // `NSHostingController` reports the SwiftUI ideal size as the window's fitting
+    // size. With only a max, that ideal is the content's full height, so the hosting
+    // view is laid out taller than the window: the scroll view then has nothing to
+    // scroll and the overflow is silently clipped by the window edge.
+    let withoutIdeal = fittingHeight(tallPane.frame(maxWidth: .infinity, maxHeight: .infinity))
+    XCTAssertGreaterThan(withoutIdeal, 2_000, "content height leaked into the fitting size")
+
+    let withIdeal = fittingHeight(
+      tallPane.frame(
+        minWidth: 720, idealWidth: 900, maxWidth: .infinity,
+        minHeight: 540, idealHeight: 680, maxHeight: .infinity))
+    XCTAssertEqual(withIdeal, 680, "the ideal height must be what the window is sized to")
+  }
+
+  func testMinIdealAndMaxAreAllRequired() {
+    // min+ideal alone bounds the window but cannot grow with it; this documents that
+    // adding max does not disturb the fitting size the window is built from.
+    let withoutMax = fittingHeight(
+      tallPane.frame(minWidth: 720, idealWidth: 900, minHeight: 540, idealHeight: 680))
+    let withMax = fittingHeight(
+      tallPane.frame(
+        minWidth: 720, idealWidth: 900, maxWidth: .infinity,
+        minHeight: 540, idealHeight: 680, maxHeight: .infinity))
+    XCTAssertEqual(withoutMax, withMax)
   }
 }

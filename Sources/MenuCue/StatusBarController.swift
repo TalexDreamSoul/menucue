@@ -74,8 +74,8 @@ final class StatusBarController: NSObject {
   private func configurePopover() {
     popover.behavior = .transient
     popover.contentSize = NSSize(width: PopoverMetrics.width, height: PopoverMetrics.height)
-    let relay = PopoverSwipeRelay()
-    let hostingController = PopoverContainerController(
+    let relay = SwipeRelay()
+    let hostingController = SwipeForwardingController(
       rootView: StatusPopoverView(
         model: model,
         openSettings: { [weak self] in
@@ -532,16 +532,18 @@ final class StatusBarController: NSObject {
     model.refreshCalendarData()
     model.quickActionService.refreshAll()
 
-    let hostingController = NSHostingController(
+    let relay = SwipeRelay()
+    let hostingController = SwipeForwardingController(
       rootView: SettingsWindowView(
         model: model,
         updateService: updateService,
         languageService: languageService,
         initialPane: initialPane,
-        initialDashboardSection: dashboardSection
+        initialDashboardSection: dashboardSection,
+        swipeRelay: relay
       )
     )
-    hostingController.view.appearance = NSApp.appearance
+    hostingController.applyAppearance(NSApp.appearance)
 
     let window: NSWindow
     if let settingsWindow {
@@ -558,20 +560,32 @@ final class StatusBarController: NSObject {
   }
 
   private func makeSettingsWindow(
-    hostingController: NSHostingController<SettingsWindowView>
+    hostingController: SwipeForwardingController<SettingsWindowView>
   ) -> NSWindow {
     let window = NSWindow(contentViewController: hostingController)
     window.title = L10n.string("MenuCue Settings")
-    window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+    window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
     window.tabbingMode = .disallowed
-    window.setContentSize(NSSize(width: 760, height: 640))
-    window.minSize = NSSize(width: 700, height: 520)
-    window.toolbarStyle = .preference
+    window.setContentSize(NSSize(width: Self.settingsDefaultSize.width, height: Self.settingsDefaultSize.height))
+    window.minSize = NSSize(width: 720, height: 540)
+    // `.preference` is for the tab-strip style of Settings window. This one has a
+    // sidebar, so it wants the unified titlebar System Settings uses.
+    window.toolbarStyle = .unified
+    window.titlebarSeparatorStyle = .automatic
     window.isReleasedWhenClosed = false
-    window.center()
-    window.setFrameAutosaveName("MenuCueSettingsWindow")
+
+    // Order matters: naming the autosave first lets `setFrameUsingName` restore the
+    // saved frame, and only a first run — where there is nothing to restore — gets
+    // centred. Centring unconditionally is what threw the remembered size away.
+    window.setFrameAutosaveName(Self.settingsFrameAutosaveName)
+    if !window.setFrameUsingName(Self.settingsFrameAutosaveName) {
+      window.center()
+    }
     return window
   }
+
+  private static let settingsFrameAutosaveName = "MenuCueSettingsWindow"
+  private static let settingsDefaultSize = CGSize(width: 900, height: 680)
 
   private func showQuickEventWindow() {
     if model.authorizationState == .notDetermined {

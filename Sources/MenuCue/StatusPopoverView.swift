@@ -62,7 +62,7 @@ struct StatusPopoverView: View {
   let openDashboard: (DashboardSection) -> Void
   let quitApp: () -> Void
   /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
-  @ObservedObject var swipeRelay: PopoverSwipeRelay
+  @ObservedObject var swipeRelay: SwipeRelay
   @StateObject private var metrics = SystemMetricsService()
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
@@ -538,14 +538,18 @@ struct SettingsWindowView: View {
   /// opens on `.dashboard`; `showSettingsWindow` rebuilds this view on every call,
   /// so a repeat deep-link re-honors it.
   private let initialDashboardSection: DashboardSection
+  /// Sideways flicks recognized by the AppKit container hosting this window.
+  @ObservedObject var swipeRelay: SwipeRelay
 
   init(
     model: AppModel,
     updateService: UpdateService,
     languageService: AppLanguageService,
     initialPane: SettingsPane = .overview,
-    initialDashboardSection: DashboardSection = .cpu
+    initialDashboardSection: DashboardSection = .cpu,
+    swipeRelay: SwipeRelay = SwipeRelay()
   ) {
+    self.swipeRelay = swipeRelay
     self.model = model
     self.updateService = updateService
     self.languageService = languageService
@@ -560,8 +564,11 @@ struct SettingsWindowView: View {
           .tag(pane)
       }
       .listStyle(.sidebar)
-      .navigationTitle("Settings")
-      .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 220)
+      .navigationTitle(L10n.string("Settings"))
+      .navigationSplitViewColumnWidth(min: 190, ideal: 215, max: 260)
+      // System Settings never offers to hide its sidebar; without this the split
+      // view puts a lone toggle in an otherwise empty toolbar band.
+      .toolbar(removing: .sidebarToggle)
     } detail: {
       SettingsContentView(
         model: model,
@@ -569,12 +576,22 @@ struct SettingsWindowView: View {
         languageService: languageService,
         pane: selectedPane,
         initialDashboardSection: initialDashboardSection,
+        swipeRelay: swipeRelay,
         selectPane: { pane in
           withAnimation(PopoverMotion.navigation) { selectedPane = pane }
         }
       )
     }
-    .frame(minWidth: 700, idealWidth: 760, minHeight: 520, idealHeight: 640, alignment: .topLeading)
+    .navigationSplitViewStyle(.balanced)
+    // All three of min/ideal/max are needed. `ideal` is what NSHostingController
+    // reports as the window's fitting size — drop it and the controller asks for the
+    // full height of the tallest pane's content (measured at 2736pt), which is how a
+    // scroll view ends up laid out taller than the window with nothing to scroll.
+    // `max` is what lets the split view follow the window when it is resized.
+    .frame(
+      minWidth: 720, idealWidth: 900, maxWidth: .infinity,
+      minHeight: 540, idealHeight: 680, maxHeight: .infinity
+    )
   }
 
   private var availablePanes: [SettingsPane] {
@@ -984,6 +1001,7 @@ private struct SettingsContentView: View {
   @ObservedObject var languageService: AppLanguageService
   let pane: SettingsPane
   var initialDashboardSection: DashboardSection = .cpu
+  @ObservedObject var swipeRelay: SwipeRelay
   let selectPane: (SettingsPane) -> Void
   @State private var pendingTimeZoneID = TimeZone.autoupdatingCurrent.identifier
 
@@ -991,7 +1009,8 @@ private struct SettingsContentView: View {
     // The Dashboard pins its own tab bar and scrolls per tab, so it opts out of the
     // shared scroll container rather than nesting one inside another.
     if pane == .dashboard {
-      DashboardView(model: model, initialSection: initialDashboardSection)
+      DashboardView(
+        model: model, initialSection: initialDashboardSection, swipeRelay: swipeRelay)
         .background(Color(nsColor: .windowBackgroundColor))
     } else {
       ScrollView {
