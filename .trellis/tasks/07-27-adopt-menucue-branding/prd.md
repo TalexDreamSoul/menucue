@@ -19,14 +19,27 @@ Rename the application from TouchMacer to MenuCue across all local technical ide
 
 ## Acceptance Criteria
 
-- [ ] `swift test` resolves and tests only `MenuCue` modules/targets.
-- [ ] `swift build` produces `MenuCue` and `MenuCueHelper` executables.
-- [ ] `scripts/build-app.sh` produces a valid signed `.build/app/MenuCue.app` with the new main and Helper identifiers.
-- [ ] Generated plist, entitlements, LaunchDaemon, XPC, signing, Sparkle, preferences, paths, and release scripts use the new identity.
-- [ ] Repository audit outside historical Trellis records contains no `TouchMacer`, `touchmacer`, or `touch-macer` references.
-- [ ] GitHub repository is available as `TalexDreamSoul/menucue` and local `origin` points to it.
-- [ ] `brew install --cask talexdreamsoul/tap/menucue` resolves to a valid MenuCue artifact and cask audit passes.
-- [ ] Existing unrelated user changes remain present after directory/file migration.
+- [x] `swift test` resolves and tests only `MenuCue` modules/targets.
+- [x] `swift build` produces `MenuCue` and `MenuCueHelper` executables.
+- [x] `scripts/build-app.sh` produces a valid signed `.build/app/MenuCue.app` with the new main and Helper identifiers.
+- [x] Generated plist, entitlements, LaunchDaemon, XPC, signing, Sparkle, preferences, paths, and release scripts use the new identity.
+- [x] Repository audit outside historical Trellis records contains no legacy product-name references.
+- [x] GitHub repository is available as `TalexDreamSoul/menucue` and local `origin` points to it.
+- [x] `brew install --cask talexdreamsoul/tap/menucue` resolves to a valid MenuCue artifact and cask audit passes.
+- [x] Existing unrelated user changes remain present after directory/file migration.
+
+## Validation Evidence
+
+- `swift test`: 141 XCTest cases passed; 2 Swift Testing identity contract tests passed.
+- Stable packaging: `MenuCue.app` version `0.4.4`, build `13`, signed by the configured Apple Development identity.
+- Main designated identifier: `com.tagzxia.app.menucue`.
+- Helper designated identifier: `com.tagzxia.app.menucue.helper`.
+- Localization verification: 469 English/Simplified Chinese keys match and both resource sets are packaged.
+- Release archive: `MenuCue-v0.4.4-macos.zip`, SHA-256 `ee8d2b288b17f04bd68b777aaabf222953837eacbd29c40a0f645b7f7ab95b5c`.
+- Appcast contains only MenuCue `v0.4.4` and references the new repository/archive.
+- GitHub: `https://github.com/TalexDreamSoul/menucue`, release `v0.4.4` published and appcast-feed replaced.
+- Homebrew: cask `menucue` version `0.4.4`; `brew audit`, `brew style`, download/SHA verification, installation, bundle-ID inspection, and codesign verification passed.
+- Recovery backup: `/tmp/menucue-migration-20260727-191718`.
 
 ## External Operations Approved
 
