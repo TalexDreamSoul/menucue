@@ -83,6 +83,9 @@ final class StatusBarController: NSObject {
         openQuickActionSettings: { [weak self] in
           self?.showSettingsWindow(initialPane: .quickActions)
         },
+        openDashboard: { [weak self] section in
+          self?.showSettingsWindow(initialPane: .dashboard, dashboardSection: section)
+        },
         quitApp: {
           NSApp.terminate(nil)
         }
@@ -519,7 +522,10 @@ final class StatusBarController: NSObject {
     NSApp.terminate(nil)
   }
 
-  private func showSettingsWindow(initialPane: SettingsPane = .overview) {
+  private func showSettingsWindow(
+    initialPane: SettingsPane = .overview,
+    dashboardSection: DashboardSection = .cpu
+  ) {
     popover.performClose(nil)
     model.refreshCalendarData()
     model.quickActionService.refreshAll()
@@ -529,7 +535,8 @@ final class StatusBarController: NSObject {
         model: model,
         updateService: updateService,
         languageService: languageService,
-        initialPane: initialPane
+        initialPane: initialPane,
+        initialDashboardSection: dashboardSection
       )
     )
     hostingController.view.appearance = NSApp.appearance

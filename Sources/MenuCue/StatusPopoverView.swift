@@ -58,17 +58,22 @@ struct StatusPopoverView: View {
   /// Opens the Settings window on the Quick Actions pane, which is also where the
   /// full action catalog is run from.
   let openQuickActionSettings: () -> Void
+  /// Opens the Settings window on the Dashboard, pre-selected to a metric's tab.
+  let openDashboard: (DashboardSection) -> Void
   let quitApp: () -> Void
   @StateObject private var metrics = SystemMetricsService()
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
   @State private var selectedCalendarDate = Date()
   @State private var quickEventDraft: QuickEventDraft?
+  /// Which way the next tab change travels. Set before `selectedTab` so the
+  /// transition below is already pointing the right way when SwiftUI evaluates it.
+  @State private var navigationDirection = 1
   @FocusState private var isPopoverFocused: Bool
 
   var body: some View {
     VStack(spacing: 0) {
-      PopoverTabBar(selection: $selectedTab)
+      PopoverTabBar(selection: tabSelection)
         .padding(.horizontal, PopoverMetrics.contentPadding)
         .padding(.top, 10)
         .padding(.bottom, 8)
@@ -78,6 +83,9 @@ struct StatusPopoverView: View {
 
       tabContent
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // The outgoing and incoming tabs overlap while sliding; without this they
+        // spill past the dividers onto the tab bar and the footer.
+        .clipped()
 
       Divider()
         .opacity(0.5)
@@ -94,6 +102,7 @@ struct StatusPopoverView: View {
     }
     .frame(width: PopoverMetrics.width, height: PopoverMetrics.height, alignment: .top)
     .background(Color(nsColor: .windowBackgroundColor))
+    .background(HorizontalSwipeNavigator { offset in select(selectedTab.moving(by: offset), direction: offset) })
     .focusable()
     .focused($isPopoverFocused)
     .focusEffectDisabled()
@@ -103,9 +112,7 @@ struct StatusPopoverView: View {
     .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .down) { press in
       guard PopoverTab.allowsNavigation(modifiers: press.modifiers) else { return .ignored }
       let offset = press.key == .leftArrow ? -1 : 1
-      withAnimation(PopoverMotion.navigation) {
-        selectedTab = selectedTab.moving(by: offset)
-      }
+      select(selectedTab.moving(by: offset), direction: offset)
       return .handled
     }
     .sheet(isPresented: quickEventSheetBinding) {
@@ -113,27 +120,57 @@ struct StatusPopoverView: View {
     }
   }
 
-  /// Tabs cross-fade with a short rise. Kept directionless so the animation costs
-  /// nothing to reason about when tabs are reordered.
-  private static let tabTransition: AnyTransition = .asymmetric(
-    insertion: .opacity.combined(with: .offset(y: 8)),
-    removal: .opacity
-  )
+  /// Routes every tab-bar tap through `select` so a click animates the same way a
+  /// swipe or an arrow key does.
+  private var tabSelection: Binding<PopoverTab> {
+    Binding(
+      get: { selectedTab },
+      set: { tab in
+        let tabs = PopoverTab.allCases
+        guard
+          let from = tabs.firstIndex(of: selectedTab),
+          let to = tabs.firstIndex(of: tab)
+        else { return }
+        select(tab, direction: to >= from ? 1 : -1)
+      }
+    )
+  }
+
+  private func select(_ tab: PopoverTab, direction: Int) {
+    guard tab != selectedTab else { return }
+    navigationDirection = direction
+    withAnimation(PopoverMotion.navigation) {
+      selectedTab = tab
+    }
+  }
+
+  /// Tabs slide in from the side they came from, so the motion matches the gesture
+  /// that caused it — the outgoing tab leaves the way the incoming one arrives.
+  private var tabTransition: AnyTransition {
+    let forward = navigationDirection >= 0
+    return .asymmetric(
+      insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
+      removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity)
+    )
+  }
 
   @ViewBuilder
   private var tabContent: some View {
     switch selectedTab {
     case .status:
-      StatusTabView(model: model, metrics: metrics) {
-        withAnimation(PopoverMotion.navigation) { selectedTab = .actions }
-      }
-      .transition(Self.tabTransition)
+      StatusTabView(
+        model: model,
+        metrics: metrics,
+        openAllActions: { select(.actions, direction: 1) },
+        openDashboard: openDashboard
+      )
+      .transition(tabTransition)
     case .calendar:
       calendarTab
-        .transition(Self.tabTransition)
+        .transition(tabTransition)
     case .actions:
       ActionsTabView(model: model, openSettings: openQuickActionSettings)
-        .transition(Self.tabTransition)
+        .transition(tabTransition)
     }
   }
 
@@ -492,16 +529,22 @@ struct SettingsWindowView: View {
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
   @State private var selectedPane: SettingsPane
+  /// Which Dashboard tab a popover card deep-linked to. Only read when the window
+  /// opens on `.dashboard`; `showSettingsWindow` rebuilds this view on every call,
+  /// so a repeat deep-link re-honors it.
+  private let initialDashboardSection: DashboardSection
 
   init(
     model: AppModel,
     updateService: UpdateService,
     languageService: AppLanguageService,
-    initialPane: SettingsPane = .overview
+    initialPane: SettingsPane = .overview,
+    initialDashboardSection: DashboardSection = .cpu
   ) {
     self.model = model
     self.updateService = updateService
     self.languageService = languageService
+    self.initialDashboardSection = initialDashboardSection
     self._selectedPane = State(initialValue: initialPane)
   }
 
@@ -520,6 +563,7 @@ struct SettingsWindowView: View {
         updateService: updateService,
         languageService: languageService,
         pane: selectedPane,
+        initialDashboardSection: initialDashboardSection,
         selectPane: { pane in
           withAnimation(PopoverMotion.navigation) { selectedPane = pane }
         }
@@ -536,6 +580,7 @@ struct SettingsWindowView: View {
 }
 
 enum SettingsPane: String, CaseIterable, Identifiable {
+  case dashboard
   case overview
   case dateAndEvents
   case quickActions
@@ -550,6 +595,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
+    case .dashboard: return L10n.string("Dashboard")
     case .overview: return L10n.string("Overview")
     case .dateAndEvents: return L10n.string("Date & Events")
     case .quickActions: return L10n.string("Quick Actions")
@@ -564,6 +610,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
+    case .dashboard:
+      return L10n.string("Live CPU, GPU, memory, storage, network, and sensor readings.")
     case .overview:
       return L10n.string(
         "This Mac at a glance, sampling behavior, and anything needing attention.")
@@ -588,6 +636,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var systemImage: String {
     switch self {
+    case .dashboard: return "chart.line.uptrend.xyaxis"
     case .overview: return "gauge.with.dots.needle.33percent"
     case .dateAndEvents: return "calendar"
     case .quickActions: return "square.grid.2x2"
@@ -929,24 +978,35 @@ private struct SettingsContentView: View {
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
   let pane: SettingsPane
+  var initialDashboardSection: DashboardSection = .cpu
   let selectPane: (SettingsPane) -> Void
   @State private var pendingTimeZoneID = TimeZone.autoupdatingCurrent.identifier
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 22) {
-        SettingsPaneHeader(pane: pane)
-        selectedPaneContent
+    // The Dashboard pins its own tab bar and scrolls per tab, so it opts out of the
+    // shared scroll container rather than nesting one inside another.
+    if pane == .dashboard {
+      DashboardView(model: model, initialSection: initialDashboardSection)
+        .background(Color(nsColor: .windowBackgroundColor))
+    } else {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 22) {
+          SettingsPaneHeader(pane: pane)
+          selectedPaneContent
+        }
+        .padding(28)
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .padding(28)
-      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(Color(nsColor: .windowBackgroundColor))
     }
-    .background(Color(nsColor: .windowBackgroundColor))
   }
 
   @ViewBuilder
   private var selectedPaneContent: some View {
     switch pane {
+    case .dashboard:
+      // Handled in `body` before this switch is reached.
+      EmptyView()
     case .overview:
       OverviewSettingsView(
         model: model, updateService: updateService, selectPane: selectPane)

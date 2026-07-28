@@ -28,7 +28,11 @@ final class SystemMetricsService: ObservableObject {
   let hardware: SystemHardwareInfo
   let bootDate: Date?
 
+  /// Default window length, sized for the 360pt popover chart. The Dashboard chart is
+  /// several times wider and asks for a denser series through `init(historyCapacity:)`.
   static let historyCapacity = 48
+  /// This instance's window length. Prefer it over the static in view code.
+  let historyCapacity: Int
   static let cacheKey = "com.tagzxia.app.menucue.systemMetricsCache"
   static let cacheMaxAge: TimeInterval = 300
 
@@ -70,6 +74,7 @@ final class SystemMetricsService: ObservableObject {
   init(
     sampleInterval: TimeInterval? = nil,
     samplingSettings: MetricsSamplingSettings = .default,
+    historyCapacity: Int = SystemMetricsService.historyCapacity,
     sensorTickInterval: Int = 2,
     defaults: UserDefaults = .standard,
     now: Date = Date(),
@@ -90,6 +95,7 @@ final class SystemMetricsService: ObservableObject {
     }
 
     self.samplingSettings = resolvedSettings
+    self.historyCapacity = max(1, historyCapacity)
     self.sensorTickInterval = max(1, sensorTickInterval)
     self.defaults = defaults
     self.sensorReader = sensorReader
@@ -104,7 +110,7 @@ final class SystemMetricsService: ObservableObject {
 
     if let cache = Self.loadCache(from: defaults, now: now) {
       self.snapshot = cache.snapshot
-      self.cpuHistory = Array(cache.cpuHistory.suffix(Self.historyCapacity))
+      self.cpuHistory = Array(cache.cpuHistory.suffix(self.historyCapacity))
       self.lastSuccessfulSampleDate = cache.savedAt
     }
   }
@@ -343,8 +349,8 @@ final class SystemMetricsService: ObservableObject {
 
   private func appendHistory(_ sample: CPULoadSample) {
     cpuHistory.append(sample)
-    if cpuHistory.count > Self.historyCapacity {
-      cpuHistory.removeFirst(cpuHistory.count - Self.historyCapacity)
+    if cpuHistory.count > historyCapacity {
+      cpuHistory.removeFirst(cpuHistory.count - historyCapacity)
     }
   }
 

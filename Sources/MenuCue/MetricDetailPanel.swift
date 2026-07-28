@@ -14,8 +14,17 @@ struct MetricDetailAnchorKey: PreferenceKey {
 }
 
 extension View {
-  /// Marks a card as the hover source for `target`.
-  func metricDetailSource(_ target: MetricDetailTarget, service: SystemDetailService) -> some View {
+  /// Marks a card as the hover source for `target`, and optionally as a link into the
+  /// Dashboard tab that expands it.
+  ///
+  /// Click opens the Dashboard; Return and Space keep toggling the hover panel, which
+  /// is the only way a keyboard or VoiceOver user reaches that detail at all. The
+  /// Dashboard stays available to them through the extra accessibility action.
+  func metricDetailSource(
+    _ target: MetricDetailTarget,
+    service: SystemDetailService,
+    open: (() -> Void)? = nil
+  ) -> some View {
     anchorPreference(key: MetricDetailAnchorKey.self, value: .bounds) { [target: $0] }
       .onHover { hovering in
         if hovering {
@@ -26,6 +35,8 @@ extension View {
           service.hover(nil)
         }
       }
+      .contentShape(Rectangle())
+      .modifier(MetricCardLink(open: open))
       .focusable()
       .onKeyPress(.return) {
         service.toggle(target)
@@ -38,6 +49,33 @@ extension View {
       .accessibilityLabel(target.title)
       .accessibilityHint(L10n.string("Show metric details"))
       .accessibilityAction { service.toggle(target) }
+      .accessibilityAction(named: Text(L10n.string("Open in Dashboard"))) { open?() }
+  }
+}
+
+/// Adds the click affordance only when the card has a destination, so a card without
+/// one keeps its plain behaviour.
+private struct MetricCardLink: ViewModifier {
+  let open: (() -> Void)?
+  @State private var isPressed = false
+
+  func body(content: Content) -> some View {
+    if let open {
+      content
+        .scaleEffect(isPressed ? 0.98 : 1)
+        .animation(.spring(response: 0.26, dampingFraction: 0.62), value: isPressed)
+        .onTapGesture(perform: open)
+        // Press feedback without a Button, which would swallow the Return and Space
+        // keys the detail panel depends on.
+        .simultaneousGesture(
+          DragGesture(minimumDistance: 0)
+            .onChanged { _ in isPressed = true }
+            .onEnded { _ in isPressed = false }
+        )
+        .help(L10n.string("Open in Dashboard"))
+    } else {
+      content
+    }
   }
 }
 
