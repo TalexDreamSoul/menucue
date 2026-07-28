@@ -407,3 +407,60 @@ final class SettingsWindowSizingTests: XCTestCase {
     XCTAssertEqual(withoutMax, withMax)
   }
 }
+
+final class DiscreteSwipeTests: XCTestCase {
+  /// Reproduces exactly what a real trackpad logged with "swipe between pages" on:
+  /// one event per flick, phase `.began`, normalized ±1 delta, no `.changed` at all.
+  func testAPageSwipeArrivesAsASingleBeganEvent() {
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -1, deltaY: 0, phase: .began, isPrecise: true, now: 0),
+      .navigate(1))
+  }
+
+  func testTheOppositeFlickGoesBack() {
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(
+      recognizer.consume(deltaX: 1, deltaY: 0, phase: .began, isPrecise: true, now: 0),
+      .navigate(-1))
+  }
+
+  func testAlternatingFlicksEachRegister() {
+    // The captured log showed -1, +1, -1, +1 as the user flicked back and forth.
+    var recognizer = SwipeRecognizer()
+    var moves: [Int] = []
+    for (index, dx) in [-1.0, 1.0, -1.0, 1.0].enumerated() {
+      let outcome = recognizer.consume(
+        deltaX: dx, deltaY: 0, phase: .began, isPrecise: true, now: Double(index))
+      if case let .navigate(step) = outcome { moves.append(step) }
+    }
+    XCTAssertEqual(moves, [1, -1, 1, -1])
+  }
+
+  func testOneFlickDoesNotFireTwice() {
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -1, deltaY: 0, phase: .began, isPrecise: true, now: 0),
+      .navigate(1))
+    // A repeat inside the debounce window is the same flick being re-delivered.
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -1, deltaY: 0, phase: .began, isPrecise: true, now: 0.1),
+      .consume)
+  }
+
+  func testTheStartOfAnOrdinaryScrollIsNotAFlick() {
+    // A real two-finger scroll opens with deltas near zero and builds up later.
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(
+      recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0), .pass)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: 0.4, deltaY: 0, phase: .began, isPrecise: true, now: 0), .pass)
+  }
+
+  func testADiagonalScrollStartIsNotAFlick() {
+    var recognizer = SwipeRecognizer()
+    // Sideways drift while starting a vertical scroll must still scroll.
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -2, deltaY: 6, phase: .began, isPrecise: true, now: 0), .pass)
+  }
+}

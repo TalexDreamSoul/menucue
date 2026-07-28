@@ -55,7 +55,23 @@ struct SwipeRecognizer {
     }
 
     switch phase {
-    case .began, .ended:
+    case .began:
+      // With "swipe between pages" on, macOS does not send a stream to accumulate.
+      // It collapses the whole flick into a *single* event: phase `.began`, no
+      // `.changed`, no `.ended`, and a normalized ±1 horizontal delta rather than a
+      // pixel distance. Measured on a real trackpad — every event logged `phase=1
+      // dx=±1.0`. Resetting and passing here, as an ordinary gesture start, is why
+      // the accumulator could never reach its threshold.
+      accumulated = 0
+      isArmed = true
+      if isDiscreteSwipe(deltaX: deltaX, deltaY: deltaY) {
+        guard now - lastCoarseFire > coarseInterval else { return .consume }
+        lastCoarseFire = now
+        isArmed = false
+        return .navigate(direction(for: deltaX))
+      }
+      return .pass
+    case .ended:
       accumulated = 0
       isArmed = true
       return .pass
@@ -77,6 +93,17 @@ struct SwipeRecognizer {
     let step = direction(for: accumulated)
     accumulated = 0
     return .navigate(step)
+  }
+
+  /// A whole flick delivered as one normalized event, rather than the start of a
+  /// stream to accumulate.
+  ///
+  /// The tell is the magnitude: a page swipe arrives as ±1, while a real two-finger
+  /// scroll opens with deltas near zero and only builds up over later `.changed`
+  /// events. Requiring the vertical component to be negligible keeps a diagonal
+  /// scroll from being mistaken for one.
+  private func isDiscreteSwipe(deltaX: CGFloat, deltaY: CGFloat) -> Bool {
+    abs(deltaX) >= 1 && abs(deltaY) < 0.5
   }
 
   /// Natural scrolling: fingers moving left push content left, revealing the tab to
@@ -121,14 +148,16 @@ final class SwipeRelay: ObservableObject {
 ///   scroll events an inner scroll view could not use. That is a different feature,
 ///   and on its own it never sees a swipe.
 ///
-/// Both are declared: the first handles the flick when the system routes swipes, the
-/// second plus the accumulator covers wheels and machines where page swiping is
-/// turned off. Vertical scrolling is untouched in either path.
+/// Both are declared, because either can be what causes the events to arrive here.
+/// The judgement itself is always the accumulator.
+///
+/// `NSEvent.trackSwipeEvent` was tried on top of this and removed: once handed a
+/// gesture it swallows every event of that gesture, and if it never reports a commit
+/// — which is what a real flick did — the swipe silently does nothing. Deferring to
+/// it traded a tested accumulator for an untestable black box.
 final class SwipeForwardingView: NSView {
   let relay = SwipeRelay()
   private var recognizer = SwipeRecognizer()
-  /// Guards against `trackSwipeEvent` and the accumulator both firing for one flick.
-  private var isTrackingSwipe = false
 
   /// Set `MENUCUE_SWIPE_LOG=1` to trace what actually arrives here.
   private static let isLogging = ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1"
@@ -154,8 +183,6 @@ final class SwipeForwardingView: NSView {
         event.momentumPhase.rawValue, "\(event.hasPreciseScrollingDeltas)",
         "\(NSEvent.isSwipeTrackingFromScrollEventsEnabled)"))
 
-    if beginSwipeTrackingIfPossible(with: event) { return }
-
     let outcome = recognizer.consume(
       deltaX: event.scrollingDeltaX,
       deltaY: event.scrollingDeltaY,
@@ -174,41 +201,6 @@ final class SwipeForwardingView: NSView {
       // Nothing here wanted it; let the rest of the chain try.
       super.scrollWheel(with: event)
     }
-  }
-
-  /// Hands a starting horizontal flick to AppKit's swipe tracker, which reports
-  /// progress as a fraction of a page and tells us when the gesture committed.
-  private func beginSwipeTrackingIfPossible(with event: NSEvent) -> Bool {
-    guard NSEvent.isSwipeTrackingFromScrollEventsEnabled,
-      event.phase == .began,
-      !isTrackingSwipe,
-      abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
-    else { return false }
-
-    isTrackingSwipe = true
-    log("  trackSwipeEvent began")
-
-    event.trackSwipeEvent(
-      options: [.lockDirection],
-      dampenAmountThresholdMin: -1,
-      max: 1
-    ) { [weak self] progress, phase, isComplete, stop in
-      guard let self else {
-        stop.pointee = true
-        return
-      }
-      if phase == .ended || phase == .cancelled || isComplete {
-        self.isTrackingSwipe = false
-        // Half a page is the point of no return, matching how Safari's back/forward
-        // swipe decides it has been committed.
-        if phase == .ended, abs(progress) >= 0.5 {
-          self.log("  trackSwipeEvent committed progress=\(progress)")
-          // Dragging content left (negative progress) reveals the next tab.
-          self.relay.send(progress < 0 ? 1 : -1)
-        }
-      }
-    }
-    return true
   }
 
   private static func phase(of event: NSEvent) -> SwipeRecognizer.Phase {

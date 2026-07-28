@@ -123,6 +123,10 @@ struct StatusPopoverView: View {
     }
     .onChange(of: swipeRelay.command) { _, command in
       guard let command else { return }
+      if ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1" {
+        FileHandle.standardError.write(
+          Data("[swipe] TAB \(selectedTab.rawValue) -> \(selectedTab.moving(by: command.direction).rawValue)\n".utf8))
+      }
       select(selectedTab.moving(by: command.direction), direction: command.direction)
     }
     .sheet(isPresented: quickEventSheetBinding) {
