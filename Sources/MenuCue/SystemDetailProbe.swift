@@ -14,11 +14,25 @@ struct GPUStats: Equatable, Codable {
   }
 }
 
+/// What a thermal sensor is measuring. `label` is localized for display, so it can
+/// never be matched against — this is the stable identity a caller filters on.
+enum ThermalSensorKind: String, Equatable, Codable {
+  case performanceCluster
+  case efficiencyCluster
+  case gpu
+  case soc
+  case die
+  case device
+  case neuralEngine
+  case other
+}
+
 /// One named thermal sensor, so the CPU detail can show P-cluster, E-cluster and
 /// GPU separately instead of collapsing to a single hottest number.
 struct ThermalReading: Identifiable, Equatable, Codable {
   let label: String
   let celsius: Double
+  var kind: ThermalSensorKind = .other
 
   var id: String { label }
 }

@@ -60,16 +60,16 @@ final class SystemSensorReader: SystemSensorReading {
     let hidReadings = thermalSensors.clusterTemperatures()
     guard hidReadings.isEmpty else { return hidReadings }
 
-    let intelKeys: [(key: String, label: String)] = [
-      ("TC0D", L10n.string("CPU die")),
-      ("TC0P", L10n.string("CPU proximity")),
-      ("TG0D", L10n.string("GPU die")),
-      ("TA0P", L10n.string("Ambient")),
-      ("TM0P", L10n.string("Memory")),
+    let intelKeys: [(key: String, label: String, kind: ThermalSensorKind)] = [
+      ("TC0D", L10n.string("CPU die"), .die),
+      ("TC0P", L10n.string("CPU proximity"), .other),
+      ("TG0D", L10n.string("GPU die"), .gpu),
+      ("TA0P", L10n.string("Ambient"), .other),
+      ("TM0P", L10n.string("Memory"), .other),
     ]
     return intelKeys.compactMap { entry in
       guard let value = smc.readValue(key: entry.key), (1...125).contains(value) else { return nil }
-      return ThermalReading(label: entry.label, celsius: value)
+      return ThermalReading(label: entry.label, celsius: value, kind: entry.kind)
     }
   }
 }
@@ -386,21 +386,22 @@ private final class HIDThermalSensorClient {
       guard !values.isEmpty else { return nil }
       return ThermalReading(
         label: L10n.string(cluster.label),
-        celsius: values.reduce(0, +) / Double(values.count)
+        celsius: values.reduce(0, +) / Double(values.count),
+        kind: cluster.kind
       )
     }
     if !readings.isEmpty { retryAfter = nil }
     return readings
   }
 
-  private static let clusterLabels: [(prefix: String, label: String)] = [
-    ("pACC MTR Temp Sensor", "P-cluster"),
-    ("eACC MTR Temp Sensor", "E-cluster"),
-    ("GPU MTR Temp Sensor", "GPU"),
-    ("SOC MTR Temp Sensor", "SoC"),
-    ("PMU tdie", "Die"),
-    ("PMU tdev", "Device"),
-    ("ANE MTR Temp Sensor", "Neural Engine"),
+  private static let clusterLabels: [(prefix: String, label: String, kind: ThermalSensorKind)] = [
+    ("pACC MTR Temp Sensor", "P-cluster", .performanceCluster),
+    ("eACC MTR Temp Sensor", "E-cluster", .efficiencyCluster),
+    ("GPU MTR Temp Sensor", "GPU", .gpu),
+    ("SOC MTR Temp Sensor", "SoC", .soc),
+    ("PMU tdie", "Die", .die),
+    ("PMU tdev", "Device", .device),
+    ("ANE MTR Temp Sensor", "Neural Engine", .neuralEngine),
   ]
 
   private func scheduleRetry() {

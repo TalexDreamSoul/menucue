@@ -6,6 +6,8 @@ struct StatusTabView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var metrics: SystemMetricsService
   let openAllActions: () -> Void
+  /// Opens the Settings window on the Dashboard tab that expands a card.
+  let openDashboard: (DashboardSection) -> Void
   /// Owned here rather than by the popover: hover detail is only meaningful while
   /// this tab is on screen, and tearing it down on exit stops every extra probe.
   @StateObject private var detail = SystemDetailService()
@@ -16,7 +18,7 @@ struct StatusTabView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
-        SystemMetricsCards(metrics: metrics, detail: detail)
+        SystemMetricsCards(metrics: metrics, detail: detail, openDashboard: openDashboard)
 
         // Pinned actions live here too so the common case needs no tab switch;
         // the Actions tab remains the full catalog.
@@ -128,6 +130,7 @@ extension StatusTabView {
 struct SystemMetricsCards: View {
   @ObservedObject var metrics: SystemMetricsService
   @ObservedObject var detail: SystemDetailService
+  var openDashboard: ((DashboardSection) -> Void)?
 
   private static let userColor = Color.accentColor
   private static let systemColor = Color.orange
@@ -136,32 +139,39 @@ struct SystemMetricsCards: View {
   var body: some View {
     VStack(spacing: PopoverMetrics.cardSpacing) {
       cpuCard
-        .metricDetailSource(.cpu, service: detail)
+        .metricDetailSource(.cpu, service: detail, open: link(.cpu))
       Grid(horizontalSpacing: PopoverMetrics.cardSpacing, verticalSpacing: PopoverMetrics.cardSpacing)
       {
         GridRow {
           memoryCard
-            .metricDetailSource(.memory, service: detail)
+            .metricDetailSource(.memory, service: detail, open: link(.memory))
           diskCard
-            .metricDetailSource(.disk, service: detail)
+            .metricDetailSource(.disk, service: detail, open: link(.disk))
         }
         // Fanless Macs (MacBook Air, Mac mini M-series) report no tachometers at all.
         if metrics.snapshot.fans.isEmpty {
           GridRow {
             networkCard
-              .metricDetailSource(.network, service: detail)
+              .metricDetailSource(.network, service: detail, open: link(.network))
               .gridCellColumns(2)
           }
         } else {
           GridRow {
             fanCard
-            .metricDetailSource(.fan, service: detail)
+            .metricDetailSource(.fan, service: detail, open: link(.fan))
             networkCard
-            .metricDetailSource(.network, service: detail)
+            .metricDetailSource(.network, service: detail, open: link(.network))
           }
         }
       }
     }
+  }
+
+  /// `nil` when no destination was supplied, which leaves the card non-clickable
+  /// instead of giving it a link that goes nowhere.
+  private func link(_ target: MetricDetailTarget) -> (() -> Void)? {
+    guard let openDashboard else { return nil }
+    return { openDashboard(DashboardSection(target: target)) }
   }
 
   // MARK: - CPU
@@ -201,7 +211,7 @@ struct SystemMetricsCards: View {
 
       CPUUsageChart(
         samples: metrics.cpuHistory,
-        capacity: SystemMetricsService.historyCapacity,
+        capacity: metrics.historyCapacity,
         userColor: Self.userColor,
         systemColor: Self.systemColor
       )
@@ -376,82 +386,5 @@ struct SystemMetricsCards: View {
         CardPlaceholder(message: "No IPv4 address")
       }
     }
-  }
-}
-
-/// Stacked area chart of recent CPU load: user time on the bottom band, system time above it.
-private struct CPUUsageChart: View {
-  let samples: [CPULoadSample]
-  let capacity: Int
-  let userColor: Color
-  let systemColor: Color
-
-  var body: some View {
-    Canvas { context, size in
-      let baseline = Path(
-        roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 8, style: .continuous)
-      context.fill(baseline, with: .color(.primary.opacity(0.05)))
-
-      guard !samples.isEmpty else { return }
-      context.clip(to: baseline)
-
-      // Drawn back to front: the combined band first, then user on top of it.
-      let combined = areaPath(in: size) { $0.userBand + $0.systemBand }
-      context.fill(combined, with: .color(systemColor.opacity(0.55)))
-
-      let user = areaPath(in: size) { $0.userBand }
-      context.fill(user, with: .color(userColor.opacity(0.55)))
-
-      context.stroke(
-        linePath(in: size) { $0.userBand + $0.systemBand },
-        with: .color(systemColor),
-        lineWidth: 1.2)
-      context.stroke(
-        linePath(in: size) { $0.userBand },
-        with: .color(userColor),
-        lineWidth: 1.2)
-    }
-    .accessibilityHidden(true)
-  }
-
-  private func points(in size: CGSize, value: (CPULoadSample) -> Double) -> [CGPoint] {
-    func y(_ sample: CPULoadSample) -> CGFloat {
-      size.height * (1 - min(1, max(0, value(sample))))
-    }
-
-    // A lone sample is drawn flat across the width so the first frame after opening
-    // shows a real level instead of an empty box.
-    guard samples.count > 1 else {
-      return samples.first.map { [CGPoint(x: 0, y: y($0)), CGPoint(x: size.width, y: y($0))] } ?? []
-    }
-
-    // Spread whatever history exists across the full width. Once the buffer is
-    // saturated this is a fixed window, so the series scrolls instead of rescaling —
-    // and a freshly opened popover never shows a mostly empty chart.
-    let slot = size.width / CGFloat(min(samples.count, capacity) - 1)
-    return samples.enumerated().map { index, sample in
-      CGPoint(x: CGFloat(index) * slot, y: y(sample))
-    }
-  }
-
-  private func linePath(in size: CGSize, value: (CPULoadSample) -> Double) -> Path {
-    var path = Path()
-    let points = points(in: size, value: value)
-    guard let first = points.first else { return path }
-    path.move(to: first)
-    for point in points.dropFirst() {
-      path.addLine(to: point)
-    }
-    return path
-  }
-
-  private func areaPath(in size: CGSize, value: (CPULoadSample) -> Double) -> Path {
-    var path = linePath(in: size, value: value)
-    let points = points(in: size, value: value)
-    guard let first = points.first, let last = points.last else { return path }
-    path.addLine(to: CGPoint(x: last.x, y: size.height))
-    path.addLine(to: CGPoint(x: first.x, y: size.height))
-    path.closeSubpath()
-    return path
   }
 }

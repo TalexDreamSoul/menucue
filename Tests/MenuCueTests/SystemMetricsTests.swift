@@ -173,6 +173,8 @@ final class SystemMetricsServiceLifecycleTests: XCTestCase {
     counters.timestamp = 100
     counters.cpuTicks = CPUTicks(user: 10, system: 10, idle: 80, nice: 0)
 
+    // The isolated `defaults` above matter: this test asserts the snapshot stayed
+    // empty, and on `.standard` it would restore whatever cache the test host holds.
     let service = SystemMetricsService(
       sampleInterval: 30,
       defaults: defaults,
