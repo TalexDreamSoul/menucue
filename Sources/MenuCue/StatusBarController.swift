@@ -49,6 +49,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
     configureStatusItem()
     configurePopover()
+    configurePowerMonitoring()
     observeSettings()
     startTimer()
     refreshClockTitle()
@@ -88,6 +89,15 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     if let win = popover.contentViewController?.view.window {
       FileHandle.standardError.write(Data("[swipe] popover window=\(win.frame)\n".utf8))
     }
+  }
+
+  /// Background wake backfill, once the user has opened the power feature.
+  ///
+  /// Nothing runs on a first launch — the setting defaults to false — so the app does
+  /// not spawn `pmset` for a user who never looks at this.
+  private func configurePowerMonitoring() {
+    guard model.settings.powerMonitoringEnabled else { return }
+    model.powerDiagnosticsService.startBackgroundMonitoring()
   }
 
   private func configurePopover() {

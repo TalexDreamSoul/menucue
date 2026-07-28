@@ -14,6 +14,7 @@ final class SettingsStore {
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let pinnedQuickActions = "pinnedQuickActions"
         static let metricsSampling = "metricsSampling.v1"
+        static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
         static let preferenceSyncOnboardingCompleted = "preferenceSyncOnboardingCompleted"
         static let portableModificationDates = "portableModificationDates.v1"
@@ -71,6 +72,7 @@ final class SettingsStore {
             selectedCalendarIDs: Set(defaults.stringArray(forKey: Key.selectedCalendarIDs) ?? []),
             pinnedQuickActions: loadPinnedQuickActions(),
             metricsSampling: loadMetricsSampling(),
+            powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
             preferenceSyncEnabled: defaults.bool(forKey: Key.preferenceSyncEnabled),
             preferenceSyncOnboardingCompleted: defaults.bool(
                 forKey: Key.preferenceSyncOnboardingCompleted
@@ -97,6 +99,7 @@ final class SettingsStore {
         defaults.set(settings.calendarSelectionMode.rawValue, forKey: Key.calendarSelectionMode)
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
+        defaults.set(settings.powerMonitoringEnabled, forKey: Key.powerMonitoringEnabled)
         if let data = try? encoder.encode(settings.metricsSampling) {
             defaults.set(data, forKey: Key.metricsSampling)
         }

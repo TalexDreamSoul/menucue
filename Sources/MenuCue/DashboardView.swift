@@ -14,8 +14,6 @@ struct DashboardView: View {
   /// A denser window than the popover's 48: this chart is several times wider.
   @StateObject private var metrics = SystemMetricsService(historyCapacity: 120)
   @StateObject private var dashboard = DashboardMetricsService()
-  /// Power has its own service: its sources are commands, not the metric probes.
-  @StateObject private var power = PowerDiagnosticsService()
   @State private var section: DashboardSection
   /// Which way the next tab change travels, so the content slides toward the gesture.
   @State private var navigationDirection = 1
@@ -144,7 +142,7 @@ struct DashboardView: View {
     case .sensors:
       DashboardSensorsSection(metrics: metrics, dashboard: dashboard)
     case .power:
-      DashboardPowerSection(diagnostics: power)
+      DashboardPowerSection(model: model, diagnostics: model.powerDiagnosticsService)
     }
   }
 }

@@ -62,6 +62,10 @@ final class ProcessEnergyService: ObservableObject {
       let remaining = refreshInterval - currentDate.timeIntervalSince(lastRefreshStartedAt)
       if remaining > 0 {
         refreshPending = true
+        // The work is deferred, but the request was accepted. Without this the Refresh
+        // button did nothing visible for up to a full interval — it looked broken
+        // rather than throttled.
+        isRefreshing = true
         scheduleRefresh(after: remaining)
         return
       }

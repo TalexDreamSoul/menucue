@@ -11,6 +11,10 @@ final class AppModel: ObservableObject {
     @Published var launchAtLoginErrorMessage: String?
     let quickActionService: QuickActionService
     let preferenceSyncService: PreferenceSyncService
+    /// One instance for the whole app. The popover, the Dashboard and the background
+    /// backfill all read the same history; three services would mean three concurrent
+    /// `pmset` runs over the same 24 MB log.
+    let powerDiagnosticsService = PowerDiagnosticsService()
 
     private let settingsStore: SettingsStore
     private let calendarService: CalendarService
@@ -187,6 +191,13 @@ final class AppModel: ObservableObject {
     func retryPreferenceSync() {
         persistCurrentICloudIdentityToken()
         preferenceSyncService.retry()
+    }
+
+    /// Called the first time the user looks at power, so history keeps accruing after
+    /// the window closes.
+    func enablePowerMonitoring() {
+        guard !settings.powerMonitoringEnabled else { return }
+        updateSettings { $0.powerMonitoringEnabled = true }
     }
 
     func updateMetricsSampling(_ update: (inout MetricsSamplingSettings) -> Void) {

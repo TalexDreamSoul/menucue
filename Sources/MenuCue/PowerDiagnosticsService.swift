@@ -18,6 +18,13 @@ final class PowerDiagnosticsService: ObservableObject {
   private var refreshInFlight = false
   private var refreshPending = false
   private var generation = 0
+  /// Keeps history current while nothing is on screen.
+  ///
+  /// The wake observer alone was not enough: it refreshed a snapshot nobody could see
+  /// unless the popover happened to be open. Backfill from `pmset` covers gaps, but
+  /// only if something asks for it — so this asks, on a slow cadence.
+  private var backgroundTimer: Timer?
+  private var isBackgroundMonitoringEnabled = false
   private var batteryRefreshInFlight = false
   private var batteryRefreshPending = false
   private var batteryGeneration = 0
@@ -39,7 +46,62 @@ final class PowerDiagnosticsService: ObservableObject {
     }
   }
 
+  /// Starts the low-cadence background refresh.
+  ///
+  /// Deliberately opt-in and persisted by the caller: nothing samples until the user
+  /// has opened this feature at least once, and after that it keeps working with the
+  /// popover closed — which is the whole point of asking "what woke my Mac".
+  func startBackgroundMonitoring(interval: TimeInterval = 900) {
+    guard !isBackgroundMonitoringEnabled else { return }
+    isBackgroundMonitoringEnabled = true
+    let timer = Timer(timeInterval: max(60, interval), repeats: true) { [weak self] _ in
+      self?.refreshHistoryOnly()
+    }
+    RunLoop.main.add(timer, forMode: .common)
+    backgroundTimer = timer
+  }
+
+  func stopBackgroundMonitoring() {
+    isBackgroundMonitoringEnabled = false
+    backgroundTimer?.invalidate()
+    backgroundTimer = nil
+  }
+
+  /// Backfills wake history without touching the readings only the UI needs.
+  ///
+  /// Assertions and battery flow describe *now*, so they are pointless when nothing is
+  /// watching. Wake history is the opposite: it is the record of what happened while
+  /// nobody was looking.
+  private func refreshHistoryOnly() {
+    guard !refreshInFlight else { return }
+    refreshInFlight = true
+    generation &+= 1
+    let requestGeneration = generation
+
+    queue.async { [weak self] in
+      guard let self else { return }
+      var events: [WakeEvent] = []
+      var failed = false
+      do {
+        events = try self.probe.wakeEvents()
+        try self.historyStore.merge(events)
+      } catch {
+        failed = true
+      }
+      let history = (try? self.historyStore.load())
+      DispatchQueue.main.async {
+        self.refreshInFlight = false
+        guard requestGeneration == self.generation else { return }
+        if let history, !failed {
+          self.snapshot.events = history.events
+          self.snapshot.dailySummaries = history.dailySummaries
+        }
+      }
+    }
+  }
+
   deinit {
+    backgroundTimer?.invalidate()
     batteryTimer?.invalidate()
     if let wakeObserver { notificationCenter.removeObserver(wakeObserver) }
   }

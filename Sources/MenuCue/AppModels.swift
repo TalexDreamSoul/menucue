@@ -133,6 +133,10 @@ struct AppSettings: Equatable {
     var pinnedQuickActions: [QuickActionReference]
     /// Machine-local: battery behaviour differs per Mac, so this is not synced.
     var metricsSampling: MetricsSamplingSettings
+    /// Set once the user has opened the power feature. Until then nothing samples in
+    /// the background; afterwards wake history keeps being backfilled with the popover
+    /// closed, which is the only way "what woke my Mac overnight" can be answered.
+    var powerMonitoringEnabled: Bool
     var preferenceSyncEnabled: Bool
     var preferenceSyncOnboardingCompleted: Bool
     var portableModificationDates: [PortableSettingField: Date]
@@ -152,6 +156,7 @@ struct AppSettings: Equatable {
         selectedCalendarIDs: Set<String>,
         pinnedQuickActions: [QuickActionReference],
         metricsSampling: MetricsSamplingSettings = .default,
+        powerMonitoringEnabled: Bool = false,
         preferenceSyncEnabled: Bool = false,
         preferenceSyncOnboardingCompleted: Bool = false,
         portableModificationDates: [PortableSettingField: Date] = [:],
@@ -169,6 +174,7 @@ struct AppSettings: Equatable {
         self.calendarSelectionMode = calendarSelectionMode
         self.selectedCalendarIDs = selectedCalendarIDs
         self.metricsSampling = metricsSampling.normalized
+        self.powerMonitoringEnabled = powerMonitoringEnabled
         self.pinnedQuickActions = pinnedQuickActions
         self.preferenceSyncEnabled = preferenceSyncEnabled
         self.preferenceSyncOnboardingCompleted = preferenceSyncOnboardingCompleted

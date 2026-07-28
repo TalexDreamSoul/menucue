@@ -6,6 +6,7 @@ import SwiftUI
 /// leads with the answer — what woke the Mac, and what is stopping it sleeping —
 /// because those are the two questions people actually ask.
 struct DashboardPowerSection: View {
+  @ObservedObject var model: AppModel
   @ObservedObject var diagnostics: PowerDiagnosticsService
 
   var body: some View {
@@ -16,7 +17,12 @@ struct DashboardPowerSection: View {
       sleepBlockersCard(snapshot)
       wakeHistoryCard(snapshot)
     }
-    .onAppear { diagnostics.retain() }
+    .onAppear {
+      diagnostics.retain()
+      // Looking at this once is the opt-in. From here on history keeps accruing with
+      // the window closed, which is the only way an overnight wake can be explained.
+      model.enablePowerMonitoring()
+    }
     .onDisappear { diagnostics.release() }
   }
 

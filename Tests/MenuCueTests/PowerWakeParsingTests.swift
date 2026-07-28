@@ -296,3 +296,76 @@ final class ReadableInfoTests: XCTestCase {
     XCTAssertEqual(PowerAttributionParser.readableInfo("upkeep wake"), "upkeep wake")
   }
 }
+
+final class BatteryRegistryParsingTests: XCTestCase {
+  func testTheTopLevelKeyIsReadNotTheNestedOne() throws {
+    // ioreg prints nested dictionaries inline, so BatteryData is a single enormous
+    // line carrying its own "Voltage"=… tens of lines before the real top-level key.
+    let text = try fixture("ioreg-battery.txt")
+    let nestedLine = text.split(whereSeparator: \.isNewline)
+      .first { $0.contains("\"BatteryData\"") }
+    XCTAssertNotNil(nestedLine, "fixture should contain the nested blob")
+    XCTAssertTrue(nestedLine!.contains("\"Voltage\"="), "the trap this test exists for")
+
+    let flow = try PowerDiagnosticsParser.parseBatteryRegistry(text)
+    XCTAssertTrue(flow.watts.isFinite)
+    XCTAssertTrue(flow.percentPerHour.isFinite)
+  }
+
+  func testANegativeAmperageStaysNegative() throws {
+    let text = """
+          "AppleRawMaxCapacity" = 8000
+          "InstantAmperage" = -1500
+          "Voltage" = 12000
+      """
+    let flow = try PowerDiagnosticsParser.parseBatteryRegistry(text)
+    // Discharging must not read as charging.
+    XCTAssertLessThan(flow.watts, 0)
+    XCTAssertLessThan(flow.percentPerHour, 0)
+  }
+
+  func testUnsignedTwosComplementIsStillNegative() throws {
+    // Some Macs print the same value as an unsigned 64-bit literal.
+    let text = """
+          "AppleRawMaxCapacity" = 8000
+          "InstantAmperage" = 18446744073709550116
+          "Voltage" = 12000
+      """
+    let flow = try PowerDiagnosticsParser.parseBatteryRegistry(text)
+    XCTAssertLessThan(flow.watts, 0)
+  }
+
+  func testANestedKeyAloneIsNotEnough() {
+    // Only the inline blob, no top-level property: better to report the field missing
+    // than to read a value from inside another dictionary.
+    let text = #"  "BatteryData" = {"Voltage"=12345,"Qmax"=(1,2)}"#
+    XCTAssertThrowsError(try PowerDiagnosticsParser.parseBatteryRegistry(text))
+  }
+}
+
+@MainActor
+final class PowerMonitoringOptInTests: XCTestCase {
+  private func store() -> SettingsStore {
+    let suite = "PowerMonitoringOptInTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    return SettingsStore(defaults: defaults)
+  }
+
+  func testBackgroundMonitoringIsOffUntilTheFeatureIsOpened() {
+    // A user who never looks at power must never have pmset run for them.
+    XCTAssertFalse(store().load().powerMonitoringEnabled)
+  }
+
+  func testOpeningTheFeatureTurnsItOnAndItPersists() {
+    let settingsStore = store()
+        var settings = settingsStore.load()
+    XCTAssertFalse(settings.powerMonitoringEnabled)
+
+    settings.powerMonitoringEnabled = true
+    settingsStore.save(settings)
+
+    // Survives relaunch, which is the point: the history has to keep accruing.
+    XCTAssertTrue(settingsStore.load().powerMonitoringEnabled)
+  }
+}

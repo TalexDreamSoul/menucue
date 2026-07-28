@@ -249,14 +249,37 @@ enum PowerDiagnosticsParser {
   }
 
   static func parseBatteryRegistry(_ text: String) throws -> BatteryFlow {
+    /// Reads a **top-level** `ioreg` property.
+    ///
+    /// Two things this has to get right, both of which it used to get wrong:
+    ///
+    /// * Anchoring. `ioreg` prints nested dictionaries inline, so `BatteryData` is one
+    ///   enormous line carrying `"Voltage"=12345` among hundreds of other keys. A
+    ///   whole-text `firstMatch` found that one, tens of lines before the real
+    ///   top-level `"Voltage" = 12345`. Top-level properties sit alone on a line with
+    ///   spaces around the `=`; nested ones never do.
+    /// * Sign. The pattern accepted digits only, so a negative literal would have had
+    ///   its minus dropped — reporting charging while discharging. Values can also
+    ///   arrive as unsigned two's complement, which the `bitPattern` conversion covers.
     func signed(_ key: String) throws -> Int64 {
-      let pattern = "\\\"\(NSRegularExpression.escapedPattern(for: key))\\\"\\s*=\\s*(\\d+)"
-      let expression = try NSRegularExpression(pattern: pattern)
+      let escaped = NSRegularExpression.escapedPattern(for: key)
+      // The prefix allows `ioreg`'s tree drawing (`| |   `) as well as plain
+      // indentation. What actually discriminates is the tail: a top-level property
+      // ends the line, while a key inside an inline dictionary is always followed by
+      // a comma or a brace.
+      let pattern = "^[\\s|+\\-]*\\\"\(escaped)\\\" = (-?\\d+)\\s*$"
+      let expression = try NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
       let range = NSRange(text.startIndex..<text.endIndex, in: text)
       guard let match = expression.firstMatch(in: text, range: range),
-        let valueRange = Range(match.range(at: 1), in: text),
-        let unsigned = UInt64(text[valueRange])
+        let valueRange = Range(match.range(at: 1), in: text)
       else { throw PowerDiagnosticsParseError.missingField(key) }
+
+      let literal = String(text[valueRange])
+      if let value = Int64(literal) { return value }
+      // Beyond Int64 means an unsigned two's-complement negative.
+      guard let unsigned = UInt64(literal) else {
+        throw PowerDiagnosticsParseError.malformed(key)
+      }
       return Int64(bitPattern: unsigned)
     }
 
