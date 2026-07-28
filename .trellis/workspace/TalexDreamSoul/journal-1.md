@@ -75,3 +75,36 @@ Renamed all local and external identities to MenuCue, merged remote localization
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Release MenuCue v0.6.0 notifications
+
+**Date**: 2026-07-28
+**Task**: Release MenuCue v0.6.0 notifications
+**Branch**: `master`
+
+### Summary
+
+Implemented and released configurable Feishu, Webhook, Bark, and Telegram alerts with 41 metric and dark-wake rules, secure local credentials, durable delivery, editable templates, native Lock Screen authorization, and a prominent Power Helper remediation banner. Published GitHub Release, signed Sparkle OTA feed, and Homebrew cask 0.6.0.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bc31c95f8d0a6b09efa9e4e3e3e1bfb2ed9fb3b1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
