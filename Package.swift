@@ -55,7 +55,10 @@ let package = Package(
         "MenuCueHelperProtocol",
         "Sparkle",
       ],
-      path: "Tests/MenuCueTests"
+      path: "Tests/MenuCueTests",
+      // Real command output, read directly off disk with #filePath rather than through
+      // Bundle.module — declared here only so SwiftPM stops warning about them.
+      exclude: ["Fixtures"]
     ),
   ]
 )

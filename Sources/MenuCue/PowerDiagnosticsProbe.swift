@@ -388,7 +388,7 @@ struct SystemPowerDiagnosticsProbe: PowerDiagnosticsProbing {
     let output = try reader.runStreaming(
       "/usr/bin/pmset",
       arguments: ["-g", "log"],
-      keepLine: PowerDiagnosticsParser.isInterestingLogLine
+      keepLine: { PowerDiagnosticsParser.isInterestingLogLine($0) }
     )
     return try PowerDiagnosticsParser.parseWakeEvents(output.lines.joined(separator: "\n"))
   }

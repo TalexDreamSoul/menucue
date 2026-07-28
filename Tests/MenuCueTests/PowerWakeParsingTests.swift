@@ -120,3 +120,156 @@ final class LineFilteringCaptureTests: XCTestCase {
     XCTAssertTrue(capture.snapshot().droppedOversizedLine)
   }
 }
+
+final class ScheduledWakeParsingTests: XCTestCase {
+  func testRealWakeRequestLinesParse() throws {
+    let scheduled = PowerAttributionParser.parseScheduledWakes(
+      try fixture("pmset-wake-requests.txt"))
+    XCTAssertFalse(scheduled.isEmpty, "no scheduled wakes parsed from real output")
+
+    // One line holds many requests; exactly one of them is starred.
+    let byLine = Dictionary(grouping: scheduled, by: \.loggedAt)
+    for (loggedAt, group) in byLine {
+      let winners = group.filter(\.isWinning)
+      XCTAssertEqual(winners.count, 1, "expected one winning request at \(loggedAt)")
+      XCTAssertGreaterThan(group.count, 1, "a real line lists several requests")
+    }
+
+    for wake in scheduled {
+      XCTAssertFalse(wake.process.isEmpty)
+      XCTAssertGreaterThan(wake.wakeAt, wake.loggedAt, "a scheduled wake is in the future")
+    }
+    XCTAssertTrue(
+      scheduled.contains { $0.process == "dasd" || $0.process == "mDNSResponder" },
+      "expected the usual schedulers: \(Set(scheduled.map(\.process)))")
+  }
+
+  func testInfoWithBracketsDoesNotBreakTheSplit() {
+    let line = """
+      2026-07-27 17:51:13 -0700 Wake Requests       \t[*process=dasd request=SleepService \
+      deltaSecs=946 wakeAt=2026-07-27 18:06:58 info="thing [with] brackets"] \
+      [process=powerd request=TCPKATurnOff deltaSecs=315437 wakeAt=2026-07-31 09:28:30]
+      """
+    let scheduled = PowerAttributionParser.parseScheduledWakes(line)
+    XCTAssertEqual(scheduled.count, 2)
+    XCTAssertEqual(scheduled[0].info, "thing [with] brackets")
+    XCTAssertTrue(scheduled[0].isWinning)
+    XCTAssertFalse(scheduled[1].isWinning)
+  }
+}
+
+final class WakeAttributionTests: XCTestCase {
+  private func scheduled(at wakeAt: Date, process: String, winning: Bool) -> ScheduledWake {
+    ScheduledWake(
+      loggedAt: wakeAt.addingTimeInterval(-900), wakeAt: wakeAt, process: process,
+      request: "SleepService", info: "com.apple.dasd:0:com.apple.chronod.checkForUpdates",
+      isWinning: winning)
+  }
+
+  func testAWakeNearItsScheduledTimeIsAttributed() {
+    let at = Date()
+    let cause = PowerAttributionParser.attribute(
+      wakeAt: at, interruptToken: "rtc/SleepService",
+      scheduled: [scheduled(at: at.addingTimeInterval(3), process: "dasd", winning: true)])
+
+    guard case let .process(name, _, detail) = cause else {
+      return XCTFail("expected process attribution, got \(cause)")
+    }
+    XCTAssertEqual(name, "dasd")
+    XCTAssertEqual(detail, "check for updates")
+  }
+
+  func testAWakeOutsideToleranceIsNotGuessedAt() {
+    let at = Date()
+    let cause = PowerAttributionParser.attribute(
+      wakeAt: at, interruptToken: "lid",
+      scheduled: [scheduled(at: at.addingTimeInterval(3_600), process: "dasd", winning: true)])
+
+    // Falls back to the interrupt rather than blaming the nearest process.
+    guard case let .interrupt(token, plain) = cause else {
+      return XCTFail("expected interrupt, got \(cause)")
+    }
+    XCTAssertEqual(token, "lid")
+    XCTAssertEqual(plain, "Opening the lid")
+  }
+
+  func testOnlyTheWinningRequestCanBeTheCause() {
+    let at = Date()
+    let cause = PowerAttributionParser.attribute(
+      wakeAt: at, interruptToken: "rtc",
+      scheduled: [scheduled(at: at, process: "mDNSResponder", winning: false)])
+    // A non-winning request was never going to fire first.
+    if case .process = cause { XCTFail("attributed to a request that would not fire") }
+  }
+
+  func testAnUnknownTokenShowsWhatWasRecorded() {
+    let cause = WakeReasonDictionary.cause(forInterrupt: "XYZ.Unheard.Of")
+    guard case let .interrupt(token, plain) = cause else { return XCTFail("expected interrupt") }
+    XCTAssertEqual(token, "XYZ.Unheard.Of")
+    XCTAssertTrue(plain.contains("XYZ.Unheard.Of"), "an unknown token must not be hidden")
+  }
+
+  func testEmptyTokenIsUnknownRatherThanInvented() {
+    XCTAssertEqual(WakeReasonDictionary.cause(forInterrupt: "   "), .unknown)
+  }
+
+  func testRealInterruptTokensMapToPlainLanguage() {
+    // Captured from this Mac's own log.
+    XCTAssertEqual(
+      WakeReasonDictionary.plainLanguage(for: "smc.sysState.Wake(0x70070000) lid SMC.OutboxNotEmpty"),
+      "Opening the lid")
+    XCTAssertEqual(
+      WakeReasonDictionary.plainLanguage(for: "NUB.SPMI0Sw3IRQ nub-spmi0.0x02 rtc/SleepService"),
+      "A scheduled background task")
+  }
+}
+
+final class SleepAssertionParsingTests: XCTestCase {
+  func testRealAssertionsParse() throws {
+    let assertions = PowerAttributionParser.parseAssertions(try fixture("pmset-assertions.txt"))
+    XCTAssertFalse(assertions.isEmpty, "no assertions parsed from real output")
+
+    for assertion in assertions {
+      XCTAssertGreaterThan(assertion.pid, 0)
+      XCTAssertFalse(assertion.process.isEmpty)
+      XCTAssertFalse(assertion.type.isEmpty)
+    }
+    XCTAssertTrue(
+      assertions.contains { $0.preventsSystemSleep },
+      "the captured machine had processes preventing sleep")
+  }
+
+  func testTheLongHeldAssertionOnTheCapturedMachineIsFound() throws {
+    // UURemote had held PreventUserIdleSystemSleep for 89 hours — exactly the kind of
+    // fact this pane exists to surface.
+    let assertions = PowerAttributionParser.parseAssertions(try fixture("pmset-assertions.txt"))
+    guard let longest = assertions.max(by: { $0.heldSeconds < $1.heldSeconds }) else {
+      return XCTFail("no assertions")
+    }
+    XCTAssertGreaterThan(longest.heldSeconds, 3_600, "expected a multi-hour holder")
+    XCTAssertTrue(longest.heldDescription.contains("h"))
+  }
+
+  func testLocalizedContinuationIsPreferred() {
+    let text = """
+      Listed by owning process:
+         pid 49842(caffeinate): [0x0004a3ff0001862b] 00:01:29 PreventUserIdleSystemSleep named: "caffeinate command-line tool"
+      \tDetails: caffeinate asserting for 300 secs
+      \tLocalized=THE CAFFEINATE TOOL IS PREVENTING SLEEP.
+      \tTimeout will fire in 210 secs Action=TimeoutActionRelease
+      """
+    let assertions = PowerAttributionParser.parseAssertions(text)
+    XCTAssertEqual(assertions.count, 1)
+    XCTAssertEqual(assertions[0].pid, 49842)
+    XCTAssertEqual(assertions[0].process, "caffeinate")
+    XCTAssertEqual(assertions[0].localized, "THE CAFFEINATE TOOL IS PREVENTING SLEEP.")
+    XCTAssertEqual(assertions[0].heldSeconds, 89)
+    XCTAssertTrue(assertions[0].preventsSystemSleep)
+  }
+
+  func testHoursBeyondADayParse() {
+    // 89:44:59 is not a time of day.
+    XCTAssertEqual(PowerAttributionParser.parseDuration("89:44:59"), 89 * 3_600 + 44 * 60 + 59)
+    XCTAssertEqual(PowerAttributionParser.parseDuration("nonsense"), 0)
+  }
+}

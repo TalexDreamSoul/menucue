@@ -3,6 +3,8 @@
 "%@" = "%@";
 "%@ RPM" = "%@ RPM";
 "%@ ago" = "%@前";
+"%@ asked for it" = "%@ 请求的";
+"%@ asked for it, to %@" = "%@ 请求的，为了%@";
 "%@ disabled." = "已关闭%@。";
 "%@ enabled." = "已启用%@。";
 "%@ failed with status %d." = "%@失败，状态码为 %d。";
@@ -31,6 +33,7 @@
 "%dd %dh %dm" = "%d天 %d小时 %d分钟";
 "%dh %dm" = "%d小时 %d分钟";
 "%dm" = "%d分钟";
+"%ds" = "%d 秒";
 "%d–%d RPM" = "%d–%d 转/分";
 "1 fan" = "1 个风扇";
 "1 hour before" = "提前 1 小时";
@@ -42,7 +45,9 @@
 "30-day local history" = "本机 30 天历史";
 "5 min" = "5 分钟";
 "5 minutes before" = "提前 5 分钟";
+"A Bluetooth device" = "某个蓝牙设备";
 "A light daily guide generated on-device for the selected date." = "根据所选日期在本机生成的轻量每日指南。";
+"A scheduled background task" = "一个计划中的后台任务";
 "AC" = "接电";
 "AC Power" = "外接电源";
 "Abbreviated" = "缩写";
@@ -51,6 +56,7 @@
 "Action failed: %@" = "操作失败：%@";
 "Actions" = "操作";
 "Activity" = "活动";
+"Activity on this Mac" = "这台 Mac 上的活动";
 "Adapt sampling rate to battery level" = "根据电池电量调整采样频率";
 "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less." = "自适应采样在接通电源时以最快频率运行，并随电量下降逐步减慢，从而降低长时间使用电池时的能耗。";
 "Add" = "添加";
@@ -355,6 +361,7 @@
 "Open System Settings" = "打开系统设置";
 "Open all Quick Actions" = "打开所有快捷操作";
 "Open in Dashboard" = "在仪表盘中打开";
+"Opening the lid" = "打开上盖";
 "Order" = "顺序";
 "Organizing" = "整理";
 "Overcommitting" = "过度承诺";
@@ -471,6 +478,7 @@
 "Slowest at or below" = "低于或等于此电量时最慢";
 "SoC" = "SoC";
 "Socializing" = "会友";
+"Something plugged in" = "插入的某个设备";
 "Standby" = "待机";
 "Starting" = "开始";
 "Starts:" = "开始：";
@@ -507,9 +515,13 @@
 "The first clock is the fallback for overview and appearance settings when their selected time zone is unavailable." = "当概览或外观设置所选时区不可用时，将使用第一个时钟作为回退。";
 "The installed Helper must be refreshed before changing the system time zone." = "更改系统时区前必须刷新已安装的助手。";
 "The menu-bar popover shows these actions before the fixed More button." = "菜单栏弹出窗口会在固定的“更多”按钮之前显示这些操作。";
+"The network" = "网络";
+"The network or a Bluetooth device" = "网络或某个蓝牙设备";
 "The packaged power Helper or LaunchDaemon configuration is missing." = "缺少打包的电源助手或 LaunchDaemon 配置。";
 "The power Helper connection was interrupted. Try the action again." = "电源助手连接已中断，请重试此操作。";
 "The power Helper operation failed." = "电源助手操作失败。";
+"The power controller" = "电源控制器";
+"The reason was not recorded." = "未记录唤醒原因。";
 "The system time zone operation failed." = "系统时区操作失败。";
 "The user Trash folder is unavailable." = "用户废纸篓文件夹不可用。";
 "This Mac at a glance, sampling behavior, and anything needing attention." = "快速查看这台 Mac、采样策略及需要处理的事项。";
@@ -575,6 +587,7 @@
 "Weekly" = "每周";
 "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance." = "启用后，MenuCue 会通过 macOS 自动化权限切换系统浅色/深色外观。关闭后，仅此应用预览所选外观。";
 "Wired" = "联动内存";
+"Woken by %@" = "由 %@ 唤醒";
 "World Clocks" = "世界时钟";
 "Write" = "写入";
 "Write IOPS" = "写入 IOPS";
@@ -582,6 +595,7 @@
 "Yearly" = "每年";
 "Yes" = "是";
 "You can also hold Esc for 3 seconds." = "也可按住 Esc 3 秒退出。";
+"You — keyboard, trackpad or mouse" = "你——键盘、触控板或鼠标";
 "iCloud Account Changed" = "iCloud 账户已更改";
 "iCloud Sync" = "iCloud 同步";
 "iCloud account changed" = "iCloud 账户已更改";

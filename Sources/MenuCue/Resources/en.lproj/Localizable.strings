@@ -3,6 +3,8 @@
 "%@" = "%@";
 "%@ RPM" = "%@ RPM";
 "%@ ago" = "%@ ago";
+"%@ asked for it" = "%@ asked for it";
+"%@ asked for it, to %@" = "%@ asked for it, to %@";
 "%@ disabled." = "%@ disabled.";
 "%@ enabled." = "%@ enabled.";
 "%@ failed with status %d." = "%@ failed with status %d.";
@@ -31,6 +33,7 @@
 "%dd %dh %dm" = "%dd %dh %dm";
 "%dh %dm" = "%dh %dm";
 "%dm" = "%dm";
+"%ds" = "%ds";
 "%d–%d RPM" = "%d–%d RPM";
 "1 fan" = "1 fan";
 "1 hour before" = "1 hour before";
@@ -42,7 +45,9 @@
 "30-day local history" = "30-day local history";
 "5 min" = "5 min";
 "5 minutes before" = "5 minutes before";
+"A Bluetooth device" = "A Bluetooth device";
 "A light daily guide generated on-device for the selected date." = "A light daily guide generated on-device for the selected date.";
+"A scheduled background task" = "A scheduled background task";
 "AC" = "AC";
 "AC Power" = "AC Power";
 "Abbreviated" = "Abbreviated";
@@ -51,6 +56,7 @@
 "Action failed: %@" = "Action failed: %@";
 "Actions" = "Actions";
 "Activity" = "Activity";
+"Activity on this Mac" = "Activity on this Mac";
 "Adapt sampling rate to battery level" = "Adapt sampling rate to battery level";
 "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less." = "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less.";
 "Add" = "Add";
@@ -355,6 +361,7 @@
 "Open System Settings" = "Open System Settings";
 "Open all Quick Actions" = "Open all Quick Actions";
 "Open in Dashboard" = "Open in Dashboard";
+"Opening the lid" = "Opening the lid";
 "Order" = "Order";
 "Organizing" = "Organizing";
 "Overcommitting" = "Overcommitting";
@@ -471,6 +478,7 @@
 "Slowest at or below" = "Slowest at or below";
 "SoC" = "SoC";
 "Socializing" = "Socializing";
+"Something plugged in" = "Something plugged in";
 "Standby" = "Standby";
 "Starting" = "Starting";
 "Starts:" = "Starts:";
@@ -507,9 +515,13 @@
 "The first clock is the fallback for overview and appearance settings when their selected time zone is unavailable." = "The first clock is the fallback for overview and appearance settings when their selected time zone is unavailable.";
 "The installed Helper must be refreshed before changing the system time zone." = "The installed Helper must be refreshed before changing the system time zone.";
 "The menu-bar popover shows these actions before the fixed More button." = "The menu-bar popover shows these actions before the fixed More button.";
+"The network" = "The network";
+"The network or a Bluetooth device" = "The network or a Bluetooth device";
 "The packaged power Helper or LaunchDaemon configuration is missing." = "The packaged power Helper or LaunchDaemon configuration is missing.";
 "The power Helper connection was interrupted. Try the action again." = "The power Helper connection was interrupted. Try the action again.";
 "The power Helper operation failed." = "The power Helper operation failed.";
+"The power controller" = "The power controller";
+"The reason was not recorded." = "The reason was not recorded.";
 "The system time zone operation failed." = "The system time zone operation failed.";
 "The user Trash folder is unavailable." = "The user Trash folder is unavailable.";
 "This Mac at a glance, sampling behavior, and anything needing attention." = "This Mac at a glance, sampling behavior, and anything needing attention.";
@@ -575,6 +587,7 @@
 "Weekly" = "Weekly";
 "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance." = "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance.";
 "Wired" = "Wired";
+"Woken by %@" = "Woken by %@";
 "World Clocks" = "World Clocks";
 "Write" = "Write";
 "Write IOPS" = "Write IOPS";
@@ -582,6 +595,7 @@
 "Yearly" = "Yearly";
 "Yes" = "Yes";
 "You can also hold Esc for 3 seconds." = "You can also hold Esc for 3 seconds.";
+"You — keyboard, trackpad or mouse" = "You — keyboard, trackpad or mouse";
 "iCloud Account Changed" = "iCloud Account Changed";
 "iCloud Sync" = "iCloud Sync";
 "iCloud account changed" = "iCloud account changed";
