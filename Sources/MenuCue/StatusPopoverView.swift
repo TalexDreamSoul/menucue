@@ -1107,7 +1107,7 @@ private struct SettingsContentView: View {
       Toggle("Apply to macOS system appearance", isOn: binding(\.appliesSystemAppearance))
 
       Text(
-        "When enabled, \(ProductBrand.displayName) switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
+        "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
       )
       .font(.caption)
       .foregroundStyle(.secondary)
@@ -1170,20 +1170,20 @@ private struct SettingsContentView: View {
       VStack(alignment: .leading, spacing: 8) {
         Text("Startup")
           .font(.headline)
-        Toggle("Launch \(ProductBrand.displayName) at login", isOn: launchAtLoginBinding)
+        Toggle("Launch MenuCue at login", isOn: launchAtLoginBinding)
           .disabled(model.launchAtLoginState == .unavailable)
 
         switch model.launchAtLoginState {
         case .disabled:
-          Text("\(ProductBrand.displayName) starts only when you open it.")
+          Text("MenuCue starts only when you open it.")
             .font(.caption)
             .foregroundStyle(.secondary)
         case .enabled:
-          Text("\(ProductBrand.displayName) will start automatically after you sign in.")
+          Text("MenuCue will start automatically after you sign in.")
             .font(.caption)
             .foregroundStyle(.secondary)
         case .requiresApproval:
-          Text("macOS requires approval before \(ProductBrand.displayName) can start at login.")
+          Text("macOS requires approval before MenuCue can start at login.")
             .font(.caption)
             .foregroundStyle(.orange)
           Button("Open Login Items Settings") {
@@ -1191,7 +1191,7 @@ private struct SettingsContentView: View {
           }
         case .unavailable:
           Text(
-            "Launch at Login is available when \(ProductBrand.displayName) runs from its app bundle."
+            "Launch at Login is available when MenuCue runs from its app bundle."
           )
           .font(.caption)
           .foregroundStyle(.secondary)
