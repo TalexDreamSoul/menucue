@@ -50,7 +50,13 @@ final class ProcessEnergyService: ObservableObject {
   func startBackgroundSampling(interval: TimeInterval = 300) {
     guard backgroundTimer == nil else { return }
     sampleIntoHistory()
-    let timer = Timer(timeInterval: max(60, interval), repeats: true) { [weak self] _ in
+    // Deliberately not driven by `metricsSampling`: that setting is tuned for a
+    // 1.5-second metrics poll and its intervals are the wrong order of magnitude
+    // here. Low Power Mode is the one signal that clearly applies.
+    let resolved = ProcessInfo.processInfo.isLowPowerModeEnabled
+      ? max(900, interval * 3)
+      : max(60, interval)
+    let timer = Timer(timeInterval: resolved, repeats: true) { [weak self] _ in
       self?.sampleIntoHistory()
     }
     RunLoop.main.add(timer, forMode: .common)

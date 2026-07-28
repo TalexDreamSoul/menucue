@@ -583,3 +583,71 @@ final class WakeHistoryStorageTests: XCTestCase {
     XCTAssertThrowsError(try history.load())
   }
 }
+
+final class OwnAssertionTests: XCTestCase {
+  private func assertion(pid: Int32, reason: String) -> SleepAssertion {
+    SleepAssertion(
+      pid: pid, process: "caffeinate", type: "PreventUserIdleSystemSleep",
+      reason: reason, localized: nil, heldSeconds: 60, handle: "0x\(pid)")
+  }
+
+  func testOurOwnCaffeinateIsRecognizedByPIDNotByName() {
+    // caffeinate's assertion reason is a fixed string that never names who started it,
+    // so the old text match was false for our own process — the app reported its own
+    // Keep Awake as some unidentified program holding the Mac awake.
+    let ours = assertion(pid: 4242, reason: "caffeinate command-line tool")
+    let theirs = assertion(pid: 99, reason: "caffeinate command-line tool")
+
+    XCTAssertTrue(ours.isOwned(byPID: 4242))
+    XCTAssertFalse(theirs.isOwned(byPID: 4242))
+  }
+
+  func testNothingIsOursWhenKeepAwakeIsOff() {
+    XCTAssertFalse(assertion(pid: 4242, reason: "caffeinate command-line tool").isOwned(byPID: nil))
+  }
+}
+
+final class WakeEventIdentityTests: XCTestCase {
+  private let when = Date(timeIntervalSince1970: 1_760_000_000)
+
+  func testIdentityDoesNotDependOnHowTheReasonIsWorded() {
+    // The reason used to be part of the id, which made every stored record a hostage
+    // to the parser: improving how a reason is derived silently orphaned the history,
+    // because the same event no longer matched itself.
+    let before = WakeEvent(timestamp: when, kind: .wake, reason: "lid", occurrence: 0)
+    let after = WakeEvent(
+      timestamp: when, kind: .wake, reason: "Opening the lid", occurrence: 0)
+    XCTAssertEqual(before.id, after.id)
+  }
+
+  func testTwoEventsOfTheSameKindInOneSecondStayDistinct() {
+    let first = WakeEvent(timestamp: when, kind: .darkWake, reason: "a", occurrence: 0)
+    let second = WakeEvent(timestamp: when, kind: .darkWake, reason: "b", occurrence: 1)
+    XCTAssertNotEqual(first.id, second.id)
+  }
+
+  func testDifferentKindsInOneSecondStayDistinct() {
+    let sleep = WakeEvent(timestamp: when, kind: .sleep, reason: "x", occurrence: 0)
+    let wake = WakeEvent(timestamp: when, kind: .wake, reason: "x", occurrence: 0)
+    XCTAssertNotEqual(sleep.id, wake.id)
+  }
+
+  func testReparsingWithADifferentReasonMergesRatherThanDuplicates() throws {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("id-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let store = WakeHistoryStore(fileURL: url)
+    let now = when.addingTimeInterval(60)
+
+    try store.merge(
+      [WakeEvent(timestamp: when, kind: .wake, reason: "raw token", occurrence: 0)], now: now)
+    // The same event, re-read after the reason parsing improved.
+    try store.merge(
+      [WakeEvent(timestamp: when, kind: .wake, reason: "Opening the lid", occurrence: 0)],
+      now: now)
+
+    let events = try store.load(now: now).events
+    XCTAssertEqual(events.count, 1, "a reworded reason duplicated the event")
+    XCTAssertEqual(events[0].reason, "Opening the lid", "the newer wording should win")
+  }
+}

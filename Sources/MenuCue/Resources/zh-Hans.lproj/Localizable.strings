@@ -23,6 +23,7 @@
 "%d dark wakes today" = "今天发生 %d 次暗唤醒";
 "%d day ago" = "%d 天前";
 "%d days ago" = "%d 天前";
+"%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened." = "已移除 %d 条早期记录：它们描述的是计划中的唤醒，而非真实发生的唤醒。";
 "%d event" = "%d 个日程";
 "%d events" = "%d 个日程";
 "%d fans" = "%d 个风扇";
@@ -628,6 +629,7 @@
 "iCloud preference storage is over quota. Local settings are unchanged." = "iCloud 偏好设置存储空间已超限，本地设置未更改。";
 "iCloud reported an unknown preference synchronization state." = "iCloud 返回了未知的偏好设置同步状态。";
 "in the last 30 days" = "最近 30 天";
+"last 30 days · %@" = "最近 30 天 · %@";
 "macOS Language" = "macOS 语言";
 "macOS denied the requested Automation action." = "macOS 拒绝了请求的自动化操作。";
 "macOS requires approval before MenuCue can start at login." = "MenuCue 需要获得 macOS 批准才能在登录时启动。";

@@ -168,9 +168,15 @@ struct SleepAssertion: Identifiable, Equatable {
     type.contains("DisplaySleep") || type.contains("PreventUserIdleDisplaySleep")
   }
 
-  /// This app's own Keep Awake action, so it is never reported as someone else's doing.
-  var isMenuCue: Bool {
-    reason.localizedCaseInsensitiveContains(ProductBrand.displayName)
+  /// Whether this assertion is the one this app's Keep Awake action is holding.
+  ///
+  /// Matched by pid, not by text. `caffeinate`'s assertion reason is the fixed string
+  /// "caffeinate command-line tool" — it never mentions who started it — so a name
+  /// match was always false and the app reported its own assertion as some
+  /// unidentified program keeping the Mac awake.
+  func isOwned(byPID pid: Int32?) -> Bool {
+    guard let pid else { return false }
+    return self.pid == pid
   }
 
   var heldDescription: String {

@@ -6,6 +6,11 @@ final class PowerDiagnosticsService: ObservableObject {
   @Published private(set) var snapshot = PowerDiagnosticsSnapshot()
   @Published private(set) var battery: BatteryStatus?
   @Published private(set) var isRefreshing = false
+  /// What the on-disk history costs and covers, so the pane can say so.
+  @Published private(set) var historyFileSizeBytes: UInt64 = 0
+  /// Records the one-time v1 migration removed. Surfaced once rather than deleting
+  /// the user's data silently.
+  @Published private(set) var migrationDroppedRecords = 0
 
   private let probe: PowerDiagnosticsProbing
   private let historyStore: WakeHistoryStore
@@ -13,6 +18,10 @@ final class PowerDiagnosticsService: ObservableObject {
   private let batteryRefreshInterval: TimeInterval
   private let queue = DispatchQueue(label: "com.tagzxia.app.menucue.power-diagnostics", qos: .utility)
   private var wakeObserver: NSObjectProtocol?
+  private var sleepObserver: NSObjectProtocol?
+  /// Set when the app has read the log at least once this launch, so the periodic
+  /// re-read can be dropped entirely.
+  private var hasBackfilled = false
   private var batteryTimer: Timer?
   private var activationCount = 0
   private var refreshInFlight = false
@@ -23,7 +32,6 @@ final class PowerDiagnosticsService: ObservableObject {
   /// The wake observer alone was not enough: it refreshed a snapshot nobody could see
   /// unless the popover happened to be open. Backfill from `pmset` covers gaps, but
   /// only if something asks for it — so this asks, on a slow cadence.
-  private var backgroundTimer: Timer?
   private var isBackgroundMonitoringEnabled = false
   private var batteryRefreshInFlight = false
   private var batteryRefreshPending = false
@@ -39,32 +47,48 @@ final class PowerDiagnosticsService: ObservableObject {
     self.historyStore = historyStore
     self.notificationCenter = notificationCenter
     self.batteryRefreshInterval = max(0.001, batteryRefreshInterval)
+    // Sleep and wake are *events*. macOS says so directly, which is exact and free —
+    // there is nothing here to poll for.
     wakeObserver = notificationCenter.addObserver(
       forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
     ) { [weak self] _ in
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self?.refresh() }
+      // A second's grace: pmset writes its own line slightly after the notification,
+      // so backfilling immediately would miss the wake that just happened.
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self?.refreshHistoryOnly() }
+    }
+    sleepObserver = notificationCenter.addObserver(
+      forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      self?.hasBackfilled = false
     }
   }
 
-  /// Starts the low-cadence background refresh.
+  /// Brings history up to date once, and then leaves it to the wake notification.
   ///
-  /// Deliberately opt-in and persisted by the caller: nothing samples until the user
-  /// has opened this feature at least once, and after that it keeps working with the
-  /// popover closed — which is the whole point of asking "what woke my Mac".
-  func startBackgroundMonitoring(interval: TimeInterval = 900) {
+  /// There used to be a 15-minute timer here. Measurement killed it: `pmset -g log`
+  /// alone costs 3.6–5.7 s and 24 MB on this Mac, and the parsing on top of it is
+  /// negligible — so the periodic read was paying the entire cost to discover, almost
+  /// always, that nothing had happened.
+  ///
+  /// Nothing needs discovering. `NSWorkspace.didWakeNotification` fires exactly when a
+  /// wake occurs, so the log is now read once at launch — to cover whatever happened
+  /// while the app was not running — and thereafter only when the machine actually
+  /// wakes.
+  func startBackgroundMonitoring() {
     guard !isBackgroundMonitoringEnabled else { return }
     isBackgroundMonitoringEnabled = true
-    let timer = Timer(timeInterval: max(60, interval), repeats: true) { [weak self] _ in
-      self?.refreshHistoryOnly()
-    }
-    RunLoop.main.add(timer, forMode: .common)
-    backgroundTimer = timer
+    backfillOnce()
   }
 
   func stopBackgroundMonitoring() {
     isBackgroundMonitoringEnabled = false
-    backgroundTimer?.invalidate()
-    backgroundTimer = nil
+  }
+
+  /// The launch backfill. Idempotent, so calling it from several places is harmless.
+  private func backfillOnce() {
+    guard !hasBackfilled else { return }
+    hasBackfilled = true
+    refreshHistoryOnly()
   }
 
   /// Backfills wake history without touching the readings only the UI needs.
@@ -100,6 +124,8 @@ final class PowerDiagnosticsService: ObservableObject {
           if self.refreshPending { self.refresh() }
         }
         guard requestGeneration == self.generation else { return }
+        self.historyFileSizeBytes = self.historyStore.fileSizeBytes
+        self.migrationDroppedRecords = self.historyStore.migrationDroppedRecords
         if let history, !failed {
           self.snapshot.events = history.events
           self.snapshot.dailySummaries = history.dailySummaries
@@ -110,9 +136,9 @@ final class PowerDiagnosticsService: ObservableObject {
   }
 
   deinit {
-    backgroundTimer?.invalidate()
     batteryTimer?.invalidate()
     if let wakeObserver { notificationCenter.removeObserver(wakeObserver) }
+    if let sleepObserver { notificationCenter.removeObserver(sleepObserver) }
   }
 
   func retain() {
@@ -183,6 +209,8 @@ final class PowerDiagnosticsService: ObservableObject {
         self.refreshInFlight = false
         defer { if self.refreshPending { self.refresh() } }
         guard requestGeneration == self.generation else { return }
+        self.historyFileSizeBytes = self.historyStore.fileSizeBytes
+        self.migrationDroppedRecords = self.historyStore.migrationDroppedRecords
         self.snapshot = next
       }
     }

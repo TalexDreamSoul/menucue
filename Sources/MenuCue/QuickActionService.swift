@@ -38,6 +38,12 @@ final class QuickActionService: ObservableObject {
   private let appearanceService: AppearanceService
   let powerHelperManager: PowerHelperManager
   private var keepAwakeProcess: Process?
+
+  /// The pid of the `caffeinate` this app started, or `nil` when Keep Awake is off.
+  ///
+  /// Published so the power pane can say "this is us" rather than reporting our own
+  /// assertion as some unidentified program holding the Mac awake.
+  @Published private(set) var keepAwakePID: Int32?
   private var appearanceObserver: NSObjectProtocol?
   private let cleaningController = CleaningModeController()
   private var cancellables: Set<AnyCancellable> = []
@@ -261,6 +267,7 @@ final class QuickActionService: ObservableObject {
 
   private func toggleKeepAwake() {
     if let process = keepAwakeProcess, process.isRunning {
+      keepAwakePID = nil
       process.terminate()
       keepAwakeProcess = nil
       setState(.keepScreenOn, isOn: false, isRunning: false)
@@ -280,6 +287,7 @@ final class QuickActionService: ObservableObject {
       DispatchQueue.main.async {
         guard self?.keepAwakeProcess === process else { return }
         self?.keepAwakeProcess = nil
+        self?.keepAwakePID = nil
         self?.setState(.keepScreenOn, isOn: false, isRunning: false)
       }
     }
@@ -287,6 +295,7 @@ final class QuickActionService: ObservableObject {
     do {
       try process.run()
       keepAwakeProcess = process
+      keepAwakePID = process.processIdentifier
       setState(.keepScreenOn, isOn: true, isRunning: false)
       setFeedback(L10n.string("Keep Screen On enabled."))
     } catch {

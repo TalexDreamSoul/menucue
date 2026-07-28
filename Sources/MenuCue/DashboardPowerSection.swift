@@ -91,7 +91,7 @@ struct DashboardPowerSection: View {
                 HStack(spacing: 6) {
                   Text(assertion.process)
                     .font(.callout.weight(.semibold))
-                  if assertion.isMenuCue {
+                  if assertion.isOwned(byPID: model.quickActionService.keepAwakePID) {
                     Text(ProductBrand.displayName)
                       .font(.caption2)
                       .foregroundStyle(.yellow)
@@ -200,10 +200,22 @@ struct DashboardPowerSection: View {
     DashboardCard(
       title: L10n.string("Recent Wakes"), systemImage: "clock.arrow.circlepath", tint: .orange
     ) {
-      Text(L10n.string("in the last 30 days"))
-        .font(.caption)
-        .foregroundStyle(.tertiary)
+      // States what is being kept and what it costs, rather than leaving the user to
+      // wonder how much of their disk this quietly occupies.
+      Text(
+        L10n.format(
+          "last 30 days · %@",
+          SystemMetricsFormatter.capacity(diagnostics.historyFileSizeBytes))
+      )
+      .font(.caption)
+      .foregroundStyle(.tertiary)
     } content: {
+      if diagnostics.migrationDroppedRecords > 0 {
+        UnsupportedNote(
+          message: L10n.format(
+            "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened.",
+            diagnostics.migrationDroppedRecords))
+      }
       let wakes = snapshot.events.filter { $0.kind != .sleep }.suffix(20).reversed()
       if wakes.isEmpty {
         UnsupportedNote(message: L10n.string("No wake has been recorded yet."))

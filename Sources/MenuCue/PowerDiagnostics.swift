@@ -25,9 +25,16 @@ struct WakeEvent: Identifiable, Equatable, Hashable, Codable {
   /// night in Shanghai.
   var utcOffsetSeconds: Int?
 
+  /// Identity that survives a parser change.
+  ///
+  /// `reason` used to be part of this. That made the id a hostage to the parsing: any
+  /// improvement to how a reason is derived silently orphaned every record already on
+  /// disk, because the same event would no longer match itself. `occurrence` is
+  /// counted per (timestamp, kind), which is what keeps two different events in the
+  /// same second distinct without depending on their text.
   var id: String {
     let millis = Int64((timestamp.timeIntervalSince1970 * 1_000).rounded())
-    return "\(millis)|\(kind.rawValue)|\(reason)|\(occurrence)"
+    return "\(millis)|\(kind.rawValue)|\(occurrence)"
   }
 }
 
@@ -210,7 +217,9 @@ enum PowerDiagnosticsParser {
       default: continue
       }
       let reason = wakeReason(from: String(line[messageRange]))
-      let signature = "\(date.timeIntervalSince1970)|\(kind.rawValue)|\(reason)"
+      // Keyed without the reason, matching `id`: two events of the same kind in the
+      // same second are distinguished by order, not by what they say.
+      let signature = "\(date.timeIntervalSince1970)|\(kind.rawValue)"
       let occurrence = occurrences[signature, default: 0]
       occurrences[signature] = occurrence + 1
       // The log line carries its own offset, so a historical event keeps the zone it

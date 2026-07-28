@@ -28,6 +28,17 @@ final class WakeHistoryStore {
   /// the outside: file modification times are only reliable to the second here, so a
   /// test comparing them is measuring the clock rather than the behaviour.
   private(set) var writeCount = 0
+  /// How many records the v1 migration dropped, so the deletion can be disclosed
+  /// rather than done silently behind the user's back.
+  private(set) var migrationDroppedRecords = 0
+
+  /// Bytes on disk, for the UI to state what it is keeping.
+  var fileSizeBytes: UInt64 {
+    let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+    return (attributes?[.size] as? NSNumber)?.uint64Value ?? 0
+  }
+
+  var retentionDayCount: Int { retentionDays }
 
   init(fileURL: URL, retentionDays: Int = 30, maxRecords: Int = 100_000) {
     self.fileURL = fileURL
@@ -91,7 +102,15 @@ final class WakeHistoryStore {
   /// that were planned, not wakes that happened.
   private func migrateFromVersion1(_ container: Container) -> Container {
     var migrated = container
-    migrated.events = container.events.filter { !$0.reason.contains("process=") }
+    // Belt and braces: every fabricated blob carries all three markers, so requiring
+    // more than one keeps a legitimate reason that merely mentions a process from
+    // being mistaken for one.
+    migrated.events = container.events.filter { event in
+      let looksFabricated =
+        event.reason.contains("process=") && event.reason.contains("wakeAt=")
+      return !looksFabricated
+    }
+    migrationDroppedRecords = container.events.count - migrated.events.count
     return Container(
       version: Self.currentVersion, events: migrated.events, clearedAt: container.clearedAt)
   }

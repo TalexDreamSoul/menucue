@@ -23,6 +23,7 @@
 "%d dark wakes today" = "%d dark wakes today";
 "%d day ago" = "%d day ago";
 "%d days ago" = "%d days ago";
+"%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened." = "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened.";
 "%d event" = "%d event";
 "%d events" = "%d events";
 "%d fans" = "%d fans";
@@ -628,6 +629,7 @@
 "iCloud preference storage is over quota. Local settings are unchanged." = "iCloud preference storage is over quota. Local settings are unchanged.";
 "iCloud reported an unknown preference synchronization state." = "iCloud reported an unknown preference synchronization state.";
 "in the last 30 days" = "in the last 30 days";
+"last 30 days · %@" = "last 30 days · %@";
 "macOS Language" = "macOS Language";
 "macOS denied the requested Automation action." = "macOS denied the requested Automation action.";
 "macOS requires approval before MenuCue can start at login." = "macOS requires approval before MenuCue can start at login.";
