@@ -108,3 +108,36 @@ Implemented and released configurable Feishu, Webhook, Bark, and Telegram alerts
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Release MenuCue v0.6.1 iCloud fix
+
+**Date**: 2026-07-28
+**Task**: Release MenuCue v0.6.1 iCloud fix
+**Branch**: `master`
+
+### Summary
+
+Restored the iCloud Sync pane with a matching MenuCue provisioning profile and exact iCloud KVS entitlement, hardened release packaging to reject local-only builds, changed Clean Screen and Clean Keyboard to five minutes, and published v0.6.1 through GitHub, Sparkle OTA, and Homebrew.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `59ed3177db4eaca32bf6910d553f1186c3cd5f76` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
