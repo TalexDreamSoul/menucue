@@ -2,14 +2,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="TouchMacer"
+APP_NAME="MenuCue"
+HELPER_NAME="MenuCueHelper"
+BUNDLE_IDENTIFIER="com.tagzxia.app.menucue"
+HELPER_BUNDLE_IDENTIFIER="com.tagzxia.app.menucue.helper"
 APP_DIR="${APP_DIR:-$ROOT_DIR/.build/app/$APP_NAME.app}"
 UPDATES_DIR="${UPDATES_DIR:-$ROOT_DIR/.build/updates}"
-SPARKLE_TOOLS_DIR="${SPARKLE_TOOLS_DIR:-$ROOT_DIR/.build/artifacts/touch-macer/Sparkle/bin}"
-SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-com.touchmacer.clock.sparkle}"
+SPARKLE_TOOLS_DIR="${SPARKLE_TOOLS_DIR:-$ROOT_DIR/.build/artifacts/menucue/Sparkle/bin}"
+SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-com.tagzxia.app.menucue.sparkle}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-2L5YC85FQ7}"
 EXPECTED_CODESIGN_AUTHORITY="${EXPECTED_CODESIGN_AUTHORITY:-Apple Development: talexdreamsoul@gmail.com (GCTF54QXD3)}"
-RELEASE_BASE_URL="https://github.com/TalexDreamSoul/touch-macer/releases/download"
+RELEASE_BASE_URL="https://github.com/TalexDreamSoul/menucue/releases/download"
 
 GENERATE_APPCAST="$SPARKLE_TOOLS_DIR/generate_appcast"
 GENERATE_KEYS="$SPARKLE_TOOLS_DIR/generate_keys"
@@ -23,7 +26,7 @@ for executable in "$GENERATE_APPCAST" "$GENERATE_KEYS" "$SIGN_UPDATE"; do
     fi
 done
 if [[ ! -f "$INFO_PLIST" ]]; then
-    echo "Missing packaged TouchMacer app: $APP_DIR" >&2
+    echo "Missing packaged MenuCue app: $APP_DIR" >&2
     exit 1
 fi
 
@@ -54,26 +57,26 @@ verify_stable_signature "$SPARKLE_VERSION_DIR/XPCServices/Downloader.xpc"
 verify_stable_signature "$SPARKLE_VERSION_DIR/Autoupdate"
 verify_stable_signature "$SPARKLE_VERSION_DIR/Updater.app"
 verify_stable_signature "$APP_DIR/Contents/Frameworks/Sparkle.framework"
-HELPER_PATH="$APP_DIR/Contents/Library/HelperTools/TouchMacerHelper"
+HELPER_PATH="$APP_DIR/Contents/Library/HelperTools/$HELPER_NAME"
 verify_stable_signature "$HELPER_PATH"
 verify_stable_signature "$APP_DIR"
 codesign --verify --deep --strict "$APP_DIR"
 
 CERTIFICATE_REQUIREMENT="anchor apple generic and certificate leaf[subject.CN] = \"$EXPECTED_CODESIGN_AUTHORITY\" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */"
-EXPECTED_APP_REQUIREMENT="designated => identifier \"com.touchmacer.clock\" and $CERTIFICATE_REQUIREMENT"
-EXPECTED_HELPER_REQUIREMENT="designated => identifier TouchMacerHelper and $CERTIFICATE_REQUIREMENT"
+EXPECTED_APP_REQUIREMENT="designated => identifier \"$BUNDLE_IDENTIFIER\" and $CERTIFICATE_REQUIREMENT"
+EXPECTED_HELPER_REQUIREMENT="designated => identifier \"$HELPER_BUNDLE_IDENTIFIER\" and $CERTIFICATE_REQUIREMENT"
 APP_REQUIREMENT="$(codesign -d -r- "$APP_DIR" 2>&1 | tail -1)"
 HELPER_REQUIREMENT="$(codesign -d -r- "$HELPER_PATH" 2>&1 | tail -1)"
 [[ "$APP_REQUIREMENT" == "$EXPECTED_APP_REQUIREMENT" ]] || {
-    echo "TouchMacer designated requirement changed unexpectedly." >&2
+    echo "$APP_NAME designated requirement changed unexpectedly." >&2
     exit 1
 }
 [[ "$HELPER_REQUIREMENT" == "$EXPECTED_HELPER_REQUIREMENT" ]] || {
-    echo "TouchMacerHelper designated requirement changed unexpectedly." >&2
+    echo "$HELPER_NAME designated requirement changed unexpectedly." >&2
     exit 1
 }
 
-EXPECTED_FEED_URL="https://github.com/TalexDreamSoul/touch-macer/releases/download/appcast-feed/appcast.xml"
+EXPECTED_FEED_URL="$RELEASE_BASE_URL/appcast-feed/appcast.xml"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUEnableAutomaticChecks' "$INFO_PLIST")" == "true" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUAutomaticallyUpdate' "$INFO_PLIST")" == "true" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUScheduledCheckInterval' "$INFO_PLIST")" == "43200" ]]
@@ -99,7 +102,7 @@ mkdir -p "$UPDATES_DIR"
 rm -f "$ARCHIVE_PATH"
 ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ARCHIVE_PATH"
 
-GENERATION_DIR="$(mktemp -d -t touchmacer-appcast)"
+GENERATION_DIR="$(mktemp -d -t menucue-appcast)"
 trap 'rm -rf "$GENERATION_DIR"' EXIT
 cp "$ARCHIVE_PATH" "$GENERATION_DIR/$ARCHIVE_NAME"
 if [[ -f "$APPCAST_PATH" ]]; then

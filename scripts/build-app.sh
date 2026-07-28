@@ -2,19 +2,23 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="TouchMacer"
-HELPER_NAME="TouchMacerHelper"
+APP_NAME="MenuCue"
+DISPLAY_NAME="MenuCue"
+HELPER_NAME="MenuCueHelper"
+BUNDLE_IDENTIFIER="com.tagzxia.app.menucue"
+HELPER_BUNDLE_IDENTIFIER="com.tagzxia.app.menucue.helper"
+HELPER_PLIST_NAME="$HELPER_BUNDLE_IDENTIFIER.plist"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.4.0"
-BUILD_NUMBER="9"
+APP_VERSION="0.4.4"
+BUILD_NUMBER="13"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
 SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
-SPARKLE_FEED_URL="https://github.com/TalexDreamSoul/touch-macer/releases/download/appcast-feed/appcast.xml"
+SPARKLE_FEED_URL="https://github.com/TalexDreamSoul/menucue/releases/download/appcast-feed/appcast.xml"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-}"
 PROVISIONING_PROFILE="${PROVISIONING_PROFILE:-}"
-RESOLVED_APP_ENTITLEMENTS="$ROOT_DIR/.build/TouchMacer.resolved.entitlements"
-PROFILE_PLIST="$ROOT_DIR/.build/TouchMacer.profile.plist"
+RESOLVED_APP_ENTITLEMENTS="$ROOT_DIR/.build/MenuCue.resolved.entitlements"
+PROFILE_PLIST="$ROOT_DIR/.build/MenuCue.profile.plist"
 ICON_SOURCE="$ROOT_DIR/assets/AppIcon.png"
 APP_DIR="$ROOT_DIR/.build/app/$APP_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
@@ -45,7 +49,7 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$FRAMEWORKS_DIR" "$HELPER_TOOLS_DIR" "$L
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 ditto "$SPARKLE_FRAMEWORK_SOURCE" "$SPARKLE_FRAMEWORK_DESTINATION"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$HELPER_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
-cp "$ROOT_DIR/Resources/com.touchmacer.clock.helper.plist" "$LAUNCH_DAEMONS_DIR/com.touchmacer.clock.helper.plist"
+cp "$ROOT_DIR/Resources/$HELPER_PLIST_NAME" "$LAUNCH_DAEMONS_DIR/$HELPER_PLIST_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
 
 if [[ ! -f "$ICON_SOURCE" ]]; then
@@ -78,13 +82,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>TouchMacer</string>
+    <string>$APP_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>com.touchmacer.clock</string>
+    <string>$BUNDLE_IDENTIFIER</string>
     <key>CFBundleName</key>
-    <string>TouchMacer</string>
+    <string>$APP_NAME</string>
     <key>CFBundleDisplayName</key>
-    <string>TouchMacer</string>
+    <string>$DISPLAY_NAME</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleIconFile</key>
@@ -112,11 +116,11 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>LSUIElement</key>
     <true/>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>TouchMacer shows upcoming events from the calendars you select.</string>
+    <string>$DISPLAY_NAME shows upcoming events from the calendars you select.</string>
     <key>NSCalendarsUsageDescription</key>
-    <string>TouchMacer shows upcoming events from the calendars you select.</string>
+    <string>$DISPLAY_NAME shows upcoming events from the calendars you select.</string>
     <key>NSAppleEventsUsageDescription</key>
-    <string>TouchMacer uses macOS Automation for system appearance and Quick Actions such as Lock Screen.</string>
+    <string>$DISPLAY_NAME uses macOS Automation for system appearance and Quick Actions such as Lock Screen.</string>
 </dict>
 </plist>
 PLIST
@@ -135,7 +139,8 @@ sign_sparkle_component "$SPARKLE_VERSION_DIR/Updater.app"
 sign_sparkle_component "$SPARKLE_FRAMEWORK_DESTINATION"
 
 codesign --force --sign "$CODESIGN_IDENTITY" \
-    --entitlements "$ROOT_DIR/Resources/TouchMacerHelper.entitlements" \
+    --identifier "$HELPER_BUNDLE_IDENTIFIER" \
+    --entitlements "$ROOT_DIR/Resources/$HELPER_NAME.entitlements" \
     "$HELPER_TOOLS_DIR/$HELPER_NAME"
 
 if [[ -n "$APPLE_TEAM_ID" ]]; then
@@ -158,7 +163,7 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
             -c 'Print :Entitlements:application-identifier' \
             "$PROFILE_PLIST")"
     fi
-    EXPECTED_APPLICATION_IDENTIFIER="$PROFILE_APP_IDENTIFIER_PREFIX.com.touchmacer.clock"
+    EXPECTED_APPLICATION_IDENTIFIER="$PROFILE_APP_IDENTIFIER_PREFIX.$BUNDLE_IDENTIFIER"
 
     if [[ "$PROFILE_TEAM_ID" != "$APPLE_TEAM_ID" ]]; then
         echo "Provisioning profile team $PROFILE_TEAM_ID does not match APPLE_TEAM_ID $APPLE_TEAM_ID." >&2
@@ -166,7 +171,7 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
     fi
     if [[ "$PROFILE_APPLICATION_IDENTIFIER" != "$EXPECTED_APPLICATION_IDENTIFIER" \
         && "$PROFILE_APPLICATION_IDENTIFIER" != "$PROFILE_APP_IDENTIFIER_PREFIX.*" ]]; then
-        echo "Provisioning profile does not authorize com.touchmacer.clock." >&2
+        echo "Provisioning profile does not authorize $BUNDLE_IDENTIFIER." >&2
         exit 1
     fi
     if ! /usr/libexec/PlistBuddy \
@@ -202,10 +207,10 @@ fi
 
 codesign --verify --deep --strict "$APP_DIR"
 if ! otool -L "$MACOS_DIR/$APP_NAME" | grep -q '@rpath/Sparkle.framework/'; then
-    echo "TouchMacer does not link the embedded Sparkle framework through @rpath." >&2
+    echo "MenuCue does not link the embedded Sparkle framework through @rpath." >&2
     exit 1
 fi
 if ! otool -l "$MACOS_DIR/$APP_NAME" | grep -q '@executable_path/../Frameworks'; then
-    echo "TouchMacer is missing the packaged Frameworks rpath." >&2
+    echo "MenuCue is missing the packaged Frameworks rpath." >&2
     exit 1
 fi

@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/state-management.md","reason":"Review updater state ownership and persistence boundaries."}
+{"file":".trellis/tasks/07-25-automatic-background-updates/design.md","reason":"Review package, signature, appcast, failure, and bootstrap acceptance contracts."}

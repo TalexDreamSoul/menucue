@@ -2,9 +2,9 @@
   <img src="https://ld.xh.do/ld-badge.svg" alt="认可 linux.do" width="480">
 </p>
 
-# TouchMacer
+# MenuCue
 
-TouchMacer is a native macOS status bar clock app built with AppKit, SwiftUI, EventKit, and Foundation.
+MenuCue is a lightweight native macOS menu-bar dashboard built with AppKit, SwiftUI, EventKit, and Foundation.
 
 ## Features
 
@@ -23,10 +23,10 @@ TouchMacer is a native macOS status bar clock app built with AppKit, SwiftUI, Ev
 ## Install with Homebrew
 
 ```bash
-brew install --cask talexdreamsoul/tap/touchmacer
+brew install --cask talexdreamsoul/tap/menucue
 ```
 
-The current release is ad-hoc signed and not notarized. If macOS blocks the first launch, open **System Settings → Privacy & Security** and choose **Open Anyway** for TouchMacer.
+The current release is development-signed but not notarized. If macOS blocks the first launch, open **System Settings → Privacy & Security** and choose **Open Anyway** for MenuCue.
 
 ## Build
 
@@ -41,7 +41,7 @@ Calendar permissions, the packaged icon, and Launch at Login require the app bun
 ```bash
 chmod +x scripts/build-app.sh
 scripts/build-app.sh
-open .build/app/TouchMacer.app
+open .build/app/MenuCue.app
 ```
 
 The default command keeps the ad-hoc GitHub build local-only. To embed an iCloud-enabled provisioning profile and sign with an Apple identity, provide `CODESIGN_IDENTITY`, `APPLE_TEAM_ID`, and `PROVISIONING_PROFILE`:
@@ -49,12 +49,12 @@ The default command keeps the ad-hoc GitHub build local-only. To embed an iCloud
 ```bash
 CODESIGN_IDENTITY="Apple Development: Your Name" \
 APPLE_TEAM_ID="YOURTEAMID" \
-PROVISIONING_PROFILE="/path/to/TouchMacer.provisionprofile" \
+PROVISIONING_PROFILE="/path/to/MenuCue.provisionprofile" \
 scripts/build-app.sh
 ```
 
 ## Notes
 
-- Calendar data continues to come from macOS Calendar/EventKit; TouchMacer never stores iCloud credentials or duplicates calendar contents. Entitlement-enabled builds can separately sync portable display preferences through `NSUbiquitousKeyValueStore`; ad-hoc builds hide this capability and remain local-only.
+- Calendar data continues to come from macOS Calendar/EventKit; MenuCue never stores iCloud credentials or duplicates calendar contents. Entitlement-enabled builds can separately sync portable display preferences through `NSUbiquitousKeyValueStore`; ad-hoc builds hide this capability and remain local-only.
 - Automatic appearance uses light mode from 07:00 to 19:00 in the selected reference time zone, and dark mode otherwise.
-- System-level appearance switching requires macOS Automation permission and is disabled until you enable it in Settings. When enabled, TouchMacer periodically corrects macOS if another automatic schedule changes Light/Dark mode away from the selected setting.
+- System-level appearance switching requires macOS Automation permission and is disabled until you enable it in Settings. When enabled, MenuCue periodically corrects macOS if another automatic schedule changes Light/Dark mode away from the selected setting.

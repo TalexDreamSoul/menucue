@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/state-management.md","reason":"Defines runtime service ownership and excludes runtime updater state from AppSettings/iCloud."}
+{"file":".trellis/tasks/07-25-automatic-background-updates/design.md","reason":"Defines the reviewed Sparkle runtime, packaging, signing, feed, and bootstrap contracts."}

@@ -1,0 +1,29 @@
+{
+  "id": "ota-language-region-delivery",
+  "name": "ota-language-region-delivery",
+  "title": "OTA delivery and language-region controls",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "TalexDreamSoul",
+  "assignee": "TalexDreamSoul",
+  "createdAt": "2026-07-25",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-25-automatic-background-updates",
+    "07-25-language-region-controls"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

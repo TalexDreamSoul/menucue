@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Views send intent through AppModel; services own runtime state. Dashboard reads settings, never writes them."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "ProductBrand.displayName for every user-visible product reference; MenuCue identity contract."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Feature spans probe/model/service/view; new payload types cross every layer."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "CPUUsageChart moves to shared MetricCharts; dashboard components mirror popover vocabulary."}

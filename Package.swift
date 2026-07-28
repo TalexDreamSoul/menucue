@@ -2,21 +2,21 @@
 import PackageDescription
 
 let package = Package(
-  name: "TouchMacer",
+  name: "MenuCue",
   platforms: [.macOS(.v14)],
   products: [
-    .executable(name: "TouchMacer", targets: ["TouchMacer"]),
-    .executable(name: "TouchMacerHelper", targets: ["TouchMacerHelper"]),
+    .executable(name: "MenuCue", targets: ["MenuCue"]),
+    .executable(name: "MenuCueHelper", targets: ["MenuCueHelper"]),
   ],
   targets: [
     .target(
-      name: "TouchMacerHelperProtocol",
-      path: "Sources/TouchMacerHelperProtocol"
+      name: "MenuCueHelperProtocol",
+      path: "Sources/MenuCueHelperProtocol"
     ),
     .executableTarget(
-      name: "TouchMacerHelper",
-      dependencies: ["TouchMacerHelperProtocol"],
-      path: "Sources/TouchMacerHelper",
+      name: "MenuCueHelper",
+      dependencies: ["MenuCueHelperProtocol"],
+      path: "Sources/MenuCueHelper",
       linkerSettings: [
         .linkedFramework("Security")
       ]
@@ -27,12 +27,12 @@ let package = Package(
       checksum: "cb6fdbdc8884f15d62a616e79face92b08322410fd2d425edc6596ccbf4ba3b0"
     ),
     .executableTarget(
-      name: "TouchMacer",
+      name: "MenuCue",
       dependencies: [
-        "TouchMacerHelperProtocol",
+        "MenuCueHelperProtocol",
         "Sparkle",
       ],
-      path: "Sources/TouchMacer",
+      path: "Sources/MenuCue",
       linkerSettings: [
         .linkedFramework("AppKit"),
         .linkedFramework("ApplicationServices"),
@@ -47,13 +47,13 @@ let package = Package(
       ]
     ),
     .testTarget(
-      name: "TouchMacerTests",
+      name: "MenuCueTests",
       dependencies: [
-        "TouchMacer",
-        "TouchMacerHelperProtocol",
+        "MenuCue",
+        "MenuCueHelperProtocol",
         "Sparkle",
       ],
-      path: "Tests/TouchMacerTests"
+      path: "Tests/MenuCueTests"
     ),
   ]
 )
