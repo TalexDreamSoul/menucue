@@ -30,6 +30,10 @@ final class QuickActionAuthorizationTests: XCTestCase {
     XCTAssertTrue(unresolvedStates.allSatisfy(\.needsProminentRemediation))
     XCTAssertFalse(PowerHelperRegistrationState.enabled.needsProminentRemediation)
   }
+
+  func testCleaningModesDefaultToFiveMinutes() {
+    XCTAssertEqual(CleaningModePolicy.durationSeconds, 5 * 60)
+  }
 }
 
 private final class AccessibilityPermissionRequesterStub: AccessibilityPermissionRequesting {

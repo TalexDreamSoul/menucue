@@ -668,6 +668,10 @@ private enum CleaningMode {
   case keyboard
 }
 
+enum CleaningModePolicy {
+  static let durationSeconds = 5 * 60
+}
+
 private final class CleaningModeController: ObservableObject {
   @Published private(set) var mode: CleaningMode?
   @Published private(set) var secondsRemaining = 0
@@ -695,7 +699,7 @@ private final class CleaningModeController: ObservableObject {
     }
 
     self.mode = mode
-    secondsRemaining = 30
+    secondsRemaining = CleaningModePolicy.durationSeconds
     windows = NSScreen.screens.map { screen in
       let window = NSWindow(
         contentRect: screen.frame,

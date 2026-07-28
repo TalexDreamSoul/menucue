@@ -41,6 +41,8 @@ struct ProductBrandTests {
       )
     )
     #expect(updateScript.contains("TalexDreamSoul/menucue"))
+    #expect(updateScript.contains("embedded.provisionprofile"))
+    #expect(updateScript.contains("com.apple.developer.ubiquity-kvstore-identifier"))
     #expect(!packageManifest.contains(legacyProductName))
     #expect(!buildScript.contains(legacyProductName))
     #expect(!updateScript.contains(legacyProductName))

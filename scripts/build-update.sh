@@ -20,6 +20,9 @@ GENERATE_APPCAST="$SPARKLE_TOOLS_DIR/generate_appcast"
 GENERATE_KEYS="$SPARKLE_TOOLS_DIR/generate_keys"
 SIGN_UPDATE="$SPARKLE_TOOLS_DIR/sign_update"
 INFO_PLIST="$APP_DIR/Contents/Info.plist"
+EMBEDDED_PROFILE="$APP_DIR/Contents/embedded.provisionprofile"
+APP_ENTITLEMENTS_PLIST="$ROOT_DIR/.build/MenuCue.release.entitlements.plist"
+PROFILE_PLIST="$ROOT_DIR/.build/MenuCue.release.profile.plist"
 
 for executable in "$GENERATE_APPCAST" "$GENERATE_KEYS" "$SIGN_UPDATE"; do
     if [[ ! -x "$executable" ]]; then
@@ -67,6 +70,42 @@ HELPER_PATH="$APP_DIR/Contents/Library/HelperTools/$HELPER_NAME"
 verify_stable_signature "$HELPER_PATH"
 verify_stable_signature "$APP_DIR"
 codesign --verify --deep --strict "$APP_DIR"
+
+if [[ ! -f "$EMBEDDED_PROFILE" ]]; then
+    echo "Release app is missing its embedded iCloud provisioning profile." >&2
+    exit 1
+fi
+if ! codesign -d --entitlements :- "$APP_DIR" > "$APP_ENTITLEMENTS_PLIST" 2>/dev/null; then
+    echo "Could not read release app entitlements." >&2
+    exit 1
+fi
+security cms -D -i "$EMBEDDED_PROFILE" > "$PROFILE_PLIST"
+EXPECTED_APPLICATION_IDENTIFIER="$EXPECTED_TEAM_ID.$BUNDLE_IDENTIFIER"
+APP_APPLICATION_IDENTIFIER="$(/usr/libexec/PlistBuddy \
+    -c 'Print :com.apple.application-identifier' "$APP_ENTITLEMENTS_PLIST")"
+APP_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
+    -c 'Print :com.apple.developer.ubiquity-kvstore-identifier' "$APP_ENTITLEMENTS_PLIST")"
+PROFILE_APPLICATION_IDENTIFIER="$(/usr/libexec/PlistBuddy \
+    -c 'Print :Entitlements:com.apple.application-identifier' "$PROFILE_PLIST")"
+PROFILE_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
+    -c 'Print :Entitlements:com.apple.developer.ubiquity-kvstore-identifier' "$PROFILE_PLIST")"
+[[ "$APP_APPLICATION_IDENTIFIER" == "$EXPECTED_APPLICATION_IDENTIFIER" ]] || {
+    echo "Release app identifier entitlement does not match $BUNDLE_IDENTIFIER." >&2
+    exit 1
+}
+[[ "$APP_KVSTORE_IDENTIFIER" == "$EXPECTED_APPLICATION_IDENTIFIER" ]] || {
+    echo "Release app is missing the required iCloud key-value entitlement." >&2
+    exit 1
+}
+[[ "$PROFILE_APPLICATION_IDENTIFIER" == "$EXPECTED_APPLICATION_IDENTIFIER" ]] || {
+    echo "Embedded profile does not authorize $BUNDLE_IDENTIFIER." >&2
+    exit 1
+}
+[[ "$PROFILE_KVSTORE_IDENTIFIER" == "$EXPECTED_APPLICATION_IDENTIFIER" \
+    || "$PROFILE_KVSTORE_IDENTIFIER" == "$EXPECTED_TEAM_ID.*" ]] || {
+    echo "Embedded profile does not authorize MenuCue iCloud key-value storage." >&2
+    exit 1
+}
 
 CERTIFICATE_REQUIREMENT="anchor apple generic and certificate leaf[subject.CN] = \"$EXPECTED_CODESIGN_AUTHORITY\" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */"
 EXPECTED_APP_REQUIREMENT="designated => identifier \"$BUNDLE_IDENTIFIER\" and $CERTIFICATE_REQUIREMENT"
