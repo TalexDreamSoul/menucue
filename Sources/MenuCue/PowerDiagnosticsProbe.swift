@@ -338,6 +338,14 @@ protocol PowerDiagnosticsProbing {
   func wakeStatistics() throws -> WakeStatistics
   func wakeEvents() throws -> [WakeEvent]
   func powerProfiles() throws -> PowerProfiles
+  func sleepAssertions() throws -> [SleepAssertion]
+  func scheduledWakes() throws -> [ScheduledWake]
+}
+
+extension PowerDiagnosticsProbing {
+  // Defaulted so existing test doubles keep compiling; the real probe overrides both.
+  func sleepAssertions() throws -> [SleepAssertion] { [] }
+  func scheduledWakes() throws -> [ScheduledWake] { [] }
 }
 
 struct SystemPowerDiagnosticsProbe: PowerDiagnosticsProbing {
@@ -391,6 +399,23 @@ struct SystemPowerDiagnosticsProbe: PowerDiagnosticsProbing {
       keepLine: { PowerDiagnosticsParser.isInterestingLogLine($0) }
     )
     return try PowerDiagnosticsParser.parseWakeEvents(output.lines.joined(separator: "\n"))
+  }
+
+  func sleepAssertions() throws -> [SleepAssertion] {
+    let output = try runner.run("/usr/bin/pmset", arguments: ["-g", "assertions"])
+    return PowerAttributionParser.parseAssertions(output.standardOutput)
+  }
+
+  func scheduledWakes() throws -> [ScheduledWake] {
+    var reader = runner
+    reader.timeout = 45
+    let output = try reader.runStreaming("/usr/bin/pmset", arguments: ["-g", "log"]) { line in
+      let prefix = 26
+      guard line.count > prefix else { return false }
+      return line[line.index(line.startIndex, offsetBy: prefix)...]
+        .starts(with: Array("Wake Requests".utf8))
+    }
+    return PowerAttributionParser.parseScheduledWakes(output.lines.joined(separator: "\n"))
   }
 
   func powerProfiles() throws -> PowerProfiles {

@@ -67,8 +67,29 @@ struct PowerDiagnosticsSnapshot: Equatable {
   var dailySummaries: [WakeDailySummary] = []
   var profiles = PowerProfiles()
   var batteryFlow: BatteryFlow?
+  /// Currently held power assertions — what is keeping this Mac awake right now.
+  var assertions: [SleepAssertion] = []
+  /// Wakes the system planned. Never rendered as wakes that happened; used only to
+  /// attribute the ones that did.
+  var scheduledWakes: [ScheduledWake] = []
   var refreshedAt: Date?
   var errorMessage: String?
+
+  /// The most recent thing that actually woke the Mac, with the best cause available.
+  var latestWake: (event: WakeEvent, cause: WakeCause)? {
+    guard let event = events.last(where: { $0.kind != .sleep }) else { return nil }
+    return (
+      event,
+      PowerAttributionParser.attribute(
+        wakeAt: event.timestamp, interruptToken: event.reason, scheduled: scheduledWakes)
+    )
+  }
+
+  /// Assertions that stop the machine sleeping, longest-held first — the ones worth
+  /// telling someone about.
+  var sleepBlockers: [SleepAssertion] {
+    assertions.filter(\.preventsSystemSleep).sorted { $0.heldSeconds > $1.heldSeconds }
+  }
 
   func darkWakeCount(on date: Date, calendar: Calendar = .current) -> Int {
     let day = calendar.startOfDay(for: date)

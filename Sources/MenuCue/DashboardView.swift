@@ -14,6 +14,8 @@ struct DashboardView: View {
   /// A denser window than the popover's 48: this chart is several times wider.
   @StateObject private var metrics = SystemMetricsService(historyCapacity: 120)
   @StateObject private var dashboard = DashboardMetricsService()
+  /// Power has its own service: its sources are commands, not the metric probes.
+  @StateObject private var power = PowerDiagnosticsService()
   @State private var section: DashboardSection
   /// Which way the next tab change travels, so the content slides toward the gesture.
   @State private var navigationDirection = 1
@@ -67,7 +69,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 5) {
           Label(L10n.string("Dashboard"), systemImage: "chart.line.uptrend.xyaxis")
             .font(.title2.weight(.semibold))
-          Text(L10n.string("Live CPU, GPU, memory, storage, network, and sensor readings."))
+          Text(L10n.string("Live CPU, GPU, memory, storage, network, sensor and power readings."))
             .font(.callout)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -141,6 +143,8 @@ struct DashboardView: View {
       DashboardNetworkSection(metrics: metrics, dashboard: dashboard)
     case .sensors:
       DashboardSensorsSection(metrics: metrics, dashboard: dashboard)
+    case .power:
+      DashboardPowerSection(diagnostics: power)
     }
   }
 }

@@ -47,6 +47,7 @@
 "5 minutes before" = "提前 5 分钟";
 "A Bluetooth device" = "某个蓝牙设备";
 "A light daily guide generated on-device for the selected date." = "根据所选日期在本机生成的轻量每日指南。";
+"A notification" = "一条通知";
 "A scheduled background task" = "一个计划中的后台任务";
 "AC" = "接电";
 "AC Power" = "外接电源";
@@ -76,6 +77,7 @@
 "All-day:" = "全天：";
 "Allow Accessibility access, then try Clean Keyboard again." = "请允许辅助功能访问，然后重试“清洁键盘”。";
 "Ambient" = "环境";
+"An alarm or timer" = "闹钟或计时器";
 "App" = "应用";
 "App appearance and optional macOS Light/Dark automation." = "应用外观及可选的 macOS 浅色/深色自动切换。";
 "App memory" = "应用内存";
@@ -265,8 +267,10 @@
 "Keep Screen On enabled." = "已启用屏幕常亮。";
 "Keep Settings on This Mac" = "将设置保留在这台 Mac 上";
 "Keep on This Mac" = "保留在这台 Mac 上";
+"Keeping Your Mac Awake" = "正在阻止 Mac 休眠";
 "Kept on this Mac" = "保留在这台 Mac 上";
 "Language & Region" = "语言与地区";
+"Last Wake" = "最近一次唤醒";
 "Last checked %@." = "上次检查：%@。";
 "Last reading" = "最近读数";
 "Last sync activity %@. iCloud may take a few minutes to update other devices." = "上次同步活动：%@。iCloud 可能需要几分钟才能更新其他设备。";
@@ -277,6 +281,7 @@
 "Light" = "浅色";
 "Links" = "链接";
 "Live CPU, GPU, memory, storage, network, and sensor readings." = "实时查看 CPU、GPU、内存、存储、网络与传感器读数。";
+"Live CPU, GPU, memory, storage, network, sensor and power readings." = "实时查看 CPU、GPU、内存、存储、网络、传感器与电源读数。";
 "Load Average" = "平均负载";
 "Load average unavailable." = "无法获取平均负载。";
 "Lock Screen" = "锁定屏幕";
@@ -346,10 +351,12 @@
 "No temperature sensors reported." = "未报告温度传感器。";
 "No toggles are currently on." = "当前没有已开启的开关。";
 "No visible output" = "无可见内容";
+"No wake has been recorded yet." = "尚未记录到唤醒。";
 "No writable calendar is available for new events." = "没有可用于新建日程的可写日历。";
 "None" = "无";
 "Normal" = "正常";
 "Not Installed" = "未安装";
+"Nothing is preventing sleep." = "没有任何程序在阻止休眠。";
 "Nothing pinned yet. Pin actions in Settings." = "尚未固定操作。可在设置中固定。";
 "Now sampling every %@" = "当前每 %@ 采样一次";
 "Off" = "关闭";
@@ -416,6 +423,7 @@
 "Read IOPS" = "读取 IOPS";
 "Read since boot" = "开机以来读取";
 "Reading sensors…" = "正在读取传感器…";
+"Recent Wakes" = "最近的唤醒";
 "Reflection" = "复盘";
 "Refresh" = "刷新";
 "Refresh Helper" = "刷新助手";
@@ -579,6 +587,7 @@
 "Version, GitHub releases, and project links." = "版本、GitHub 发行版和项目链接。";
 "Volumes" = "宗卷";
 "Wake for network access" = "网络访问唤醒";
+"Wake history could not be read." = "无法读取唤醒历史。";
 "Wall power" = "外接电源";
 "Warning" = "警告";
 "Wednesday" = "星期三";
@@ -596,12 +605,14 @@
 "Yes" = "是";
 "You can also hold Esc for 3 seconds." = "也可按住 Esc 3 秒退出。";
 "You — keyboard, trackpad or mouse" = "你——键盘、触控板或鼠标";
+"Your Mac last woke at %@" = "你的 Mac 上次在 %@ 唤醒";
 "iCloud Account Changed" = "iCloud 账户已更改";
 "iCloud Sync" = "iCloud 同步";
 "iCloud account changed" = "iCloud 账户已更改";
 "iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry." = "iCloud 无法同步。请检查应用权限和 iCloud 账户后重试。";
 "iCloud preference storage is over quota. Local settings are unchanged." = "iCloud 偏好设置存储空间已超限，本地设置未更改。";
 "iCloud reported an unknown preference synchronization state." = "iCloud 返回了未知的偏好设置同步状态。";
+"in the last 30 days" = "最近 30 天";
 "macOS Language" = "macOS 语言";
 "macOS denied the requested Automation action." = "macOS 拒绝了请求的自动化操作。";
 "macOS requires approval before MenuCue can start at login." = "MenuCue 需要获得 macOS 批准才能在登录时启动。";

@@ -648,7 +648,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   var subtitle: String {
     switch self {
     case .dashboard:
-      return L10n.string("Live CPU, GPU, memory, storage, network, and sensor readings.")
+      return L10n.string("Live CPU, GPU, memory, storage, network, sensor and power readings.")
     case .overview:
       return L10n.string(
         "This Mac at a glance, sampling behavior, and anything needing attention.")

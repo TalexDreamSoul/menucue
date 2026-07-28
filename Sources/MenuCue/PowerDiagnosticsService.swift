@@ -92,6 +92,11 @@ final class PowerDiagnosticsService: ObservableObject {
         next.events = history.events
         next.dailySummaries = history.dailySummaries
       } catch { errors.append(error.localizedDescription) }
+      // Assertions are cheap and current; a failure here must not blank the history.
+      do { next.assertions = try self.probe.sleepAssertions() }
+      catch { errors.append(error.localizedDescription) }
+      do { next.scheduledWakes = try self.probe.scheduledWakes() }
+      catch { errors.append(error.localizedDescription) }
       next.refreshedAt = Date()
       next.errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
 

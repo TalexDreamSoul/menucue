@@ -47,6 +47,7 @@
 "5 minutes before" = "5 minutes before";
 "A Bluetooth device" = "A Bluetooth device";
 "A light daily guide generated on-device for the selected date." = "A light daily guide generated on-device for the selected date.";
+"A notification" = "A notification";
 "A scheduled background task" = "A scheduled background task";
 "AC" = "AC";
 "AC Power" = "AC Power";
@@ -76,6 +77,7 @@
 "All-day:" = "All-day:";
 "Allow Accessibility access, then try Clean Keyboard again." = "Allow Accessibility access, then try Clean Keyboard again.";
 "Ambient" = "Ambient";
+"An alarm or timer" = "An alarm or timer";
 "App" = "App";
 "App appearance and optional macOS Light/Dark automation." = "App appearance and optional macOS Light/Dark automation.";
 "App memory" = "App memory";
@@ -265,8 +267,10 @@
 "Keep Screen On enabled." = "Keep Screen On enabled.";
 "Keep Settings on This Mac" = "Keep Settings on This Mac";
 "Keep on This Mac" = "Keep on This Mac";
+"Keeping Your Mac Awake" = "Keeping Your Mac Awake";
 "Kept on this Mac" = "Kept on this Mac";
 "Language & Region" = "Language & Region";
+"Last Wake" = "Last Wake";
 "Last checked %@." = "Last checked %@.";
 "Last reading" = "Last reading";
 "Last sync activity %@. iCloud may take a few minutes to update other devices." = "Last sync activity %@. iCloud may take a few minutes to update other devices.";
@@ -277,6 +281,7 @@
 "Light" = "Light";
 "Links" = "Links";
 "Live CPU, GPU, memory, storage, network, and sensor readings." = "Live CPU, GPU, memory, storage, network, and sensor readings.";
+"Live CPU, GPU, memory, storage, network, sensor and power readings." = "Live CPU, GPU, memory, storage, network, sensor and power readings.";
 "Load Average" = "Load Average";
 "Load average unavailable." = "Load average unavailable.";
 "Lock Screen" = "Lock Screen";
@@ -346,10 +351,12 @@
 "No temperature sensors reported." = "No temperature sensors reported.";
 "No toggles are currently on." = "No toggles are currently on.";
 "No visible output" = "No visible output";
+"No wake has been recorded yet." = "No wake has been recorded yet.";
 "No writable calendar is available for new events." = "No writable calendar is available for new events.";
 "None" = "None";
 "Normal" = "Normal";
 "Not Installed" = "Not Installed";
+"Nothing is preventing sleep." = "Nothing is preventing sleep.";
 "Nothing pinned yet. Pin actions in Settings." = "Nothing pinned yet. Pin actions in Settings.";
 "Now sampling every %@" = "Now sampling every %@";
 "Off" = "Off";
@@ -416,6 +423,7 @@
 "Read IOPS" = "Read IOPS";
 "Read since boot" = "Read since boot";
 "Reading sensors…" = "Reading sensors…";
+"Recent Wakes" = "Recent Wakes";
 "Reflection" = "Reflection";
 "Refresh" = "Refresh";
 "Refresh Helper" = "Refresh Helper";
@@ -579,6 +587,7 @@
 "Version, GitHub releases, and project links." = "Version, GitHub releases, and project links.";
 "Volumes" = "Volumes";
 "Wake for network access" = "Wake for network access";
+"Wake history could not be read." = "Wake history could not be read.";
 "Wall power" = "Wall power";
 "Warning" = "Warning";
 "Wednesday" = "Wednesday";
@@ -596,12 +605,14 @@
 "Yes" = "Yes";
 "You can also hold Esc for 3 seconds." = "You can also hold Esc for 3 seconds.";
 "You — keyboard, trackpad or mouse" = "You — keyboard, trackpad or mouse";
+"Your Mac last woke at %@" = "Your Mac last woke at %@";
 "iCloud Account Changed" = "iCloud Account Changed";
 "iCloud Sync" = "iCloud Sync";
 "iCloud account changed" = "iCloud account changed";
 "iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry." = "iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry.";
 "iCloud preference storage is over quota. Local settings are unchanged." = "iCloud preference storage is over quota. Local settings are unchanged.";
 "iCloud reported an unknown preference synchronization state." = "iCloud reported an unknown preference synchronization state.";
+"in the last 30 days" = "in the last 30 days";
 "macOS Language" = "macOS Language";
 "macOS denied the requested Automation action." = "macOS denied the requested Automation action.";
 "macOS requires approval before MenuCue can start at login." = "macOS requires approval before MenuCue can start at login.";

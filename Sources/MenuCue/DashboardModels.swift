@@ -8,6 +8,7 @@ enum DashboardSection: String, CaseIterable, Identifiable {
   case storage
   case network
   case sensors
+  case power
 
   var id: String { rawValue }
 
@@ -19,6 +20,7 @@ enum DashboardSection: String, CaseIterable, Identifiable {
     case .storage: return L10n.string("Storage")
     case .network: return L10n.string("Network")
     case .sensors: return L10n.string("Sensors")
+    case .power: return L10n.string("Power")
     }
   }
 
@@ -30,6 +32,7 @@ enum DashboardSection: String, CaseIterable, Identifiable {
     case .storage: return "internaldrive"
     case .network: return "globe"
     case .sensors: return "thermometer.medium"
+    case .power: return "bolt"
     }
   }
 
@@ -54,6 +57,9 @@ enum DashboardSection: String, CaseIterable, Identifiable {
     case .storage: return [.volumes, .diskOperations]
     case .network: return [.interfaces]
     case .sensors: return [.thermals]
+    // Wake history and assertions are their own service; this tab needs none of the
+    // metric probes.
+    case .power: return []
     }
   }
 }

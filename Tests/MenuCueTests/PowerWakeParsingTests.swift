@@ -273,3 +273,26 @@ final class SleepAssertionParsingTests: XCTestCase {
     XCTAssertEqual(PowerAttributionParser.parseDuration("nonsense"), 0)
   }
 }
+
+final class ReadableInfoTests: XCTestCase {
+  func testCamelCaseLeafBecomesWords() {
+    XCTAssertEqual(
+      PowerAttributionParser.readableInfo(
+        "com.apple.dasd:0:com.apple.chronod.nextScheduledTimelineRefresh"),
+      "next scheduled timeline refresh")
+  }
+
+  func testAnAllLowercaseLeafIsStillJustTheLeaf() {
+    // This printed the whole dotted string until the leaf was returned rather than
+    // the segment after the last colon.
+    XCTAssertEqual(
+      PowerAttributionParser.readableInfo("com.apple.searchd.heartbeat"), "heartbeat")
+    XCTAssertEqual(
+      PowerAttributionParser.readableInfo("com.apple.dasd:0:com.apple.searchd.heartbeat"),
+      "heartbeat")
+  }
+
+  func testPlainTextIsLeftAlone() {
+    XCTAssertEqual(PowerAttributionParser.readableInfo("upkeep wake"), "upkeep wake")
+  }
+}

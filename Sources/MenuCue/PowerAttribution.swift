@@ -61,6 +61,8 @@ enum WakeReasonDictionary {
     ("Maintenance", "A scheduled background task"),
     ("rtc", "A scheduled background task"),
     ("UserActivity", "Activity on this Mac"),
+    ("Notification", "A notification"),
+    ("Alarm", "An alarm or timer"),
     ("wifibt", "The network or a Bluetooth device"),
     ("bluetooth", "A Bluetooth device"),
     ("Wifi", "The network"),
@@ -254,7 +256,9 @@ enum PowerAttributionParser {
   static func readableInfo(_ info: String) -> String {
     let tail = info.split(separator: ":").last.map(String.init) ?? info
     let leaf = tail.split(separator: ".").last.map(String.init) ?? tail
-    guard leaf.count > 2, leaf.contains(where: \.isUppercase) else { return tail }
+    // An all-lowercase leaf like `heartbeat` needs no splitting, but it is still the
+    // leaf: returning `tail` here printed the whole `com.apple.searchd.heartbeat`.
+    guard leaf.count > 2, leaf.contains(where: \.isUppercase) else { return leaf }
 
     var words: [String] = []
     var current = ""
