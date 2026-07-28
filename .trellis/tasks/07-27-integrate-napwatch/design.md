@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft for user review. This task remains in Trellis Phase 1 (`planning`). No implementation is authorized.
+Reviewed and approved for phased implementation.
 
 ## Decision summary
 
@@ -23,7 +23,8 @@ Delivery remains phased: read-only power diagnostics, protected power settings, 
 
 - `PowerDiagnostics.swift`: typed settings, wake statistics/events, capability/error states.
 - `PowerDiagnosticsProbe.swift`: fixed-path process runner and pure power parsers; native battery methods where available.
-- `PowerDiagnosticsService.swift`: refresh coordination, app wake observation, published power snapshot, optional bounded persistence.
+- `PowerDiagnosticsService.swift`: refresh coordination, app wake observation, published power snapshot, and 30-day store reconciliation.
+- `WakeHistoryStore.swift`: versioned, bounded Application Support persistence and daily projections.
 - `ProcessEnergy.swift`: stable process identity, energy-impact sample, detail, and action result contracts.
 - `ProcessEnergyProbe.swift`: on-demand energy sampling and process identity/detail lookup.
 - `ProcessEnergyService.swift`: scan lifecycle, selection stability, action confirmation state, and stale-result rejection.
@@ -176,4 +177,4 @@ Do not copy Rust source mechanically. If parsing behavior or source structure is
 
 ## Open product decisions
 
-None. The design is ready for review but remains unapproved for implementation.
+None. The design was reviewed and approved for implementation.

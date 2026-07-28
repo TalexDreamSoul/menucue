@@ -3,7 +3,16 @@ import Combine
 import QuartzCore
 import SwiftUI
 
-final class StatusBarController: NSObject {
+final class PopoverPresentationState: ObservableObject {
+  static let shared = PopoverPresentationState()
+  @Published private(set) var isVisible = false
+
+  func setVisible(_ visible: Bool) {
+    isVisible = visible
+  }
+}
+
+final class StatusBarController: NSObject, NSPopoverDelegate {
   private let statusItem: NSStatusItem
   private let popover: NSPopover
   private let model: AppModel
@@ -73,6 +82,7 @@ final class StatusBarController: NSObject {
 
   private func configurePopover() {
     popover.behavior = .transient
+    popover.delegate = self
     popover.contentSize = NSSize(width: PopoverMetrics.width, height: PopoverMetrics.height)
     let hostingController = NSHostingController(
       rootView: StatusPopoverView(
@@ -517,6 +527,14 @@ final class StatusBarController: NSObject {
 
   @objc private func exitFromMenu(_ sender: NSMenuItem) {
     NSApp.terminate(nil)
+  }
+
+  func popoverWillShow(_ notification: Notification) {
+    PopoverPresentationState.shared.setVisible(true)
+  }
+
+  func popoverDidClose(_ notification: Notification) {
+    PopoverPresentationState.shared.setVisible(false)
   }
 
   private func showSettingsWindow(initialPane: SettingsPane = .overview) {

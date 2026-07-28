@@ -1,1 +1,6 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Check runtime ownership, persistence boundaries, and machine-local telemetry exclusions."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Check MenuCue naming, module, bundle, cache, and user-visible product identity."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Check Helper allowlists, caller validation, observed state, protocol compatibility, and removal semantics."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Check probe-to-model-to-store-to-view and app-to-XPC contracts end to end."}
+{"file":".trellis/tasks/07-27-integrate-napwatch/research/upstream-audit.md","reason":"Verify implementation avoids documented upstream correctness and performance defects."}
+{"file":".trellis/tasks/07-27-integrate-napwatch/research/integration-analysis.md","reason":"Verify full capability scope, risk mitigations, lifecycle, and privacy boundaries."}

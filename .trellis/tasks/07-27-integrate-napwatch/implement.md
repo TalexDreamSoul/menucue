@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft only. Do not run `task.py start` until the user approves scope and the planning artifacts converge.
+Implementation approved by the user. Activate only after the Trellis context manifests pass the ready gate.
 
 ## Phase A: read-only diagnostics
 
@@ -263,3 +263,12 @@ Also inspect:
 - After Power tab: remove tab/service wiring; no system state changed.
 - Before helper mutation smoke test: package can be rolled back without restoring settings.
 - After any real mutation test: record and explicitly restore the pre-test value before rollback.
+
+## Validation evidence (2026-07-27)
+
+- `swift test`: 168 XCTest and 2 Swift Testing tests passed, including live read-only `pmset`, IOKit, process identity, and `top` probes.
+- `scripts/verify-localizations.swift`: 534 English/Simplified Chinese keys verified.
+- `./scripts/build-app.sh` and `codesign --verify --deep --strict`: passed for the local release bundle.
+- Two independent post-fix reviews reported no remaining Blocker or Major findings.
+- After explicit approval for a write smoke test, `SMAppService.register()` reached macOS's Login Items gate but the ad-hoc build had no Team ID and was marked `disallowed`. The user declined manual approval, so no `pmset` mutation, SIGTERM, or renice was executed.
+- Cleanup was verified: the temporary `/Applications/MenuCue-Smoke.app` was removed, the background item was unregistered (`SMAppServiceStatus.notRegistered`), no system launchd service remained, and before/after `pmset -g custom` output matched.

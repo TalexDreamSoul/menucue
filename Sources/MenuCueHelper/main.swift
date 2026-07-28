@@ -18,6 +18,9 @@ private enum HelperError: LocalizedError {
   case notRoot
   case unsupportedPowerMode
   case invalidTimeZone(String)
+  case invalidManagedPowerSetting
+  case staleProcess
+  case invalidNiceDelta
   case timeZoneMismatch(expected: String, observed: String?)
   case commandFailed(String)
 
@@ -29,6 +32,12 @@ private enum HelperError: LocalizedError {
       return "This Mac does not expose a supported Low Power Mode pmset key."
     case .invalidTimeZone(let identifier):
       return "Unsupported system time zone: \(identifier)"
+    case .invalidManagedPowerSetting:
+      return "Unsupported power setting or power source."
+    case .staleProcess:
+      return "The process identity changed before the action could run."
+    case .invalidNiceDelta:
+      return "The priority adjustment must be between -1 and 1."
     case .timeZoneMismatch(let expected, let observed):
       return "Expected system time zone \(expected), observed \(observed ?? "unknown")."
     case .commandFailed(let message):
@@ -133,6 +142,97 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
     }
   }
 
+  func setManagedPowerSetting(
+    _ settingRawValue: Int,
+    sourceRawValue: Int,
+    enabled: Bool,
+    reply: @escaping (Bool, String?) -> Void
+  ) {
+    do {
+      guard getuid() == 0 else { throw HelperError.notRoot }
+      guard let setting = ManagedPowerSetting(rawValue: settingRawValue),
+        let source = ManagedPowerSource(rawValue: sourceRawValue),
+        let arguments = ManagedPowerSettingCommand.arguments(
+          settingRawValue: settingRawValue,
+          sourceRawValue: sourceRawValue,
+          enabled: enabled)
+      else { throw HelperError.invalidManagedPowerSetting }
+
+      _ = try runPMSet(arguments)
+      let observed = try runPMSet(["-g", "custom"]).output
+      guard ManagedPowerSettingCommand.observedValueMatches(
+        settingRawValue: setting.rawValue,
+        sourceRawValue: source.rawValue,
+        enabled: enabled,
+        customOutput: observed)
+      else {
+        throw HelperError.commandFailed("pmset did not retain the requested power setting.")
+      }
+      reply(true, nil)
+    } catch {
+      reply(false, error.localizedDescription)
+    }
+  }
+
+  func terminateProcess(
+    _ pid: Int32,
+    startTimeMicroseconds: Int64,
+    ownerUID: UInt32,
+    executablePath: String,
+    reply: @escaping (Bool, String?) -> Void
+  ) {
+    do {
+      guard getuid() == 0 else { throw HelperError.notRoot }
+      try validateProcess(
+        pid: pid,
+        startTimeMicroseconds: startTimeMicroseconds,
+        ownerUID: ownerUID,
+        executablePath: executablePath)
+      guard Darwin.kill(pid, SIGTERM) == 0 else {
+        throw HelperError.commandFailed(String(cString: strerror(errno)))
+      }
+      reply(true, nil)
+    } catch {
+      reply(false, error.localizedDescription)
+    }
+  }
+
+  func reniceProcess(
+    _ pid: Int32,
+    startTimeMicroseconds: Int64,
+    ownerUID: UInt32,
+    executablePath: String,
+    delta: Int,
+    reply: @escaping (Bool, Int, String?) -> Void
+  ) {
+    do {
+      guard getuid() == 0 else { throw HelperError.notRoot }
+      try validateProcess(
+        pid: pid,
+        startTimeMicroseconds: startTimeMicroseconds,
+        ownerUID: ownerUID,
+        executablePath: executablePath)
+      errno = 0
+      let current = getpriority(PRIO_PROCESS, UInt32(pid))
+      guard errno == 0 else { throw HelperError.commandFailed(String(cString: strerror(errno))) }
+      guard let target = ProcessControlCommand.relativeNiceTarget(
+        current: Int(current), delta: delta)
+      else { throw HelperError.invalidNiceDelta }
+      guard setpriority(PRIO_PROCESS, UInt32(pid), Int32(target)) == 0 else {
+        throw HelperError.commandFailed(String(cString: strerror(errno)))
+      }
+      errno = 0
+      let observed = getpriority(PRIO_PROCESS, UInt32(pid))
+      guard errno == 0 else { throw HelperError.commandFailed(String(cString: strerror(errno))) }
+      guard Int(observed) == target else {
+        throw HelperError.commandFailed("renice did not retain the requested priority.")
+      }
+      reply(true, target, nil)
+    } catch {
+      reply(false, 0, error.localizedDescription)
+    }
+  }
+
   func prepareForRemoval(
     reply: @escaping (Bool, Bool, Bool, String?) -> Void
   ) {
@@ -167,6 +267,29 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
         error.localizedDescription
       )
     }
+  }
+
+  private func validateProcess(
+    pid: Int32,
+    startTimeMicroseconds: Int64,
+    ownerUID: UInt32,
+    executablePath: String
+  ) throws {
+    var info = proc_bsdinfo()
+    let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+    guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else {
+      throw HelperError.staleProcess
+    }
+    var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+    guard proc_pidpath(pid, &path, UInt32(path.count)) > 0 else {
+      throw HelperError.staleProcess
+    }
+    let observedMicroseconds = Int64(info.pbi_start_tvsec) * 1_000_000
+      + Int64(info.pbi_start_tvusec)
+    guard observedMicroseconds == startTimeMicroseconds,
+      info.pbi_uid == ownerUID,
+      String(cString: path) == executablePath
+    else { throw HelperError.staleProcess }
   }
 
   private func clearManagedSleepState() {
@@ -260,18 +383,34 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
     process.standardOutput = outputPipe
     process.standardError = errorPipe
     try process.run()
+
+    let group = DispatchGroup()
+    let lock = NSLock()
+    var outputData = Data()
+    var errorData = Data()
+    group.enter()
+    DispatchQueue.global(qos: .utility).async {
+      let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+      lock.lock(); outputData = data; lock.unlock()
+      group.leave()
+    }
+    group.enter()
+    DispatchQueue.global(qos: .utility).async {
+      let data = errorPipe.fileHandleForReading.readDataToEndOfFile()
+      lock.lock(); errorData = data; lock.unlock()
+      group.leave()
+    }
     process.waitUntilExit()
+    group.wait()
+    lock.lock()
+    let capturedOutput = outputData
+    let capturedError = errorData
+    lock.unlock()
 
     let result = ProcessResult(
       status: process.terminationStatus,
-      output: String(
-        decoding: outputPipe.fileHandleForReading.readDataToEndOfFile(),
-        as: UTF8.self
-      ),
-      error: String(
-        decoding: errorPipe.fileHandleForReading.readDataToEndOfFile(),
-        as: UTF8.self
-      )
+      output: String(decoding: capturedOutput, as: UTF8.self),
+      error: String(decoding: capturedError, as: UTF8.self)
     )
     guard result.status == 0 else {
       let message = result.error.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -285,7 +424,12 @@ private final class PowerHelperService: NSObject, PowerHelperProtocol {
 }
 
 private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate {
-  private let expectedClientRequirement: SecRequirement?
+  private struct ClientRequirement {
+    let codeRequirement: SecRequirement
+    let teamIdentifier: String?
+  }
+
+  private let expectedClientRequirement: ClientRequirement?
 
   override init() {
     self.expectedClientRequirement = Self.loadExpectedClientRequirement()
@@ -300,7 +444,7 @@ private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate
       NSLog("MenuCueHelper rejected XPC connection: missing client requirement")
       return false
     }
-    guard Self.validate(connection: connection, requirement: expectedClientRequirement) else {
+    guard Self.validate(connection: connection, expected: expectedClientRequirement) else {
       NSLog(
         "MenuCueHelper rejected unauthorized XPC client pid %d",
         connection.processIdentifier
@@ -320,7 +464,7 @@ private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate
     return true
   }
 
-  private static func loadExpectedClientRequirement() -> SecRequirement? {
+  private static func loadExpectedClientRequirement() -> ClientRequirement? {
     let helperURL = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
     let contentsURL =
       helperURL
@@ -339,16 +483,37 @@ private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate
       return nil
     }
 
+    var signingInfo: CFDictionary?
+    guard SecCodeCopySigningInformation(
+      staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &signingInfo) == errSecSuccess,
+      let info = signingInfo as? [String: Any],
+      info[kSecCodeInfoIdentifier as String] as? String == PowerHelperConstants.mainAppBundleIdentifier
+    else { return nil }
+    let appTeamIdentifier = info[kSecCodeInfoTeamIdentifier as String] as? String
+
+    var helperCode: SecStaticCode?
+    var helperSigningInfo: CFDictionary?
+    guard SecStaticCodeCreateWithPath(helperURL as CFURL, [], &helperCode) == errSecSuccess,
+      let helperCode,
+      SecCodeCopySigningInformation(
+        helperCode, SecCSFlags(rawValue: kSecCSSigningInformation), &helperSigningInfo) == errSecSuccess
+    else { return nil }
+    let helperTeamIdentifier = (helperSigningInfo as? [String: Any])?[
+      kSecCodeInfoTeamIdentifier as String] as? String
+    if let helperTeamIdentifier, appTeamIdentifier != helperTeamIdentifier { return nil }
+
     var requirement: SecRequirement?
-    guard SecCodeCopyDesignatedRequirement(staticCode, [], &requirement) == errSecSuccess else {
-      return nil
-    }
-    return requirement
+    guard SecCodeCopyDesignatedRequirement(staticCode, [], &requirement) == errSecSuccess,
+      let requirement
+    else { return nil }
+    return ClientRequirement(
+      codeRequirement: requirement,
+      teamIdentifier: helperTeamIdentifier ?? appTeamIdentifier)
   }
 
   private static func validate(
     connection: NSXPCConnection,
-    requirement: SecRequirement
+    expected: ClientRequirement
   ) -> Bool {
     let attributes =
       [
@@ -360,7 +525,25 @@ private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate
     else {
       return false
     }
-    return SecCodeCheckValidity(guestCode, [], requirement) == errSecSuccess
+    guard SecCodeCheckValidity(guestCode, [], expected.codeRequirement) == errSecSuccess else {
+      return false
+    }
+    var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+    guard proc_pidpath(connection.processIdentifier, &path, UInt32(path.count)) > 0 else {
+      return false
+    }
+    let guestURL = URL(fileURLWithPath: String(cString: path))
+    var staticGuestCode: SecStaticCode?
+    var signingInfo: CFDictionary?
+    guard SecStaticCodeCreateWithPath(guestURL as CFURL, [], &staticGuestCode) == errSecSuccess,
+      let staticGuestCode,
+      SecCodeCopySigningInformation(
+        staticGuestCode, SecCSFlags(rawValue: kSecCSSigningInformation), &signingInfo) == errSecSuccess,
+      let info = signingInfo as? [String: Any],
+      info[kSecCodeInfoIdentifier as String] as? String == PowerHelperConstants.mainAppBundleIdentifier
+    else { return false }
+    guard let expectedTeam = expected.teamIdentifier else { return true }
+    return info[kSecCodeInfoTeamIdentifier as String] as? String == expectedTeam
   }
 }
 

@@ -164,6 +164,9 @@ final class SystemMetricsProbeLiveTests: XCTestCase {
 
 final class SystemMetricsServiceLifecycleTests: XCTestCase {
   func testReleasedSessionRejectsDelayedWorkerResult() {
+    let suiteName = "SystemMetricsServiceLifecycleTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
     let providerStarted = expectation(description: "counter provider started")
     let unblockProvider = DispatchSemaphore(value: 0)
     var counters = CumulativeCounters()
@@ -172,6 +175,7 @@ final class SystemMetricsServiceLifecycleTests: XCTestCase {
 
     let service = SystemMetricsService(
       sampleInterval: 30,
+      defaults: defaults,
       sensorReader: SensorReaderStub(),
       countersProvider: {
         providerStarted.fulfill()

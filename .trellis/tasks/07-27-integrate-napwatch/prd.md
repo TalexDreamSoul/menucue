@@ -70,11 +70,11 @@ Evaluate NapWatch at upstream commit `2557b70c1e3c66943bef2af38135bd624cc8b0be` 
 - [x] The architecture, risks, validation strategy, and remaining product decisions are documented.
 - [x] Complex-task planning artifacts (`design.md` and `implement.md`) are prepared but not activated.
 - [x] The user resolves remaining security/UX decisions.
-- [ ] The user explicitly approves implementation and Trellis task activation in a future step.
+- [x] The user explicitly approves implementation and Trellis task activation.
 
 ## Open Product Decisions
 
-None. Task activation and implementation remain explicitly unapproved.
+None. The user explicitly approved implementation and task activation.
 
 ## Notes
 

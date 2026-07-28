@@ -61,26 +61,31 @@ Questions to answer:
 
 ### 2. Signatures
 
-The shared Objective-C-compatible XPC interface is `PowerHelperProtocol`:
+`PowerHelperProtocolInfo.currentVersion == 3`. The Objective-C-compatible XPC interface includes:
 
 ```swift
-queryPowerState(reply: (Bool, Bool, Bool, String?) -> Void)
-setLowPowerMode(_ enabled: Bool, reply: (Bool, Bool, Bool, String?) -> Void)
-setSleepDisabled(_ enabled: Bool, reply: (Bool, Bool, Bool, String?) -> Void)
-prepareForRemoval(reply: (Bool, Bool, Bool, String?) -> Void)
+queryProtocolInfo(reply: (Int, UInt64) -> Void)
+setManagedPowerSetting(_ setting: Int, source: Int, enabled: Bool, reply: (Bool, String?) -> Void)
+terminateProcess(_ pid: Int32, startTimeMicroseconds: Int64, ownerUID: UInt32,
+                 executablePath: String, reply: (Bool, String?) -> Void)
+reniceProcess(_ pid: Int32, startTimeMicroseconds: Int64, ownerUID: UInt32,
+              executablePath: String, delta: Int, reply: (Bool, Int, String?) -> Void)
 ```
 
-Reply fields are `(success, lowPowerEnabled, sleepDisabled, errorMessage)`.
+Legacy power-state, time-zone, and removal selectors remain part of the same versioned protocol. Capabilities are queried before a selector is used; an older installed Helper must surface `refreshRequired`.
 
 ### 3. Contracts
 
 - Registration: `SMAppService.daemon(plistName: "com.tagzxia.app.menucue.helper.plist")`.
 - Mach service and Helper signing identifier: `com.tagzxia.app.menucue.helper`.
 - Main app bundle identifier: `com.tagzxia.app.menucue`.
-- Allowed executable: `/usr/bin/pmset` only.
-- Allowed mutations: detected `powermode` / `lowpowermode`, plus `disablesleep`.
-- The Helper accepts a connection only when the caller satisfies the embedded main executable's designated code requirement.
-- Every mutation returns a fresh `pmset` query; UI state never assumes the requested value succeeded.
+- Fixed executables only: `/usr/bin/pmset` and `/usr/sbin/systemsetup`; no executable or arguments cross XPC.
+- Managed profile mutations are limited to `powernap`, `womp`, `standby`, and `tcpkeepalive`, with source `-b`, `-c`, or `-a` chosen by the unprivileged app.
+- Process termination is always `SIGTERM`; there is no caller-supplied signal or SIGKILL endpoint. Renice accepts only relative `-1` or `+1` and rejects a boundary no-op.
+- Process actions carry PID, start time in microseconds, owner UID, and executable path. The Helper re-reads and matches all four immediately before acting.
+- Current-user targets get an explicit SIGTERM confirmation. Cross-UID and Apple system-path targets require exact-name typed confirmation for SIGTERM and renice. App batches freeze their sampled members and run serially.
+- The Helper validates the caller's dynamic designated requirement, expected bundle identifier, and Team ID when present. Ad-hoc builds have no Team ID and may require manual Login Items approval; release validation requires stable signing.
+- Every mutation queries observed state. `pmset -a` succeeds only when every present profile contains and matches the requested key; renice succeeds only when the observed nice value equals the target.
 - Before first changing `SleepDisabled`, persist whether it was already enabled. Removal restores that value only when the Helper owns the setting.
 
 ### 4. Validation & Error Matrix
@@ -88,25 +93,30 @@ Reply fields are `(success, lowPowerEnabled, sleepDisabled, errorMessage)`.
 | Condition | Required result |
 |---|---|
 | Helper is not running as root | Reject operation with `notRoot` |
-| `powermode` and `lowpowermode` are absent | Return unsupported-mode error |
-| XPC caller fails the designated requirement | Reject the connection before exporting the service |
-| `pmset` exits nonzero | Return stderr and re-query the observable state |
+| Protocol version/capability is stale | Require explicit Helper refresh before RPC |
+| XPC caller fails requirement, bundle ID, or Team ID | Reject before exporting the service |
+| Managed setting/source raw value is unknown | Reject without running `pmset` |
+| Any present All-source profile omits or mismatches the key | Report write failure |
+| PID/start-time-microseconds/UID/path differs | Return stale-process failure; do not signal or renice |
+| Delta is not `-1/+1`, crosses `-20...19`, or read-back differs | Return failure, never a clamped success |
 | Registration requires approval | Show approval state; never report enabled |
 | Helper never owned `SleepDisabled` | Removal leaves the existing value unchanged |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: approved Helper sets a fixed `pmset` key, reads state back, and publishes the returned booleans.
-- Base: unapproved Helper leaves protected actions visible but unavailable and opens Login Items settings.
-- Bad: arbitrary executable paths or argument arrays cross XPC; requested toggle values are written directly into UI state.
+- Good: a typed request maps to fixed arguments, the Helper revalidates identity/state, and the UI publishes only observed results.
+- Base: an unapproved or stale Helper leaves controls visible but unavailable and opens Login Items settings.
+- Bad: arbitrary executable/signal/absolute nice values cross XPC; a bare PID is acted on; missing read-back fields are compacted away; requested values are written directly into UI state.
 
 ### 6. Tests Required
 
-- Build and strictly verify the signed app bundle, embedded Helper entitlement, and LaunchDaemon plist.
-- Assert parser behavior for both `powermode` and `lowpowermode` output shapes.
-- Assert an unauthorized XPC client is rejected.
-- Assert enable / disable returns queried state after command completion.
-- Assert removal restores an owned prior `SleepDisabled` value and preserves an unmanaged value.
+- Build and strictly verify the signed app, embedded Helper entitlement, LaunchDaemon plist, identifiers, and Team IDs where available.
+- Assert every managed setting/source mapping and reject unknown raw values.
+- Assert All-source read-back fails when any present profile omits or differs on the key.
+- Assert microsecond start-time encoding, each stable-identity mismatch, stale PID behavior, allowed deltas, nice boundaries, and observed-value mismatch.
+- Assert current-user explicit confirmation and typed confirmation for cross-UID/system targets and batches.
+- Assert unauthorized XPC clients are rejected and stale protocol capabilities require refresh.
+- Real `pmset`, SIGTERM, and renice smoke tests require separate approval, disposable targets, captured original state, and explicit restoration.
 
 ### 7. Wrong vs Correct
 
@@ -114,14 +124,15 @@ Reply fields are `(success, lowPowerEnabled, sleepDisabled, errorMessage)`.
 
 ```swift
 func run(path: String, arguments: [String])
+func kill(pid: Int32, signal: Int32)
 state.isOn = requestedValue
 ```
 
-This creates an arbitrary root-command endpoint and lies when the command fails.
+This creates generic root endpoints, allows PID reuse to retarget an action, and lies when a write is not retained.
 
 #### Correct
 
 ```swift
-func setSleepDisabled(_ enabled: Bool, reply: PowerStateReply)
-// Helper chooses the fixed pmset path/arguments, then queries pmset and replies.
+func terminateProcess(_ identity: StableProcessIdentity) // protocol serializes typed fields
+// Helper re-reads PID + start microseconds + UID + path, sends SIGTERM, and returns observed result.
 ```

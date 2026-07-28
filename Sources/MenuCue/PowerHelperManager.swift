@@ -207,6 +207,14 @@ final class PowerHelperManager: ObservableObject {
     helperProtocolVersion >= 2 && helperCapabilities.contains(.systemTimeZone)
   }
 
+  var supportsManagedPowerSettings: Bool {
+    helperProtocolVersion >= 3 && helperCapabilities.contains(.managedPowerSettings)
+  }
+
+  var supportsProcessControl: Bool {
+    helperProtocolVersion >= 3 && helperCapabilities.contains(.processControl)
+  }
+
   func queryProtocolInfo() {
     guard registrationState.isEnabled else {
       clearProtocolInfo()
@@ -297,6 +305,94 @@ final class PowerHelperManager: ObservableObject {
     }
   }
 
+  func setManagedPowerSetting(
+    _ setting: ManagedPowerSetting,
+    source: ManagedPowerSource,
+    enabled: Bool,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    guard supportsManagedPowerSettings else {
+      completion(
+        .failure(
+          PowerHelperManagerError.unavailable(
+            "The installed Helper must be refreshed before changing power profiles."
+          )
+        )
+      )
+      return
+    }
+    callSimpleHelper(completion: completion) { proxy, reply in
+      proxy.setManagedPowerSetting(
+        setting.rawValue,
+        sourceRawValue: source.rawValue,
+        enabled: enabled,
+        reply: reply)
+    }
+  }
+
+  func terminateProcess(
+    _ identity: ProcessIdentity,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    guard supportsProcessControl else {
+      completion(
+        .failure(
+          PowerHelperManagerError.unavailable(
+            "The installed Helper must be refreshed before controlling processes."
+          )
+        )
+      )
+      return
+    }
+    callSimpleHelper(completion: completion) { proxy, reply in
+      proxy.terminateProcess(
+        identity.pid,
+        startTimeMicroseconds: ProcessControlCommand.startTimeMicroseconds(identity.startTime),
+        ownerUID: identity.ownerUID,
+        executablePath: identity.executablePath,
+        reply: reply)
+    }
+  }
+
+  func reniceProcess(
+    _ identity: ProcessIdentity,
+    delta: Int,
+    completion: @escaping (Result<Int, Error>) -> Void
+  ) {
+    guard registrationState.isEnabled, supportsProcessControl else {
+      completion(.failure(PowerHelperManagerError.unavailable(registrationState.detail)))
+      return
+    }
+    isWorking = true
+    let proxy = helperProxy { [weak self] error in
+      DispatchQueue.main.async {
+        self?.isWorking = false
+        completion(.failure(error))
+      }
+    }
+    guard let proxy else {
+      isWorking = false
+      completion(.failure(PowerHelperManagerError.connection("Unable to connect to MenuCueHelper.")))
+      return
+    }
+    proxy.reniceProcess(
+      identity.pid,
+      startTimeMicroseconds: ProcessControlCommand.startTimeMicroseconds(identity.startTime),
+      ownerUID: identity.ownerUID,
+      executablePath: identity.executablePath,
+      delta: delta
+    ) { [weak self] success, observed, message in
+      DispatchQueue.main.async {
+        self?.isWorking = false
+        if success {
+          completion(.success(observed))
+        } else {
+          completion(.failure(PowerHelperManagerError.operation(message ?? "renice failed.")))
+        }
+      }
+    }
+  }
+
   func removeHelper(completion: @escaping (Result<Void, Error>) -> Void) {
     if service.status == .requiresApproval || service.status == .notRegistered {
       unregister(completion: completion)
@@ -364,6 +460,38 @@ final class PowerHelperManager: ObservableObject {
       registrationState = .failed(message)
       lastError = message
       completion(.failure(localizedError))
+    }
+  }
+
+  private func callSimpleHelper(
+    completion: @escaping (Result<Void, Error>) -> Void,
+    invocation: (PowerHelperProtocol, @escaping (Bool, String?) -> Void) -> Void
+  ) {
+    guard registrationState.isEnabled else {
+      completion(.failure(PowerHelperManagerError.unavailable(registrationState.detail)))
+      return
+    }
+    isWorking = true
+    let proxy = helperProxy { [weak self] error in
+      DispatchQueue.main.async {
+        self?.isWorking = false
+        completion(.failure(error))
+      }
+    }
+    guard let proxy else {
+      isWorking = false
+      completion(.failure(PowerHelperManagerError.connection("Unable to connect to MenuCueHelper.")))
+      return
+    }
+    invocation(proxy) { [weak self] success, message in
+      DispatchQueue.main.async {
+        self?.isWorking = false
+        if success {
+          completion(.success(()))
+        } else {
+          completion(.failure(PowerHelperManagerError.operation(message ?? "Helper operation failed.")))
+        }
+      }
     }
   }
 

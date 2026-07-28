@@ -19,6 +19,7 @@ private func eventAccentColor(for event: CalendarEventInfo) -> Color {
 
 enum PopoverTab: String, CaseIterable, Identifiable {
   case status
+  case power
   case calendar
   case actions
 
@@ -38,6 +39,7 @@ enum PopoverTab: String, CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .status: return L10n.string("Status")
+    case .power: return L10n.string("Power")
     case .calendar: return L10n.string("Calendar")
     case .actions: return L10n.string("Actions")
     }
@@ -46,6 +48,7 @@ enum PopoverTab: String, CaseIterable, Identifiable {
   var systemImage: String {
     switch self {
     case .status: return "waveform.path.ecg"
+    case .power: return "bolt.heart.fill"
     case .calendar: return "calendar"
     case .actions: return "square.grid.2x2"
     }
@@ -60,6 +63,8 @@ struct StatusPopoverView: View {
   let openQuickActionSettings: () -> Void
   let quitApp: () -> Void
   @StateObject private var metrics = SystemMetricsService()
+  @StateObject private var powerDiagnostics = PowerDiagnosticsService()
+  @StateObject private var processEnergy = ProcessEnergyService()
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
   @State private var selectedCalendarDate = Date()
@@ -128,6 +133,12 @@ struct StatusPopoverView: View {
         withAnimation(PopoverMotion.navigation) { selectedTab = .actions }
       }
       .transition(Self.tabTransition)
+    case .power:
+      PowerTabView(
+        model: model,
+        diagnostics: powerDiagnostics,
+        processEnergy: processEnergy)
+        .transition(Self.tabTransition)
     case .calendar:
       calendarTab
         .transition(Self.tabTransition)

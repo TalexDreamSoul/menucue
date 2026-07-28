@@ -1,1 +1,6 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Defines AppModel mutation ownership, runtime service state, observed system state, and iCloud exclusions."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Defines MenuCue product and technical identity conventions."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Defines signed privileged Helper, fixed-command XPC, observed read-back, and removal contracts."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Guides typed data flow across probes, services, persistence, XPC, and SwiftUI."}
+{"file":".trellis/tasks/07-27-integrate-napwatch/research/upstream-audit.md","reason":"Records audited upstream behavior, defects, performance, maturity, and license evidence."}
+{"file":".trellis/tasks/07-27-integrate-napwatch/research/integration-analysis.md","reason":"Defines capability decisions, phased architecture, risks, and MenuCue integration boundaries."}

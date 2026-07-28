@@ -60,9 +60,19 @@ private/undocumented API beyond the SMC and HID paths the app already ships.
 ## Constraints
 
 - macOS 14+, SwiftUI, Swift 5.9. No new package dependencies.
-- All user-visible strings in English; the product name comes from `ProductBrand.displayName`.
+- **Every new user-visible string goes through `L10n.string("...")` with a static literal key,
+  and is added to both `en.lproj/Localizable.strings` and `zh-Hans.lproj/Localizable.strings`.**
+  `scripts/verify-localizations.swift` and `LocalizationResourceTests` enforce this.
 - Views do not touch `UserDefaults` directly; settings mutations go through `AppModel`.
 - Existing popover behaviour, layout, and sampling cost must not regress.
+
+> **Revised 2026-07-27, after the `origin/master` merge.** Upstream landed
+> `9bbceb8 feat: add language and region controls`, which introduced the `L10n` system,
+> `en`/`zh-Hans` `.strings` catalogs, and a verification script. Two earlier constraints are
+> now void: "all user-visible strings in English" and "localization is out of scope". The
+> brand name is embedded directly in `L10n` keys upstream (`L10n.string("MenuCue Settings")`)
+> because a lookup key must be a static literal — so `ProductBrand.displayName` interpolation
+> is **not** available inside localized strings.
 
 ## Acceptance Criteria
 
@@ -80,10 +90,22 @@ private/undocumented API beyond the SMC and HID paths the app already ships.
       has unit coverage.
 - [ ] Fanless Macs and Macs without GPU counters render the affected tabs without empty
       boxes or zeros presented as readings.
+- [ ] Every new string is localized in both catalogs; `swift scripts/verify-localizations.swift`
+      and `LocalizationResourceTests` pass.
 
 ## Out of scope
 
 - CPU frequency readout — not available on Apple silicon without private APIs.
 - A sortable full process table (the "Processes" tab option was declined).
-- Localization of the new strings.
 - Persisting the last-selected Dashboard tab across launches.
+
+## Prerequisite (blocking)
+
+The `origin/master` merge must be resolved first — 30 conflicting files, including every file
+this task edits. Resolution rule agreed with the user: **take upstream content, keep the
+MenuCue identity**, and re-apply local-only functionality that upstream lacks (confirmed so
+far: the popover keyboard tab navigation from task `07-27-popover-keyboard-tab-navigation`,
+whose test `PopoverTabNavigationTests.swift` is not in conflict and will fail to compile if
+dropped). Design line references in `design.md` must be re-verified against the merged tree,
+since upstream's `SystemMetricsService` is a substantially different implementation
+(cancellation token, dependency injection, serialized sampling, worker-confined baseline).
