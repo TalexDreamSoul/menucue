@@ -17,6 +17,13 @@ struct WakeEvent: Identifiable, Equatable, Hashable, Codable {
   let kind: WakeEventKind
   let reason: String
   let occurrence: Int
+  /// The UTC offset in force where and when this happened.
+  ///
+  /// Optional so files written before this existed still decode. Daily buckets used
+  /// `Calendar.current` at *load* time, so flying somewhere re-dated every historical
+  /// event; bucketing by the offset that was recorded keeps a night in Shanghai a
+  /// night in Shanghai.
+  var utcOffsetSeconds: Int?
 
   var id: String {
     let millis = Int64((timestamp.timeIntervalSince1970 * 1_000).rounded())
@@ -201,8 +208,17 @@ enum PowerDiagnosticsParser {
       let signature = "\(date.timeIntervalSince1970)|\(kind.rawValue)|\(reason)"
       let occurrence = occurrences[signature, default: 0]
       occurrences[signature] = occurrence + 1
+      // The log line carries its own offset, so a historical event keeps the zone it
+      // actually happened in even after the user travels.
+      let offsetText = String(line[zoneRange])
+      let offsetSeconds = Int(offsetText.prefix(3)).map { hours in
+        let minutes = Int(offsetText.suffix(2)) ?? 0
+        return hours * 3_600 + (hours < 0 ? -minutes : minutes) * 60
+      }
       events.append(
-        WakeEvent(timestamp: date, kind: kind, reason: reason, occurrence: occurrence))
+        WakeEvent(
+          timestamp: date, kind: kind, reason: reason, occurrence: occurrence,
+          utcOffsetSeconds: offsetSeconds))
     }
     return events.sorted { lhs, rhs in
       if lhs.timestamp != rhs.timestamp { return lhs.timestamp < rhs.timestamp }

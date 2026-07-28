@@ -369,3 +369,95 @@ final class PowerMonitoringOptInTests: XCTestCase {
     XCTAssertTrue(settingsStore.load().powerMonitoringEnabled)
   }
 }
+
+final class WakeHistoryStorageTests: XCTestCase {
+  private func store(_ name: String = #function) -> (WakeHistoryStore, URL) {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("wake-history-\(UUID().uuidString).json")
+    return (WakeHistoryStore(fileURL: url), url)
+  }
+
+  private func event(_ offsetSeconds: Int?, at date: Date, reason: String = "lid")
+    -> WakeEvent
+  {
+    WakeEvent(
+      timestamp: date, kind: .wake, reason: reason, occurrence: 0,
+      utcOffsetSeconds: offsetSeconds)
+  }
+
+  func testDailyBucketsUseTheZoneTheEventHappenedIn() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+
+    // 23:30 in +0800 is still that day there, even read from a machine now in -0700.
+    let shanghaiEvening = Date(timeIntervalSince1970: 1_760_000_000)
+    try history.merge([event(8 * 3_600, at: shanghaiEvening)], now: shanghaiEvening.addingTimeInterval(60))
+
+    var losAngeles = Calendar(identifier: .gregorian)
+    losAngeles.timeZone = TimeZone(secondsFromGMT: -7 * 3_600)!
+    let snapshot = try history.load(
+      now: shanghaiEvening.addingTimeInterval(60), calendar: losAngeles)
+
+    XCTAssertEqual(snapshot.dailySummaries.count, 1)
+    var shanghai = Calendar(identifier: .gregorian)
+    shanghai.timeZone = TimeZone(secondsFromGMT: 8 * 3_600)!
+    XCTAssertEqual(
+      snapshot.dailySummaries[0].day, shanghai.startOfDay(for: shanghaiEvening),
+      "the bucket moved when the reader's zone changed")
+  }
+
+  func testAnEventWithoutARecordedOffsetStillBuckets() throws {
+    // Files written before the offset existed must keep working.
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let when = Date(timeIntervalSince1970: 1_760_000_000)
+    try history.merge([event(nil, at: when)], now: when.addingTimeInterval(60))
+    XCTAssertEqual(try history.load(now: when.addingTimeInterval(60)).events.count, 1)
+  }
+
+  func testAnUnchangedMergeDoesNotRewriteTheFile() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let when = Date(timeIntervalSince1970: 1_760_000_000)
+    let now = when.addingTimeInterval(60)
+
+    try history.merge([event(0, at: when)], now: now)
+    XCTAssertEqual(history.writeCount, 1)
+
+    // Every refresh used to decode and re-encode the whole file regardless.
+    try history.merge([event(0, at: when)], now: now)
+    XCTAssertEqual(history.writeCount, 1, "an unchanged merge rewrote the file")
+
+    // A genuinely new event must still be written.
+    try history.merge(
+      [event(0, at: when.addingTimeInterval(1), reason: "usb")], now: now)
+    XCTAssertEqual(history.writeCount, 2)
+  }
+
+  func testVersionOneRecordsWithScheduledWakeBlobsAreDroppedOnMigration() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+
+    // A v1 file holding one real wake and one of the fabricated ones.
+    let when = Date(timeIntervalSince1970: 1_760_000_000)
+    let blob = "[process=dasd request=SleepService deltaSecs=946 wakeAt=2026-07-27 18:06:58]"
+    let container = """
+      {"version":1,"events":[
+        {"timestamp":\(Int(when.timeIntervalSince1970 * 1_000)),"kind":"wake","reason":"lid","occurrence":0},
+        {"timestamp":\(Int(when.timeIntervalSince1970 * 1_000)),"kind":"wake","reason":"\(blob)","occurrence":1}
+      ]}
+      """
+    try Data(container.utf8).write(to: url)
+
+    let snapshot = try history.load(now: when.addingTimeInterval(60))
+    XCTAssertEqual(snapshot.events.count, 1, "the fabricated record survived migration")
+    XCTAssertEqual(snapshot.events[0].reason, "lid")
+  }
+
+  func testAnUnknownVersionIsRefusedRatherThanReinterpreted() throws {
+    let (history, url) = store()
+    defer { try? FileManager.default.removeItem(at: url) }
+    try Data(#"{"version":99,"events":[]}"#.utf8).write(to: url)
+    XCTAssertThrowsError(try history.load())
+  }
+}
