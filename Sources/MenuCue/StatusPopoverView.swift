@@ -123,7 +123,9 @@ struct StatusPopoverView: View {
       guard let command else { return }
       if ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1" {
         FileHandle.standardError.write(
-          Data("[swipe] TAB \(selectedTab.rawValue) -> \(selectedTab.moving(by: command.direction).rawValue)\n".utf8))
+          Data(
+            "[swipe] TAB \(selectedTab.rawValue) -> \(selectedTab.moving(by: command.direction).rawValue)\n"
+              .utf8))
       }
       select(selectedTab.moving(by: command.direction), direction: command.direction)
     }
@@ -181,8 +183,9 @@ struct StatusPopoverView: View {
       PowerTabView(
         model: model,
         diagnostics: model.powerDiagnosticsService,
-        processEnergy: model.processEnergyService)
-        .transition(tabTransition)
+        processEnergy: model.processEnergyService
+      )
+      .transition(tabTransition)
     case .calendar:
       calendarTab
         .transition(tabTransition)
@@ -619,6 +622,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   case overview
   case dateAndEvents
   case quickActions
+  case notifications
   case menuBarTimeZones
   case appearance
   case calendars
@@ -634,6 +638,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .overview: return L10n.string("Overview")
     case .dateAndEvents: return L10n.string("Date & Events")
     case .quickActions: return L10n.string("Quick Actions")
+    case .notifications: return L10n.string("Notifications")
     case .menuBarTimeZones: return L10n.string("Menu Bar")
     case .appearance: return L10n.string("Appearance")
     case .calendars: return L10n.string("Calendars")
@@ -654,6 +659,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
       return L10n.string("Calendar display, overview time zone, and week layout.")
     case .quickActions:
       return L10n.string("Run any action, pin your favorites, and manage Apple Shortcuts.")
+    case .notifications:
+      return L10n.string("External channels, system alert rules, and message templates.")
     case .menuBarTimeZones:
       return L10n.string("Status item clocks and rotation behavior.")
     case .appearance:
@@ -675,6 +682,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .overview: return "gauge.with.dots.needle.33percent"
     case .dateAndEvents: return "calendar"
     case .quickActions: return "square.grid.2x2"
+    case .notifications: return "bell.badge"
     case .menuBarTimeZones: return "menubar.rectangle"
     case .appearance: return "circle.lefthalf.filled"
     case .calendars: return "calendar.badge.clock"
@@ -878,10 +886,10 @@ private struct MenuBarFormatPreview: View {
         Text(
           output.combinedText.isEmpty ? L10n.string("No visible output") : output.combinedText
         )
-          .font(.system(size: 13, weight: .semibold, design: .monospaced))
-          .padding(.horizontal, 10)
-          .padding(.vertical, 7)
-          .background(.quaternary, in: RoundedRectangle(cornerRadius: 7))
+        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 7))
         if MenuBarClockRenderer.exceedsRecommendedWidth(output.combinedText) {
           Text("This format may occupy too much menu-bar width.")
             .font(.caption)
@@ -1023,8 +1031,9 @@ private struct SettingsContentView: View {
     // shared scroll container rather than nesting one inside another.
     if pane == .dashboard {
       DashboardView(
-        model: model, initialSection: initialDashboardSection, swipeRelay: swipeRelay)
-        .background(Color(nsColor: .windowBackgroundColor))
+        model: model, initialSection: initialDashboardSection, swipeRelay: swipeRelay
+      )
+      .background(Color(nsColor: .windowBackgroundColor))
     } else {
       ScrollView {
         VStack(alignment: .leading, spacing: 22) {
@@ -1051,6 +1060,8 @@ private struct SettingsContentView: View {
       overviewSettingsSection
     case .quickActions:
       QuickActionSettingsView(model: model)
+    case .notifications:
+      NotificationSettingsView(model: model)
     case .menuBarTimeZones:
       VStack(alignment: .leading, spacing: 24) {
         MenuBarFormatSettingsView(model: model)
@@ -1371,7 +1382,6 @@ private struct SettingsContentView: View {
     guard TimeZone(identifier: pendingTimeZoneID) != nil else { return false }
     return !model.settings.clockEntries.contains(where: { $0.id == pendingTimeZoneID })
   }
-
 
   private var launchAtLoginBinding: Binding<Bool> {
     Binding(

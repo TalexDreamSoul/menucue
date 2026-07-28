@@ -15,6 +15,7 @@ final class SettingsStore {
         static let pinnedQuickActions = "pinnedQuickActions"
         static let metricsSampling = "metricsSampling.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
+        static let notificationSettings = "notificationSettings.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
         static let preferenceSyncOnboardingCompleted = "preferenceSyncOnboardingCompleted"
         static let portableModificationDates = "portableModificationDates.v1"
@@ -73,6 +74,7 @@ final class SettingsStore {
             pinnedQuickActions: loadPinnedQuickActions(),
             metricsSampling: loadMetricsSampling(),
             powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
+            notificationSettings: loadNotificationSettings(),
             preferenceSyncEnabled: defaults.bool(forKey: Key.preferenceSyncEnabled),
             preferenceSyncOnboardingCompleted: defaults.bool(
                 forKey: Key.preferenceSyncOnboardingCompleted
@@ -100,6 +102,9 @@ final class SettingsStore {
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
         defaults.set(settings.powerMonitoringEnabled, forKey: Key.powerMonitoringEnabled)
+        if let data = try? encoder.encode(settings.notificationSettings) {
+            defaults.set(data, forKey: Key.notificationSettings)
+        }
         if let data = try? encoder.encode(settings.metricsSampling) {
             defaults.set(data, forKey: Key.metricsSampling)
         }
@@ -116,6 +121,15 @@ final class SettingsStore {
         )
         defaults.set(settings.iCloudIdentityTokenData, forKey: Key.iCloudIdentityTokenData)
         defaults.set(settings.syncDeviceID, forKey: Key.syncDeviceID)
+    }
+
+    private func loadNotificationSettings() -> NotificationSettings {
+        guard let data = defaults.data(forKey: Key.notificationSettings),
+              let settings = try? decoder.decode(NotificationSettings.self, from: data)
+        else {
+            return .default
+        }
+        return settings
     }
 
     private func loadMetricsSampling() -> MetricsSamplingSettings {

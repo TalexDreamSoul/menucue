@@ -20,9 +20,14 @@ final class PowerDiagnosticsService: ObservableObject {
   private let historyStore: WakeHistoryStore
   private let notificationCenter: NotificationCenter
   private let batteryRefreshInterval: TimeInterval
-  private let queue = DispatchQueue(label: "com.tagzxia.app.menucue.power-diagnostics", qos: .utility)
+  private let wakeRefreshDelay: TimeInterval
+  private let queue = DispatchQueue(
+    label: "com.tagzxia.app.menucue.power-diagnostics", qos: .utility)
   private var wakeObserver: NSObjectProtocol?
   private var sleepObserver: NSObjectProtocol?
+  private var darkWakeHistoryHandler: (([WakeEvent]) -> Void)?
+  private var systemSleepHandler: (() -> Void)?
+  private var systemWakeHandler: (() -> Void)?
   /// Set when the app has read the log at least once this launch, so the periodic
   /// re-read can be dropped entirely.
   private var hasBackfilled = false
@@ -30,6 +35,7 @@ final class PowerDiagnosticsService: ObservableObject {
   private var activationCount = 0
   private var refreshInFlight = false
   private var refreshPending = false
+  private var historyRefreshPending = false
   private var generation = 0
   /// Keeps history current while nothing is on screen.
   ///
@@ -45,25 +51,38 @@ final class PowerDiagnosticsService: ObservableObject {
     probe: PowerDiagnosticsProbing = SystemPowerDiagnosticsProbe(),
     historyStore: WakeHistoryStore = .applicationStore(),
     notificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
-    batteryRefreshInterval: TimeInterval = 5
+    batteryRefreshInterval: TimeInterval = 5,
+    wakeRefreshDelay: TimeInterval = 1
   ) {
     self.probe = probe
     self.historyStore = historyStore
     self.notificationCenter = notificationCenter
     self.batteryRefreshInterval = max(0.001, batteryRefreshInterval)
-    // Sleep and wake are *events*. macOS says so directly, which is exact and free —
-    // there is nothing here to poll for.
-    wakeObserver = notificationCenter.addObserver(
-      forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
-    ) { [weak self] _ in
-      // A second's grace: pmset writes its own line slightly after the notification,
-      // so backfilling immediately would miss the wake that just happened.
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self?.refreshHistoryOnly() }
-    }
-    sleepObserver = notificationCenter.addObserver(
-      forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
-    ) { [weak self] _ in
-      self?.hasBackfilled = false
+    self.wakeRefreshDelay = max(0, wakeRefreshDelay)
+  }
+
+  var wakeMonitoringReferenceCount: Int {
+    (isBackgroundMonitoringEnabled ? 1 : 0)
+      + (activationCount > 0 ? 1 : 0)
+      + (darkWakeHistoryHandler == nil ? 0 : 1)
+  }
+
+  var isWakeObserverRegistered: Bool { wakeObserver != nil }
+
+  func setDarkWakeMonitoring(
+    historyHandler: (([WakeEvent]) -> Void)?,
+    onSleep: (() -> Void)? = nil,
+    onWake: (() -> Void)? = nil
+  ) {
+    darkWakeHistoryHandler = historyHandler
+    systemSleepHandler = historyHandler == nil ? nil : onSleep
+    systemWakeHandler = historyHandler == nil ? nil : onWake
+    updateWakeObservers()
+    guard historyHandler != nil else { return }
+    if hasBackfilled {
+      historyHandler?(snapshot.events)
+    } else {
+      backfillOnce()
     }
   }
 
@@ -81,11 +100,13 @@ final class PowerDiagnosticsService: ObservableObject {
   func startBackgroundMonitoring() {
     guard !isBackgroundMonitoringEnabled else { return }
     isBackgroundMonitoringEnabled = true
+    updateWakeObservers()
     backfillOnce()
   }
 
   func stopBackgroundMonitoring() {
     isBackgroundMonitoringEnabled = false
+    updateWakeObservers()
   }
 
   /// The launch backfill. Idempotent, so calling it from several places is harmless.
@@ -101,7 +122,10 @@ final class PowerDiagnosticsService: ObservableObject {
   /// watching. Wake history is the opposite: it is the record of what happened while
   /// nobody was looking.
   private func refreshHistoryOnly() {
-    guard !refreshInFlight else { return }
+    if refreshInFlight {
+      historyRefreshPending = true
+      return
+    }
     refreshInFlight = true
     generation &+= 1
     let requestGeneration = generation
@@ -120,13 +144,7 @@ final class PowerDiagnosticsService: ObservableObject {
       let history = (try? self.historyStore.load())
       DispatchQueue.main.async {
         self.refreshInFlight = false
-        defer {
-          // A press that arrived while this backfill was running was recorded and must
-          // still be served. Without this it was dropped: `pmset -g log` takes several
-          // seconds, so the window is wide, and the user saw a Refresh button that did
-          // nothing at all.
-          if self.refreshPending { self.refresh() }
-        }
+        defer { self.runPendingRefreshIfNeeded() }
         guard requestGeneration == self.generation else { return }
         self.historyFileSizeBytes = self.historyStore.fileSizeBytes
         self.migrationDroppedRecords = self.historyStore.migrationDroppedRecords
@@ -136,8 +154,45 @@ final class PowerDiagnosticsService: ObservableObject {
           self.snapshot.scheduledWakes = scheduled
           self.clearedAt = history.clearedAt
           self.hiddenEventCount = history.hiddenEventCount
+          self.darkWakeHistoryHandler?(history.events)
         }
       }
+    }
+  }
+
+  private func runPendingRefreshIfNeeded() {
+    if historyRefreshPending {
+      historyRefreshPending = false
+      refreshHistoryOnly()
+    } else if refreshPending {
+      refresh()
+    }
+  }
+
+  private func updateWakeObservers() {
+    let shouldObserve = wakeMonitoringReferenceCount > 0
+    if shouldObserve, wakeObserver == nil {
+      wakeObserver = notificationCenter.addObserver(
+        forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+      ) { [weak self] _ in
+        guard let self else { return }
+        self.systemWakeHandler?()
+        // pmset writes its line shortly after the workspace notification.
+        DispatchQueue.main.asyncAfter(deadline: .now() + self.wakeRefreshDelay) {
+          self.refreshHistoryOnly()
+        }
+      }
+      sleepObserver = notificationCenter.addObserver(
+        forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+      ) { [weak self] _ in
+        self?.hasBackfilled = false
+        self?.systemSleepHandler?()
+      }
+    } else if !shouldObserve {
+      if let wakeObserver { notificationCenter.removeObserver(wakeObserver) }
+      if let sleepObserver { notificationCenter.removeObserver(sleepObserver) }
+      wakeObserver = nil
+      sleepObserver = nil
     }
   }
 
@@ -150,9 +205,12 @@ final class PowerDiagnosticsService: ObservableObject {
   func retain() {
     activationCount += 1
     guard activationCount == 1 else { return }
+    updateWakeObservers()
     refresh()
     refreshBattery()
-    let timer = Timer(timeInterval: batteryRefreshInterval, repeats: true) { [weak self] _ in self?.refreshBattery() }
+    let timer = Timer(timeInterval: batteryRefreshInterval, repeats: true) { [weak self] _ in
+      self?.refreshBattery()
+    }
     RunLoop.main.add(timer, forMode: .common)
     batteryTimer = timer
   }
@@ -165,6 +223,7 @@ final class PowerDiagnosticsService: ObservableObject {
     batteryTimer = nil
     batteryRefreshPending = false
     batteryRefreshInFlight = false
+    updateWakeObservers()
   }
 
   func refresh() {
@@ -190,10 +249,12 @@ final class PowerDiagnosticsService: ObservableObject {
       var clearedAt: Date?
       var hiddenCount = 0
 
-      do { next.wakeStatistics = try self.probe.wakeStatistics() }
-      catch { errors.append(error.localizedDescription) }
-      do { next.profiles = try self.probe.powerProfiles() }
-      catch { errors.append(error.localizedDescription) }
+      do { next.wakeStatistics = try self.probe.wakeStatistics() } catch {
+        errors.append(error.localizedDescription)
+      }
+      do { next.profiles = try self.probe.powerProfiles() } catch {
+        errors.append(error.localizedDescription)
+      }
       do {
         // One pass over the log yields both; two calls meant two 25 MB reads.
         let reading = try self.probe.wakeLog()
@@ -206,8 +267,9 @@ final class PowerDiagnosticsService: ObservableObject {
         hiddenCount = history.hiddenEventCount
       } catch { errors.append(error.localizedDescription) }
       // Assertions are cheap and current; a failure here must not blank the history.
-      do { next.assertions = try self.probe.sleepAssertions() }
-      catch { errors.append(error.localizedDescription) }
+      do { next.assertions = try self.probe.sleepAssertions() } catch {
+        errors.append(error.localizedDescription)
+      }
       next.refreshedAt = Date()
       next.errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
 
@@ -217,13 +279,14 @@ final class PowerDiagnosticsService: ObservableObject {
         // later refresh would queue behind a run that had already finished.
         self.isRefreshing = false
         self.refreshInFlight = false
-        defer { if self.refreshPending { self.refresh() } }
+        defer { self.runPendingRefreshIfNeeded() }
         guard requestGeneration == self.generation else { return }
         self.historyFileSizeBytes = self.historyStore.fileSizeBytes
         self.migrationDroppedRecords = self.historyStore.migrationDroppedRecords
         self.clearedAt = clearedAt
         self.hiddenEventCount = hiddenCount
         self.snapshot = next
+        self.darkWakeHistoryHandler?(next.events)
       }
     }
   }
@@ -272,13 +335,17 @@ final class PowerDiagnosticsService: ObservableObject {
       do {
         let battery = try self.probe.batteryStatus()
         DispatchQueue.main.async {
-          guard self.activationCount > 0, self.batteryGeneration == requestGeneration else { return }
+          guard self.activationCount > 0, self.batteryGeneration == requestGeneration else {
+            return
+          }
           self.battery = battery
           self.finishBatteryRefresh()
         }
       } catch {
         DispatchQueue.main.async {
-          guard self.activationCount > 0, self.batteryGeneration == requestGeneration else { return }
+          guard self.activationCount > 0, self.batteryGeneration == requestGeneration else {
+            return
+          }
           var next = self.snapshot
           next.errorMessage = error.localizedDescription
           self.snapshot = next

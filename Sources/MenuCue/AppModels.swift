@@ -137,6 +137,9 @@ struct AppSettings: Equatable {
     /// the background; afterwards wake history keeps being backfilled with the popover
     /// closed, which is the only way "what woke my Mac overnight" can be answered.
     var powerMonitoringEnabled: Bool
+    /// Machine-local: notification endpoints, channel metadata and alert rules never sync.
+    /// Credentials are not present here at all; they live in the local Keychain store.
+    var notificationSettings: NotificationSettings
     var preferenceSyncEnabled: Bool
     var preferenceSyncOnboardingCompleted: Bool
     var portableModificationDates: [PortableSettingField: Date]
@@ -157,6 +160,7 @@ struct AppSettings: Equatable {
         pinnedQuickActions: [QuickActionReference],
         metricsSampling: MetricsSamplingSettings = .default,
         powerMonitoringEnabled: Bool = false,
+        notificationSettings: NotificationSettings = .default,
         preferenceSyncEnabled: Bool = false,
         preferenceSyncOnboardingCompleted: Bool = false,
         portableModificationDates: [PortableSettingField: Date] = [:],
@@ -175,6 +179,7 @@ struct AppSettings: Equatable {
         self.selectedCalendarIDs = selectedCalendarIDs
         self.metricsSampling = metricsSampling.normalized
         self.powerMonitoringEnabled = powerMonitoringEnabled
+        self.notificationSettings = notificationSettings
         self.pinnedQuickActions = pinnedQuickActions
         self.preferenceSyncEnabled = preferenceSyncEnabled
         self.preferenceSyncOnboardingCompleted = preferenceSyncOnboardingCompleted

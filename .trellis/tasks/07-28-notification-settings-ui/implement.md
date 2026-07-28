@@ -29,7 +29,9 @@
 swift test --filter NotificationSettings
 swift test --filter NotificationTemplate
 swift test --filter AlertRuleSettings
-./scripts/verify-localizations.swift
+./scripts/verify-localizations.swift \
+  Sources/MenuCue/Resources/en.lproj/Localizable.strings \
+  Sources/MenuCue/Resources/zh-Hans.lproj/Localizable.strings
 swift test
 ./scripts/build-app.sh
 ```

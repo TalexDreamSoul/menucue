@@ -15,6 +15,10 @@ enum PowerHelperRegistrationState: Equatable {
     self == .enabled
   }
 
+  var needsProminentRemediation: Bool {
+    !isEnabled
+  }
+
   var title: String {
     switch self {
     case .unavailable: return L10n.string("Unavailable")

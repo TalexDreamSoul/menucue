@@ -70,7 +70,9 @@ swift test --filter AlertRuleSettings
 
 ```sh
 swift test
-./scripts/verify-localizations.swift
+./scripts/verify-localizations.swift \
+  Sources/MenuCue/Resources/en.lproj/Localizable.strings \
+  Sources/MenuCue/Resources/zh-Hans.lproj/Localizable.strings
 ./scripts/build-app.sh
 codesign --verify --deep --strict .build/app/MenuCue.app
 ```

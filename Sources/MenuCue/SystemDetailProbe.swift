@@ -30,11 +30,13 @@ enum ThermalSensorKind: String, Equatable, Codable {
 /// One named thermal sensor, so the CPU detail can show P-cluster, E-cluster and
 /// GPU separately instead of collapsing to a single hottest number.
 struct ThermalReading: Identifiable, Equatable, Codable {
+  /// Stable, nonlocalized hardware identity. Labels are display-only.
+  let sensorID: String
   let label: String
   let celsius: Double
   var kind: ThermalSensorKind = .other
 
-  var id: String { label }
+  var id: String { sensorID }
 }
 
 /// A process and what it is holding in physical memory.

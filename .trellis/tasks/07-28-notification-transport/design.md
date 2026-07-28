@@ -15,8 +15,8 @@ protocol NotificationChannel: Sendable {
 protocol NotificationSecretStoring { /* data by stable account key */ }
 protocol NotificationHTTPTransport { func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) }
 protocol NotificationOutboxClaiming {
-  func claimPending(now: Date) async throws -> [NotificationOutboxClaim]
-  func acknowledge(_ outcome: NotificationDeliveryOutcome) async throws
+  func claimPending(now: Date) async throws -> [NotificationOutboxClaim] // includes leaseID
+  func acknowledge(_ outcome: NotificationDeliveryOutcome) async throws // echoes leaseID
 }
 ```
 
@@ -29,11 +29,13 @@ Concrete channels are initialized only after typed validation. The factory resol
 - Bark: settings store base URL/group; Keychain stores device key. POST JSON with key/title/body/group. Decode Bark application result.
 - Telegram: Keychain stores bot token; settings store chat/thread IDs. POST form or JSON to fixed hosted API method and decode `ok`/description/retry parameters.
 
-All response/error mapping strips endpoint/token/key values before constructing descriptions. Cap response bytes and request timeout. Permit only HTTPS and reject URL user-info/fragments. A URLSession task delegate rejects every redirect; no scoped channel requires redirects.
+All response/error mapping strips endpoint/token/key values before constructing descriptions. A URLSession data-byte stream is cancelled as soon as it exceeds the response cap; `Content-Length` above the cap fails before body consumption. Permit only HTTPS and reject URL user-info/fragments. A URLSession task delegate rejects every redirect; no scoped channel requires redirects.
 
 ## Delivery state
 
-The coordinator idempotently leases pending messages from `NotificationOutboxClaiming`, fans out only unacknowledged channels, and records success or terminal/transient failure by `(eventID, kind)`. The concrete atomic store is supplied by the rule/monitor child; transport tests use a crash-aware fake. A fake retry clock makes backoff tests deterministic. Never hold Keychain data in receipts or durable delivery state.
+The coordinator idempotently leases pending messages from `NotificationOutboxClaiming`, fans out only unacknowledged channels, and echoes the exact lease ID in every acknowledgement so the concrete store can reject stale workers after lease expiry/reclaim. It records success or terminal/transient failure by `(eventID, kind, leaseID)`. The concrete atomic store is supplied by the rule/monitor child; transport tests use a crash-aware fake. A fake retry clock makes backoff tests deterministic. Never hold Keychain data in receipts or durable delivery state.
+
+Keychain writes use update-first. An item-not-found result falls back to add; a concurrent add winner (`errSecDuplicateItem`) retries update. This avoids check-then-add races while preserving the fixed service/accessibility/synchronizable attributes.
 
 Keychain uses service `com.tagzxia.app.menucue.notifications`, stable channel/field accounts, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, and `kSecAttrSynchronizable = false`. Tests assert complete SecItem query attributes rather than merely mocking successful reads.
 

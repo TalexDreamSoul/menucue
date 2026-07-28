@@ -30,12 +30,25 @@ private enum QuickActionExecutionError: LocalizedError {
   }
 }
 
+protocol AccessibilityPermissionRequesting {
+  func requestAccess() -> Bool
+}
+
+struct SystemAccessibilityPermissionRequester: AccessibilityPermissionRequesting {
+  func requestAccess() -> Bool {
+    let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+    let options = [promptKey: true] as CFDictionary
+    return AXIsProcessTrustedWithOptions(options)
+  }
+}
+
 final class QuickActionService: ObservableObject {
   @Published private(set) var states: [BuiltInQuickActionID: QuickActionState]
   @Published private(set) var shortcuts: [String] = []
   @Published private(set) var feedbackMessage: String?
 
   private let appearanceService: AppearanceService
+  private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   let powerHelperManager: PowerHelperManager
   private var keepAwakeProcess: Process?
 
@@ -48,8 +61,13 @@ final class QuickActionService: ObservableObject {
   private let cleaningController = CleaningModeController()
   private var cancellables: Set<AnyCancellable> = []
 
-  init(appearanceService: AppearanceService) {
+  init(
+    appearanceService: AppearanceService,
+    accessibilityPermissionRequester: AccessibilityPermissionRequesting =
+      SystemAccessibilityPermissionRequester()
+  ) {
     self.appearanceService = appearanceService
+    self.accessibilityPermissionRequester = accessibilityPermissionRequester
     self.powerHelperManager = PowerHelperManager()
     self.states = Dictionary(
       uniqueKeysWithValues: BuiltInQuickActionID.allCases.map { ($0, .available) }
@@ -212,6 +230,12 @@ final class QuickActionService: ObservableObject {
           : L10n.string("Dark Mode disabled.")
       )
     case .lockScreen:
+      guard accessibilityPermissionRequester.requestAccess() else {
+        setFeedback(
+          L10n.string("Allow Accessibility access to use Lock Screen, then try again.")
+        )
+        return
+      }
       performProcessBacked(reference: .builtIn(actionID)) {
         let source =
           "tell application \"System Events\" to keystroke \"q\" using {control down, command down}"

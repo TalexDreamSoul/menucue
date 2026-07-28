@@ -2,10 +2,10 @@
 
 ## RED
 
-- Add failing tests for message/config validation, URL redaction, UTF-8 byte/character payload limits, redirect rejection, and typed errors.
-- Add mock-HTTP request/response fixtures for Feishu success/API error/signing, Webhook 2xx/4xx/5xx, Bark success/error/custom server, and Telegram success/auth/rate-limit.
-- Add secret-store contract tests for exact service/account/accessibility/non-synchronizable attributes plus create/read/update/delete/missing/corrupt/locked/access failure.
-- Add coordinator tests with a fake outbox for disabled channels, mixed fan-out results, claim expiry, per-channel acknowledgement, bounded retry, and restart resume.
+- Add failing tests for message/config validation, URL redaction, UTF-8 byte/character payload limits, real URLSession redirect rejection, streaming response caps, and typed errors.
+- Add mock-HTTP request/response fixtures for Feishu success/API error/signing, Webhook 2xx/4xx/5xx, Bark success/error/custom server, and Telegram success/auth/rate-limit/invalid-token.
+- Add secret-store contract tests for exact service/account/accessibility/non-synchronizable query attributes, update-first duplicate-add recovery, and create/read/update/delete/missing/corrupt/locked/access failure.
+- Add coordinator tests with lease-bearing fake outbox claims for disabled channels, mixed fan-out results, claim expiry/stale-ack identity, per-channel acknowledgement, bounded retry, and restart resume.
 
 ## GREEN
 

@@ -18,6 +18,11 @@ final class AppModel: ObservableObject {
     /// Shared for the same reason: the popover, the Dashboard and the background
     /// sampler all contribute to and read one history.
     let processEnergyService = ProcessEnergyService()
+    let notificationConfigurationService: NotificationConfigurationService
+    let notificationRuntimeStore: NotificationRuntimeStore
+    let notificationDeliveryDispatcher: NotificationDeliveryDispatcher
+    let alertMonitoringService: AlertMonitoringService
+    let notificationRuntimeErrorMessage: String?
 
     private let settingsStore: SettingsStore
     private let calendarService: CalendarService
@@ -30,8 +35,29 @@ final class AppModel: ObservableObject {
         appearanceService: AppearanceService,
         launchAtLoginService: LaunchAtLoginManaging = LaunchAtLoginService(),
         quickActionService: QuickActionService? = nil,
-        preferenceSyncService: PreferenceSyncService? = nil
+        preferenceSyncService: PreferenceSyncService? = nil,
+        notificationRuntimeStore: NotificationRuntimeStore? = nil,
+        notificationRuntimeErrorMessage: String? = nil,
+        notificationSecretStore: any NotificationSecretStoring = InMemoryNotificationSecretStore(),
+        notificationHTTPTransport: any NotificationHTTPTransport = URLSessionNotificationHTTPTransport()
     ) {
+        let runtimeStore = notificationRuntimeStore ?? Self.temporaryNotificationRuntimeStore()
+        let configurationService = NotificationConfigurationService(
+            secrets: notificationSecretStore,
+            transport: notificationHTTPTransport
+        )
+        let deliveryDispatcher = NotificationDeliveryDispatcher(
+            store: runtimeStore,
+            configuration: configurationService
+        )
+        self.notificationRuntimeStore = runtimeStore
+        self.notificationConfigurationService = configurationService
+        self.notificationDeliveryDispatcher = deliveryDispatcher
+        self.notificationRuntimeErrorMessage = notificationRuntimeErrorMessage
+        self.alertMonitoringService = AlertMonitoringService(
+            store: runtimeStore,
+            providers: AlertMonitoringService.liveProviders()
+        )
         self.settingsStore = settingsStore
         self.calendarService = calendarService
         self.appearanceService = appearanceService
@@ -58,6 +84,7 @@ final class AppModel: ObservableObject {
             onboardingCompleted: settings.preferenceSyncOnboardingCompleted,
             storedIdentityToken: settings.iCloudIdentityTokenData
         )
+        configureNotificationServices(settings.notificationSettings)
     }
 
     func updateSettings(_ update: (inout AppSettings) -> Void) {
@@ -216,6 +243,30 @@ final class AppModel: ObservableObject {
         processEnergyService.startBackgroundSampling()
     }
 
+    func updateNotificationSettings(_ update: (inout NotificationSettings) -> Void) {
+        updateSettings { settings in
+            update(&settings.notificationSettings)
+        }
+    }
+
+    func saveNotificationSecret(_ value: String, for key: NotificationSecretKey) throws {
+        try notificationConfigurationService.saveSecret(value, for: key)
+        configureNotificationServices(settings.notificationSettings)
+    }
+
+    func removeNotificationSecret(_ key: NotificationSecretKey) throws {
+        try notificationConfigurationService.removeSecret(key)
+        configureNotificationServices(settings.notificationSettings)
+    }
+
+    func testNotificationChannel(_ kind: NotificationChannelKind) async {
+        await notificationConfigurationService.testChannel(
+            kind,
+            settings: settings.notificationSettings,
+            systemDeviceName: Host.current().localizedName
+        )
+    }
+
     func updateMetricsSampling(_ update: (inout MetricsSamplingSettings) -> Void) {
         updateSettings { settings in
             var sampling = settings.metricsSampling
@@ -295,7 +346,59 @@ final class AppModel: ObservableObject {
         settings = nextSettings
         settingsStore.save(nextSettings)
         appearanceService.apply(settings: nextSettings)
+        configureNotificationServices(nextSettings.notificationSettings)
         refreshEventsIfPossible()
+    }
+
+    private func configureNotificationServices(_ notificationSettings: NotificationSettings) {
+        let monitor = alertMonitoringService
+        let dispatcher = notificationDeliveryDispatcher
+        Task { @MainActor [weak self, weak monitor, weak dispatcher] in
+            guard let self, let monitor, let dispatcher else { return }
+            await dispatcher.update(settings: notificationSettings)
+            await monitor.setDeviceName(
+                notificationSettings.resolvedDeviceName(systemName: Host.current().localizedName)
+            )
+            await monitor.setDeliveryHandler { [weak dispatcher] in
+                await dispatcher?.kick()
+            }
+            try? await monitor.updateRules(notificationSettings.rules)
+            await monitor.start()
+            self.configureDarkWakeBridge(
+                enabled: notificationSettings.rules.contains {
+                    $0.isEnabled && $0.metricID == "event.darkWake"
+                },
+                monitor: monitor
+            )
+        }
+    }
+
+    private func configureDarkWakeBridge(
+        enabled: Bool,
+        monitor: AlertMonitoringService
+    ) {
+        if enabled {
+            powerDiagnosticsService.setDarkWakeMonitoring(
+                historyHandler: { [weak monitor] events in
+                    Task { await monitor?.processDarkWakeEvents(events) }
+                },
+                onSleep: { [weak monitor] in
+                    Task { await monitor?.handleSystemSleep() }
+                },
+                onWake: { [weak monitor] in
+                    Task { await monitor?.handleSystemWake() }
+                }
+            )
+        } else {
+            powerDiagnosticsService.setDarkWakeMonitoring(historyHandler: nil)
+        }
+    }
+
+    private static func temporaryNotificationRuntimeStore() -> NotificationRuntimeStore {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MenuCue-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("notification-runtime-v1.json")
+        return try! NotificationRuntimeStore(fileURL: url)
     }
 
     private func portableEnvelopes(

@@ -69,7 +69,12 @@ final class SystemSensorReader: SystemSensorReading {
     ]
     return intelKeys.compactMap { entry in
       guard let value = smc.readValue(key: entry.key), (1...125).contains(value) else { return nil }
-      return ThermalReading(label: entry.label, celsius: value, kind: entry.kind)
+      return ThermalReading(
+        sensorID: "smc:\(entry.key)",
+        label: entry.label,
+        celsius: value,
+        kind: entry.kind
+      )
     }
   }
 }
@@ -285,7 +290,8 @@ private final class HIDThermalSensorClient {
   private typealias SetMatching = @convention(c) (AnyObject?, CFDictionary?) -> Int32
   private typealias CopyServices = @convention(c) (AnyObject?) -> Unmanaged<CFArray>?
   private typealias CopyProperty = @convention(c) (AnyObject?, CFString) -> Unmanaged<AnyObject>?
-  private typealias CopyEvent = @convention(c) (AnyObject?, Int64, Int32, Int64) ->
+  private typealias CopyEvent =
+    @convention(c) (AnyObject?, Int64, Int32, Int64) ->
     Unmanaged<AnyObject>?
   private typealias EventFloatValue = @convention(c) (AnyObject?, Int32) -> Double
 
@@ -380,11 +386,13 @@ private final class HIDThermalSensorClient {
     }
 
     let readings = Self.clusterLabels.compactMap { cluster -> ThermalReading? in
-      let values = sensors
+      let values =
+        sensors
         .filter { $0.name.hasPrefix(cluster.prefix) }
         .compactMap { read($0) }
       guard !values.isEmpty else { return nil }
       return ThermalReading(
+        sensorID: "hid:\(cluster.kind.rawValue)",
         label: L10n.string(cluster.label),
         celsius: values.reduce(0, +) / Double(values.count),
         kind: cluster.kind

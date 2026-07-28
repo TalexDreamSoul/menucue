@@ -22,10 +22,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsStore = SettingsStore()
         let calendarService = CalendarService()
         let appearanceService = AppearanceService()
+        let runtimeStore: NotificationRuntimeStore
+        let runtimeErrorMessage: String?
+        do {
+            runtimeStore = try NotificationRuntimeStore.applicationStore()
+            runtimeErrorMessage = nil
+        } catch {
+            let message = L10n.string(
+                "Notification history could not be opened. Existing pending messages were preserved."
+            )
+            runtimeStore = NotificationRuntimeStore.unavailable(reason: message)
+            runtimeErrorMessage = message
+        }
         let model = AppModel(
             settingsStore: settingsStore,
             calendarService: calendarService,
-            appearanceService: appearanceService
+            appearanceService: appearanceService,
+            notificationRuntimeStore: runtimeStore,
+            notificationRuntimeErrorMessage: runtimeErrorMessage,
+            notificationSecretStore: KeychainNotificationSecretStore()
         )
         let updateService = UpdateService(engine: SparkleUpdateEngine())
         let languageService = AppLanguageService()

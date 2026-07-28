@@ -155,6 +155,10 @@ struct QuickActionSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
+      if powerHelper.registrationState.needsProminentRemediation {
+        powerHelperSection(isProminent: true)
+      }
+
       SettingsGroup(spacing: 12) {
         HStack {
           VStack(alignment: .leading, spacing: 2) {
@@ -269,52 +273,70 @@ struct QuickActionSettingsView: View {
         .animation(PopoverMotion.state, value: service.feedbackMessage)
       }
 
-      SettingsGroup(spacing: 12) {
-        HStack(alignment: .top, spacing: 10) {
-          Image(
-            systemName: powerHelper.registrationState.isEnabled
-              ? "checkmark.shield.fill" : "shield.lefthalf.filled"
-          )
-          .font(.title3)
-          .foregroundStyle(powerHelper.registrationState.isEnabled ? Color.green : Color.orange)
-          .frame(width: 24)
-          VStack(alignment: .leading, spacing: 3) {
-            HStack {
-              Text("Power Helper")
-                .font(.headline)
-              Spacer()
-              Text(powerHelper.registrationState.title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            }
-            Text(powerHelper.registrationState.detail)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-            Text(
-              "Low Power Mode applies to battery and adapter power. Don't Sleep When Closed can increase heat and battery use."
-            )
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-          }
-        }
-
-        if let helperFeedback {
-          Text(helperFeedback)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .transition(.opacity)
-        }
-
-        HStack {
-          Spacer()
-          helperActionButton
-        }
+      if !powerHelper.registrationState.needsProminentRemediation {
+        powerHelperSection(isProminent: false)
       }
-      .animation(PopoverMotion.state, value: powerHelper.registrationState)
     }
     .onAppear {
       service.refreshAll()
     }
+  }
+
+  private func powerHelperSection(isProminent: Bool) -> some View {
+    SettingsGroup(spacing: 12) {
+      HStack(alignment: .top, spacing: 10) {
+        Image(
+          systemName: powerHelper.registrationState.isEnabled
+            ? "checkmark.shield.fill"
+            : isProminent ? "exclamationmark.shield.fill" : "shield.lefthalf.filled"
+        )
+        .font(.title3)
+        .foregroundStyle(powerHelper.registrationState.isEnabled ? Color.green : Color.orange)
+        .frame(width: 24)
+        VStack(alignment: .leading, spacing: 3) {
+          HStack {
+            Text("Power Helper")
+              .font(.headline)
+            Spacer()
+            Text(powerHelper.registrationState.title)
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.secondary)
+          }
+          Text(powerHelper.registrationState.detail)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+          Text(
+            "Low Power Mode applies to battery and adapter power. Don't Sleep When Closed can increase heat and battery use."
+          )
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+
+      if let helperFeedback {
+        Text(helperFeedback)
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .transition(.opacity)
+      }
+
+      HStack {
+        Spacer()
+        helperActionButton
+      }
+    }
+    .padding(isProminent ? 14 : 0)
+    .background(
+      isProminent ? Color.orange.opacity(0.10) : Color.clear,
+      in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+    )
+    .overlay {
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .stroke(isProminent ? Color.orange.opacity(0.45) : Color.clear, lineWidth: 1)
+    }
+    .animation(PopoverMotion.state, value: powerHelper.registrationState)
   }
 
   /// Pin/unpin control layered on a catalog tile. Kept outside the tile's own
@@ -362,6 +384,7 @@ struct QuickActionSettingsView: View {
       Button("Open System Settings") {
         powerHelper.openSystemSettings()
       }
+      .buttonStyle(.borderedProminent)
       Button("Cancel Install", role: .destructive, action: removePowerHelper)
         .disabled(powerHelper.isWorking)
     case .refreshRequired:
@@ -369,15 +392,18 @@ struct QuickActionSettingsView: View {
         helperFeedback = nil
         powerHelper.refreshHelperRegistration()
       }
+      .buttonStyle(.borderedProminent)
       .disabled(powerHelper.isWorking)
     case .unavailable:
       Button("Install Helper") {}
+        .buttonStyle(.borderedProminent)
         .disabled(true)
     case .notRegistered, .failed:
       Button("Install Helper") {
         helperFeedback = nil
         powerHelper.requestRegistration()
       }
+      .buttonStyle(.borderedProminent)
       .disabled(powerHelper.isWorking)
     }
   }

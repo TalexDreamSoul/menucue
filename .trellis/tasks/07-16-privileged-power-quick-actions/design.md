@@ -88,6 +88,16 @@ The first enable requires a safety confirmation about heat, ventilation, and bat
 
 Settings adds a Helper section with status and Install / Open System Settings / Remove controls.
 
+The Helper section is state-positioned: unresolved states render first as an orange attention
+surface with a prominent remediation button; the enabled state renders after the action catalog
+as routine management. One shared view produces both placements so status copy and actions cannot
+drift.
+
+Lock Screen performs an explicit Accessibility trust request on the user click before dispatching
+its System Events keystroke. `AXIsProcessTrustedWithOptions` receives the prompt option, which lets
+macOS own the authorization UI. A denied request stops before AppleScript execution and publishes a
+localized remediation message.
+
 ## Compact UI and icons
 
 - Popover size: 304×640 points.

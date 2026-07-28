@@ -34,8 +34,17 @@ Build both products before changing the UI.
 ## 5. Add Helper settings
 
 - Show status, explanatory copy, and context-appropriate action buttons in Quick Actions settings.
+- Place unresolved Helper states at the top as a prominent remediation surface; keep the enabled
+  management state below the catalog.
 - Keep unavailable actions unpinnable until Helper status is enabled.
 - Refresh status when settings and the action catalog appear.
+
+## 5.1 Request lock-screen authorization
+
+- Inject a small Accessibility permission requester into `QuickActionService`.
+- Request the native macOS prompt from the Lock Screen click before sending System Events keystrokes.
+- Stop and show localized remediation when access is not granted.
+- Add tests for permission request invocation and Helper attention-state classification.
 
 ## 6. Compact the popover and repair Shortcut icons
 
