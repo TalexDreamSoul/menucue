@@ -36,13 +36,10 @@ struct DashboardCard<Content: View, Accessory: View>: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 6) {
         Image(systemName: systemImage)
-          .font(.system(size: 12, weight: .semibold))
+          .font(.headline)
           .foregroundStyle(tint)
         Text(title)
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(.secondary)
-          .textCase(.uppercase)
-          .kerning(0.4)
+          .font(.headline)
         Spacer(minLength: 6)
         accessory
       }
@@ -50,13 +47,15 @@ struct DashboardCard<Content: View, Accessory: View>: View {
     }
     .padding(14)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    // Semantic colors rather than an opacity over `primary`, so the card keeps its
+    // contrast in dark mode and under Increase Contrast.
     .background(
-      Color.primary.opacity(0.045),
+      Color(nsColor: .controlBackgroundColor),
       in: RoundedRectangle(cornerRadius: DashboardMetrics.cardCornerRadius, style: .continuous)
     )
     .overlay(
       RoundedRectangle(cornerRadius: DashboardMetrics.cardCornerRadius, style: .continuous)
-        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        .strokeBorder(.quaternary, lineWidth: 1)
     )
   }
 }
@@ -71,13 +70,11 @@ struct StatTile: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(title)
-        .font(.system(size: 11, weight: .semibold))
+        .font(.subheadline)
         .foregroundStyle(.secondary)
-        .textCase(.uppercase)
-        .kerning(0.4)
         .lineLimit(1)
       Text(value)
-        .font(.system(size: 22, weight: .semibold, design: .rounded))
+        .font(.title2.weight(.semibold))
         .monospacedDigit()
         .foregroundStyle(tint)
         .lineLimit(1)
@@ -86,7 +83,7 @@ struct StatTile: View {
         .animation(PopoverMotion.value, value: value)
       if let detail {
         Text(detail)
-          .font(.system(size: 11))
+          .font(.caption)
           .foregroundStyle(.tertiary)
           .lineLimit(1)
       }
@@ -108,13 +105,13 @@ struct DataRow: View {
   var body: some View {
     HStack(spacing: 10) {
       Text(label)
-        .font(.system(size: 12))
+        .font(.body)
         .foregroundStyle(.secondary)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: 8)
       Text(value)
-        .font(.system(size: 12, weight: .semibold, design: isMonospaced ? .rounded : .default))
+        .font(.body.weight(.medium))
         .monospacedDigit()
         .foregroundStyle(valueColor)
         .lineLimit(1)
@@ -130,9 +127,9 @@ struct UnsupportedNote: View {
   var body: some View {
     HStack(spacing: 6) {
       Image(systemName: "minus.circle")
-        .font(.system(size: 11))
+        .font(.callout)
       Text(message)
-        .font(.system(size: 12))
+        .font(.callout)
         .fixedSize(horizontal: false, vertical: true)
     }
     .foregroundStyle(.tertiary)
@@ -153,10 +150,10 @@ struct ChartLegend: View {
             .fill(band.color)
             .frame(width: 8, height: 8)
           Text(band.label)
-            .font(.system(size: 11, weight: .medium))
+            .font(.callout)
             .foregroundStyle(.secondary)
           Text(format(band.values.last ?? 0))
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .font(.callout.weight(.medium))
             .monospacedDigit()
             .contentTransition(.numericText())
         }
@@ -166,8 +163,14 @@ struct ChartLegend: View {
   }
 }
 
-/// Horizontal tab switcher across the top of the Dashboard. Same idiom as
-/// `PopoverTabBar`, sized for the settings window.
+/// Tab switcher across the top of the Dashboard.
+///
+/// Drawn rather than a stock segmented `Picker`. A segmented control is the closer
+/// platform idiom, but on macOS it renders either the icon or the label, not both,
+/// and it cannot be snapshot-tested — `ImageRenderer` cannot capture AppKit-backed
+/// controls, so its appearance could not be verified before shipping. This keeps the
+/// icon-plus-label pairing, matches the popover's bar, and carries the selection
+/// semantics a segmented control would have supplied.
 struct DashboardTabBar: View {
   @Binding var selection: DashboardSection
   @Namespace private var highlight
@@ -182,22 +185,21 @@ struct DashboardTabBar: View {
         } label: {
           HStack(spacing: 6) {
             Image(systemName: section.systemImage)
-              .font(.system(size: 12, weight: .semibold))
               .symbolEffect(.bounce, value: selection == section)
             Text(section.title)
-              .font(.system(size: 12, weight: .semibold))
           }
+          .font(.callout.weight(.medium))
           .frame(maxWidth: .infinity)
           .padding(.vertical, 7)
           .background {
             if selection == section {
-              RoundedRectangle(cornerRadius: 8, style: .continuous)
+              RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(Color(nsColor: .controlBackgroundColor))
                 .shadow(color: .black.opacity(0.10), radius: 2, y: 1)
                 .matchedGeometryEffect(id: "selected-dashboard-tab", in: highlight)
             } else if hovered == section {
-              RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.primary.opacity(0.05))
+              RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(.quaternary)
             }
           }
           .contentShape(Rectangle())
@@ -214,13 +216,7 @@ struct DashboardTabBar: View {
       }
     }
     .padding(3)
-    .background(
-      Color.primary.opacity(0.06),
-      in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-    )
-    // Selection is already shown by the filled pill; the focus ring would read as
-    // a second selected tab.
-    .focusEffectDisabled()
+    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
   }
 }
 

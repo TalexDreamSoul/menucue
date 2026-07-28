@@ -27,6 +27,8 @@ final class DashboardMetricsService: ObservableObject {
   private let processLimit: Int
   private let historyCapacity: Int
   private let sensorReader: SystemSensorReading
+  /// Long enough for every core to accumulate a tick, short enough not to be felt.
+  private static let primingInterval: TimeInterval = 0.25
   private let queue = DispatchQueue(
     label: "com.tagzxia.app.menucue.dashboard-metrics",
     qos: .userInitiated
@@ -101,6 +103,9 @@ final class DashboardMetricsService: ObservableObject {
   }
 
   func deactivate() {
+    // A stale baseline would make the next visit's first sample span the whole time
+    // the tab was hidden, which reads as a flat 100% or 0%.
+    previousCoreTicks = []
     section = nil
     generation &+= 1
     timer?.invalidate()
@@ -144,6 +149,14 @@ final class DashboardMetricsService: ObservableObject {
       var result = DashboardResult()
 
       if probes.contains(.perCore) {
+        // Per-core load is a difference, so the very first pass has no baseline and
+        // would leave the card empty until the next tick — long enough that opening
+        // the CPU tab looks broken. Priming here costs one short sleep, once.
+        if self.previousCoreTicks.isEmpty {
+          self.previousCoreTicks = DashboardProbe.perCoreTicks()
+          Thread.sleep(forTimeInterval: Self.primingInterval)
+        }
+
         let ticks = DashboardProbe.perCoreTicks()
         if self.coreTopology.count != ticks.count {
           self.coreTopology = DashboardProbe.coreTopology(coreCount: ticks.count)

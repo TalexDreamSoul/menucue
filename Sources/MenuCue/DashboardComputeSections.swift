@@ -16,7 +16,7 @@ struct DashboardCPUSection: View {
       DashboardCard(title: L10n.string("Processor"), systemImage: "cpu", tint: Self.userColor) {
         if let temperature = snapshot.cpuTemperature {
           Text(SystemMetricsFormatter.temperature(temperature))
-            .font(.system(size: 15, weight: .bold, design: .rounded))
+            .font(.title3.weight(.bold))
             .monospacedDigit()
             .foregroundStyle(DashboardPalette.temperature(temperature))
             .contentTransition(.numericText())
@@ -25,16 +25,16 @@ struct DashboardCPUSection: View {
         HStack(alignment: .firstTextBaseline) {
           VStack(alignment: .leading, spacing: 2) {
             Text(metrics.hardware.chipName)
-              .font(.system(size: 15, weight: .semibold))
+              .font(.headline)
             if !metrics.hardware.coreSummary.isEmpty {
               Text(metrics.hardware.coreSummary)
-                .font(.system(size: 12))
+                .font(.callout)
                 .foregroundStyle(.tertiary)
             }
           }
           Spacer(minLength: 12)
           Text(SystemMetricsFormatter.percent(snapshot.cpu.busy))
-            .font(.system(size: 30, weight: .semibold, design: .rounded))
+            .font(.largeTitle.weight(.semibold))
             .monospacedDigit()
             .contentTransition(.numericText())
         }
@@ -81,7 +81,7 @@ struct DashboardCPUSection: View {
       title: L10n.string("Per-Core Load"), systemImage: "square.grid.3x3", tint: .accentColor
     ) {
       Text(L10n.format("%d cores", dashboard.snapshot.perCoreLoad.count))
-        .font(.system(size: 11))
+        .font(.caption)
         .foregroundStyle(.tertiary)
     } content: {
       if dashboard.snapshot.perCoreLoad.isEmpty {
@@ -91,12 +91,12 @@ struct DashboardCPUSection: View {
           ForEach(dashboard.snapshot.perCoreLoad) { core in
             HStack(spacing: 8) {
               Text(coreLabel(core))
-                .font(.system(size: 11, weight: .medium))
+                .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(width: 62, alignment: .leading)
               MetricBar(fraction: core.busy, tint: DashboardPalette.load(core.busy), height: 6)
               Text(SystemMetricsFormatter.percent(core.busy))
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .font(.caption.weight(.medium))
                 .monospacedDigit()
                 .frame(width: 40, alignment: .trailing)
             }
@@ -134,7 +134,7 @@ struct DashboardCPUSection: View {
             label: L10n.string("Logical cores"),
             value: "\(metrics.hardware.logicalCores)")
           Text(L10n.string("Runnable threads averaged over each window. Above the core count means work is queued."))
-            .font(.system(size: 11))
+            .font(.caption)
             .foregroundStyle(.tertiary)
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -184,7 +184,7 @@ struct DashboardGPUSection: View {
       ) {
         if let temperature = gpuTemperature {
           Text(SystemMetricsFormatter.temperature(temperature))
-            .font(.system(size: 15, weight: .bold, design: .rounded))
+            .font(.title3.weight(.bold))
             .monospacedDigit()
             .foregroundStyle(DashboardPalette.temperature(temperature))
             .contentTransition(.numericText())
@@ -197,11 +197,11 @@ struct DashboardGPUSection: View {
             // On Apple silicon the GPU is part of the SoC, so the chip name is the
             // honest identifier — there is no public API for a GPU core count.
             Text(metrics.hardware.chipName)
-              .font(.system(size: 15, weight: .semibold))
+              .font(.headline)
             Spacer(minLength: 12)
             if let utilization = gpu.deviceUtilization {
               Text(SystemMetricsFormatter.percent(utilization))
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                .font(.largeTitle.weight(.semibold))
                 .monospacedDigit()
                 .contentTransition(.numericText())
             }
@@ -281,15 +281,15 @@ struct DashboardMemorySection: View {
       } content: {
         HStack(alignment: .firstTextBaseline) {
           Text(SystemMetricsFormatter.capacity(memory.used))
-            .font(.system(size: 30, weight: .semibold, design: .rounded))
+            .font(.largeTitle.weight(.semibold))
             .monospacedDigit()
             .contentTransition(.numericText())
           Text(L10n.format("of %@", SystemMetricsFormatter.capacity(memory.total)))
-            .font(.system(size: 13))
+            .font(.callout)
             .foregroundStyle(.secondary)
           Spacer(minLength: 12)
           Text(SystemMetricsFormatter.percent(memory.fraction))
-            .font(.system(size: 18, weight: .semibold, design: .rounded))
+            .font(.title3.weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(.secondary)
         }

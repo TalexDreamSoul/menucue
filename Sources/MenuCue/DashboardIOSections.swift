@@ -54,7 +54,7 @@ struct DashboardStorageSection: View {
 
       DashboardCard(title: L10n.string("Volumes"), systemImage: "internaldrive", tint: .teal) {
         Text(L10n.format("%d mounted", dashboard.snapshot.volumes.count))
-          .font(.system(size: 11))
+          .font(.caption)
           .foregroundStyle(.tertiary)
       } content: {
         let volumes = dashboard.snapshot.volumes
@@ -66,18 +66,18 @@ struct DashboardStorageSection: View {
               VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                   Text(volume.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.callout.weight(.semibold))
                     .lineLimit(1)
                     .truncationMode(.middle)
                   Text(volume.format)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Color.primary.opacity(0.07), in: Capsule())
                   if volume.isInternal {
                     Text(L10n.string("Internal"))
-                      .font(.system(size: 10, weight: .medium))
+                      .font(.caption2)
                       .foregroundStyle(.teal)
                       .padding(.horizontal, 6)
                       .padding(.vertical, 2)
@@ -85,7 +85,7 @@ struct DashboardStorageSection: View {
                   }
                   Spacer(minLength: 6)
                   Text(SystemMetricsFormatter.percent(volume.fraction))
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(.callout.weight(.medium))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                 }
@@ -101,7 +101,7 @@ struct DashboardStorageSection: View {
                     L10n.format("%@ total", SystemMetricsFormatter.capacity(volume.total))
                   )
                 }
-                .font(.system(size: 11))
+                .font(.caption)
                 .foregroundStyle(.tertiary)
               }
             }
@@ -138,7 +138,7 @@ struct DashboardNetworkSection: View {
       DashboardCard(title: L10n.string("Traffic"), systemImage: "globe", tint: .blue) {
         if let interface = network.interfaceName {
           Text(interface)
-            .font(.system(size: 11, weight: .medium))
+            .font(.caption)
             .foregroundStyle(.tertiary)
         }
       } content: {
@@ -159,7 +159,7 @@ struct DashboardNetworkSection: View {
         title: L10n.string("Interfaces"), systemImage: "network", tint: .blue
       ) {
         Text(L10n.format("%d active", dashboard.snapshot.interfaces.count))
-          .font(.system(size: 11))
+          .font(.caption)
           .foregroundStyle(.tertiary)
       } content: {
         let interfaces = dashboard.snapshot.interfaces
@@ -171,10 +171,10 @@ struct DashboardNetworkSection: View {
               VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
                   Text(interface.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.callout.weight(.semibold))
                   if interface.name == network.interfaceName {
                     Text(L10n.string("Primary"))
-                      .font(.system(size: 10, weight: .medium))
+                      .font(.caption2)
                       .foregroundStyle(.blue)
                       .padding(.horizontal, 6)
                       .padding(.vertical, 2)
@@ -183,7 +183,7 @@ struct DashboardNetworkSection: View {
                   Spacer(minLength: 6)
                   if let address = interface.ipv4Address {
                     Text(address)
-                      .font(.system(size: 12, weight: .semibold, design: .rounded))
+                      .font(.callout.weight(.medium))
                       .foregroundStyle(.blue)
                       .textSelection(.enabled)
                   }
@@ -222,7 +222,7 @@ struct DashboardSensorsSection: View {
       DashboardCard(title: L10n.string("Cooling"), systemImage: "fanblades", tint: .cyan) {
         if !fans.isEmpty {
           Text(L10n.format("%d fans", fans.count))
-            .font(.system(size: 11))
+            .font(.caption)
             .foregroundStyle(.tertiary)
         }
       } content: {
@@ -235,17 +235,17 @@ struct DashboardSensorsSection: View {
               VStack(alignment: .leading, spacing: 6) {
                 HStack {
                   Text(L10n.format("Fan %d", fan.index + 1))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.callout.weight(.semibold))
                   Spacer(minLength: 8)
                   Text(L10n.format("%d RPM", Int(fan.currentRPM)))
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.title3.weight(.semibold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 }
                 if fan.maxRPM > fan.minRPM {
                   MetricBar(fraction: fan.loadFraction, tint: .cyan, height: 7)
                   Text(L10n.format("%d–%d RPM", Int(fan.minRPM), Int(fan.maxRPM)))
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
                 }
                 if let history = dashboard.fanHistory[fan.index], history.values.count > 1 {

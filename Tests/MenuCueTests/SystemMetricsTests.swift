@@ -170,8 +170,16 @@ final class SystemMetricsServiceLifecycleTests: XCTestCase {
     counters.timestamp = 100
     counters.cpuTicks = CPUTicks(user: 10, system: 10, idle: 80, nice: 0)
 
+    // Isolated defaults, because the assertion below is that the snapshot stayed
+    // empty. Left on `.standard` this restores whatever cache the test host happens
+    // to hold — one earlier test that ran the service for real is enough to fail it.
+    let suite = "SystemMetricsServiceLifecycleTests"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+
     let service = SystemMetricsService(
       sampleInterval: 30,
+      defaults: defaults,
       sensorReader: SensorReaderStub(),
       countersProvider: {
         providerStarted.fulfill()
