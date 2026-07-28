@@ -70,7 +70,7 @@ struct PopoverCard<Content: View, Accessory: View>: View {
           .font(.system(size: 11, weight: .semibold))
           .foregroundStyle(tint)
           .scaleEffect(isHovering ? 1.12 : 1)
-        Text(title)
+        Text(L10n.string(title))
           .font(.system(size: 11, weight: .semibold))
           .foregroundStyle(isHovering ? .secondary : .tertiary)
           .textCase(.uppercase)
@@ -130,7 +130,7 @@ struct MetricReadout: View {
 
   var body: some View {
     VStack(alignment: alignment, spacing: 1) {
-      Text(label)
+      Text(L10n.string(label))
         .font(.system(size: 9, weight: .medium))
         .foregroundStyle(.tertiary)
       Text(value)
@@ -158,7 +158,7 @@ struct LegendItem: View {
       RoundedRectangle(cornerRadius: 2, style: .continuous)
         .fill(color)
         .frame(width: 7, height: 7)
-      Text(label)
+      Text(L10n.string(label))
         .font(.system(size: 10, weight: .medium))
         .foregroundStyle(.secondary)
       Text(value)
@@ -175,7 +175,7 @@ struct CardPlaceholder: View {
   let message: String
 
   var body: some View {
-    Text(message)
+    Text(L10n.string(message))
       .font(.system(size: 11))
       .foregroundStyle(.tertiary)
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -280,7 +280,7 @@ struct PopoverFooter: View {
         Divider()
         Button("Settings…", action: openSettings)
         Divider()
-        Button("Quit \(ProductBrand.displayName)", action: quitApp)
+        Button("Quit MenuCue", action: quitApp)
       } label: {
         Image(systemName: "ellipsis")
           .font(.system(size: 12, weight: .semibold))

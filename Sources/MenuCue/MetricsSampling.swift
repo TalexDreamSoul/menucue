@@ -53,7 +53,7 @@ struct MetricsSamplingSettings: Equatable, Codable {
 }
 
 extension ClosedRange where Bound: Comparable {
-  fileprivate func clamp(_ value: Bound) -> Bound {
+  func clamp(_ value: Bound) -> Bound {
     Swift.min(upperBound, Swift.max(lowerBound, value))
   }
 }
@@ -102,8 +102,8 @@ enum AdaptiveSamplingPolicy {
   /// Human-readable summary for the settings pane.
   static func describe(_ interval: TimeInterval) -> String {
     interval < 10
-      ? String(format: "%.1fs", interval)
-      : String(format: "%.0fs", interval)
+      ? L10n.format("%.1fs", interval)
+      : L10n.format("%.0fs", interval)
   }
 }
 

@@ -78,7 +78,10 @@ enum SystemDetailProbe {
   /// Top memory consumers. Processes owned by other users (mostly root daemons)
   /// cannot be inspected without privileges and are skipped — they are small, and
   /// every user-visible app is readable.
-  static func topMemoryProcesses(limit: Int = 6) -> [ProcessMemoryEntry] {
+  ///
+  /// The default suits the popover's hover panel, which is a glance rather than a list.
+  /// The Dashboard's Memory tab asks for a longer one explicitly.
+  static func topMemoryProcesses(limit: Int = 3) -> [ProcessMemoryEntry] {
     let capacity = proc_listallpids(nil, 0)
     guard capacity > 0 else { return [] }
 

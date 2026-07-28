@@ -5,11 +5,13 @@ import IOKit
 /// Raw counters that only become a rate once compared against the previous read.
 struct CumulativeCounters: Equatable {
   var timestamp: TimeInterval = 0
-  var cpuTicks = CPUTicks()
-  var diskReadBytes: UInt64 = 0
-  var diskWriteBytes: UInt64 = 0
-  var networkInBytes: UInt64 = 0
-  var networkOutBytes: UInt64 = 0
+  var cpuTicks: CPUTicks?
+  var diskReadBytes: UInt64?
+  var diskWriteBytes: UInt64?
+  var networkInBytes: UInt64?
+  var networkOutBytes: UInt64?
+  var networkInterfaceName: String?
+  var networkIPv4Address: String?
 }
 
 struct CPUTicks: Equatable {
@@ -58,15 +60,22 @@ enum SystemMetricsProbe {
   static func cumulativeCounters() -> CumulativeCounters {
     var counters = CumulativeCounters()
     counters.timestamp = ProcessInfo.processInfo.systemUptime
-    counters.cpuTicks = cpuTicks()
+    let ticks = cpuTicks()
+    counters.cpuTicks = ticks.total > 0 ? ticks : nil
 
-    let disk = diskThroughputCounters()
-    counters.diskReadBytes = disk.read
-    counters.diskWriteBytes = disk.write
+    if let disk = diskThroughputCounters() {
+      counters.diskReadBytes = disk.read
+      counters.diskWriteBytes = disk.write
+    }
 
-    let network = networkThroughputCounters()
-    counters.networkInBytes = network.input
-    counters.networkOutBytes = network.output
+    if let primaryInterface = primaryIPv4() {
+      counters.networkInterfaceName = primaryInterface.interface
+      counters.networkIPv4Address = primaryInterface.address
+      if let network = networkThroughputCounters(interfaceName: primaryInterface.interface) {
+        counters.networkInBytes = network.input
+        counters.networkOutBytes = network.output
+      }
+    }
 
     return counters
   }
@@ -165,18 +174,19 @@ enum SystemMetricsProbe {
     return (name, used, total)
   }
 
-  private static func diskThroughputCounters() -> (read: UInt64, write: UInt64) {
+  private static func diskThroughputCounters() -> (read: UInt64, write: UInt64)? {
     var iterator: io_iterator_t = 0
     guard
       IOServiceGetMatchingServices(
         kIOMainPortDefault, IOServiceMatching("IOBlockStorageDriver"), &iterator) == KERN_SUCCESS
     else {
-      return (0, 0)
+      return nil
     }
     defer { IOObjectRelease(iterator) }
 
     var read: UInt64 = 0
     var write: UInt64 = 0
+    var foundDrive = false
 
     // Key names come from IOBlockStorageDriver.h, which IOKit does not expose to Swift.
     while case let drive = IOIteratorNext(iterator), drive != 0 {
@@ -192,35 +202,34 @@ enum SystemMetricsProbe {
         continue
       }
 
+      foundDrive = true
       read &+= (statistics["Bytes (Read)"] as? NSNumber)?.uint64Value ?? 0
       write &+= (statistics["Bytes (Write)"] as? NSNumber)?.uint64Value ?? 0
     }
 
-    return (read, write)
+    return foundDrive ? (read, write) : nil
   }
 
   // MARK: - Network
 
-  private static func networkThroughputCounters() -> (input: UInt64, output: UInt64) {
+  private static func networkThroughputCounters(
+    interfaceName: String
+  ) -> (input: UInt64, output: UInt64)? {
     var addresses: UnsafeMutablePointer<ifaddrs>?
-    guard getifaddrs(&addresses) == 0, let first = addresses else { return (0, 0) }
+    guard getifaddrs(&addresses) == 0, let first = addresses else { return nil }
     defer { freeifaddrs(addresses) }
-
-    var input: UInt64 = 0
-    var output: UInt64 = 0
 
     for pointer in sequence(first: first, next: { $0.pointee.ifa_next }) {
       let interface = pointer.pointee
       guard interface.ifa_addr?.pointee.sa_family == UInt8(AF_LINK) else { continue }
       guard let name = interface.ifa_name.map({ String(cString: $0) }) else { continue }
-      guard isCountableInterface(name, flags: interface.ifa_flags) else { continue }
+      guard name == interfaceName else { continue }
       guard let data = interface.ifa_data?.assumingMemoryBound(to: if_data.self) else { continue }
 
-      input &+= UInt64(data.pointee.ifi_ibytes)
-      output &+= UInt64(data.pointee.ifi_obytes)
+      return (UInt64(data.pointee.ifi_ibytes), UInt64(data.pointee.ifi_obytes))
     }
 
-    return (input, output)
+    return nil
   }
 
   static func primaryIPv4() -> (interface: String, address: String)? {

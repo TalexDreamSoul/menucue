@@ -28,9 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appearanceService: appearanceService
         )
         let updateService = UpdateService(engine: SparkleUpdateEngine())
+        let languageService = AppLanguageService()
         statusBarController = StatusBarController(
             model: model,
-            updateService: updateService
+            updateService: updateService,
+            languageService: languageService
         )
     }
 

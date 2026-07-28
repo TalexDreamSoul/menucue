@@ -1,0 +1,3 @@
+"NSCalendarsFullAccessUsageDescription" = "MenuCue shows upcoming events from the calendars you select.";
+"NSCalendarsUsageDescription" = "MenuCue shows upcoming events from the calendars you select.";
+"NSAppleEventsUsageDescription" = "MenuCue uses macOS Automation for system appearance and Quick Actions such as Lock Screen.";

@@ -32,6 +32,7 @@ struct StatusTabView: View {
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
     }
+    .scrollBounceBehavior(.basedOnSize)
     .overlayPreferenceValue(MetricDetailAnchorKey.self) { anchors in
       GeometryReader { proxy in
         if let target = detail.target, let anchor = anchors[target] {
@@ -246,7 +247,7 @@ struct SystemMetricsCards: View {
     } content: {
       // Mirrors the Disk card's volume name so both bars land on the same line
       // when the two cards share a row.
-      Text("Physical Memory")
+      Text(L10n.string("Physical Memory"))
         .font(.system(size: 11, weight: .semibold))
         .lineLimit(1)
         .minimumScaleFactor(0.7)
@@ -288,6 +289,9 @@ struct SystemMetricsCards: View {
           value: SystemMetricsFormatter.capacity(disk.total),
           alignment: .trailing)
       }
+      Text(L10n.string("All disks"))
+        .font(.system(size: 9, weight: .medium))
+        .foregroundStyle(.tertiary)
       HStack(spacing: 4) {
         MetricReadout(
           label: "Read",
@@ -308,18 +312,22 @@ struct SystemMetricsCards: View {
     let fans = metrics.snapshot.fans
 
     return PopoverCard(title: "Fan", systemImage: "fanblades", tint: .cyan, fillsHeight: true) {
-      Text(fans.count == 1 ? "1 fan" : "\(fans.count) fans")
+      Text(
+        fans.count == 1
+          ? L10n.string("1 fan")
+          : L10n.format("%d fans", fans.count)
+      )
         .font(.system(size: 10, weight: .medium))
         .foregroundStyle(.tertiary)
     } content: {
       ForEach(fans) { fan in
         VStack(alignment: .leading, spacing: 3) {
           HStack(spacing: 4) {
-            Text("Fan \(fan.index + 1)")
+            Text(L10n.format("Fan %d", fan.index + 1))
               .font(.system(size: 10, weight: .medium))
               .foregroundStyle(.secondary)
             Spacer(minLength: 4)
-            Text("\(Int(fan.currentRPM)) RPM")
+            Text(L10n.format("%d RPM", Int(fan.currentRPM)))
               .font(.system(size: 12, weight: .semibold, design: .rounded))
               .monospacedDigit()
               .contentTransition(.numericText())

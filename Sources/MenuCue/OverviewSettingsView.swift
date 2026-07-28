@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// Settings landing pane: what this Mac is, what MenuCue is currently doing, and
@@ -46,6 +47,9 @@ struct OverviewSettingsView: View {
       powerSource = PowerSourceReader.current()
       quickActionService.refreshAll()
     }
+    .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { _ in
+      powerSource = PowerSourceReader.current()
+    }
   }
 
   // MARK: - Machine
@@ -69,7 +73,8 @@ struct OverviewSettingsView: View {
     let version = ProcessInfo.processInfo.operatingSystemVersion
     parts.append("macOS \(version.majorVersion).\(version.minorVersion)")
     if let bootDate {
-      parts.append("up \(SystemMetricsFormatter.uptime(Date().timeIntervalSince(bootDate)))")
+      parts.append(
+        L10n.format("up %@", SystemMetricsFormatter.uptime(Date().timeIntervalSince(bootDate))))
     }
     return parts.joined(separator: " · ")
   }
@@ -79,7 +84,7 @@ struct OverviewSettingsView: View {
   private var metricsGroup: some View {
     SettingsGroup(spacing: 10) {
       HStack(alignment: .firstTextBaseline) {
-        Text("Last reading")
+        Text(L10n.string("Last reading"))
           .font(.headline)
         Spacer()
         Text(readingAgeText)
@@ -100,7 +105,7 @@ struct OverviewSettingsView: View {
             fraction: snapshot.disk.fraction, tint: .teal)
         }
       } else {
-        Text("No reading cached yet. Open the menu-bar popover to sample this Mac.")
+        Text(L10n.string("No reading cached yet. Open the menu-bar popover to sample this Mac."))
           .font(.callout)
           .foregroundStyle(.secondary)
       }
@@ -108,11 +113,11 @@ struct OverviewSettingsView: View {
   }
 
   private var readingAgeText: String {
-    guard let savedAt = cache?.savedAt else { return "Never" }
+    guard let savedAt = cache?.savedAt else { return L10n.string("Never") }
     let elapsed = Date().timeIntervalSince(savedAt)
-    guard elapsed >= 0 else { return "Just now" }
-    if elapsed < 60 { return "Just now" }
-    return "\(SystemMetricsFormatter.uptime(elapsed)) ago"
+    guard elapsed >= 0 else { return L10n.string("Just now") }
+    if elapsed < 60 { return L10n.string("Just now") }
+    return L10n.format("%@ ago", SystemMetricsFormatter.uptime(elapsed))
   }
 
   // MARK: - Sampling
@@ -122,10 +127,12 @@ struct OverviewSettingsView: View {
   private var samplingGroup: some View {
     SettingsGroup(spacing: 12) {
       VStack(alignment: .leading, spacing: 2) {
-        Text("Sampling")
+        Text(L10n.string("Sampling"))
           .font(.headline)
         Text(
-          "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less."
+          L10n.string(
+            "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less."
+          )
         )
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -145,7 +152,9 @@ struct OverviewSettingsView: View {
           .font(.callout)
           .foregroundStyle(.secondary)
         Spacer()
-        Text("Now sampling every \(AdaptiveSamplingPolicy.describe(effectiveInterval))")
+        Text(
+          L10n.format("Now sampling every %@", AdaptiveSamplingPolicy.describe(effectiveInterval))
+        )
           .font(.callout.weight(.medium))
           .monospacedDigit()
       }
@@ -202,11 +211,11 @@ struct OverviewSettingsView: View {
   }
 
   private var powerSourceText: String {
-    if ProcessInfo.processInfo.isLowPowerModeEnabled { return "Low Power Mode" }
+    if ProcessInfo.processInfo.isLowPowerModeEnabled { return L10n.string("Low Power Mode") }
     switch powerSource {
-    case .wallPower: return "Wall power"
-    case let .battery(percent): return "Battery \(percent)%"
-    case .unknown: return "No battery"
+    case .wallPower: return L10n.string("Wall power")
+    case let .battery(percent): return L10n.format("Battery %d%%", percent)
+    case .unknown: return L10n.string("No battery")
     }
   }
 
@@ -225,14 +234,18 @@ struct OverviewSettingsView: View {
     onChange: @escaping (TimeInterval) -> Void
   ) -> some View {
     HStack {
-      Text(title)
+      Text(L10n.string(title))
       Spacer()
       Text(AdaptiveSamplingPolicy.describe(value))
         .font(.body.weight(.medium))
         .monospacedDigit()
         .frame(width: 52, alignment: .trailing)
-      Stepper(title, onIncrement: { onChange(0.5) }, onDecrement: { onChange(-0.5) })
-        .labelsHidden()
+      Stepper(
+        L10n.string(title),
+        onIncrement: { onChange(0.5) },
+        onDecrement: { onChange(-0.5) }
+      )
+      .labelsHidden()
     }
   }
 
@@ -242,14 +255,18 @@ struct OverviewSettingsView: View {
     onChange: @escaping (Int) -> Void
   ) -> some View {
     HStack {
-      Text(title)
+      Text(L10n.string(title))
       Spacer()
       Text("\(value)%")
         .font(.body.weight(.medium))
         .monospacedDigit()
         .frame(width: 52, alignment: .trailing)
-      Stepper(title, onIncrement: { onChange(5) }, onDecrement: { onChange(-5) })
-        .labelsHidden()
+      Stepper(
+        L10n.string(title),
+        onIncrement: { onChange(5) },
+        onDecrement: { onChange(-5) }
+      )
+      .labelsHidden()
     }
   }
 
@@ -258,7 +275,7 @@ struct OverviewSettingsView: View {
   private var activeActionsGroup: some View {
     SettingsGroup(spacing: 8) {
       HStack {
-        Text("Currently on")
+        Text(L10n.string("Currently on"))
           .font(.headline)
         Spacer()
         Button("Manage") { selectPane(.quickActions) }
@@ -267,7 +284,7 @@ struct OverviewSettingsView: View {
 
       let active = quickActionService.catalogItems.filter { $0.state.isOn == true }
       if active.isEmpty {
-        Text("No toggles are currently on.")
+        Text(L10n.string("No toggles are currently on."))
           .font(.callout)
           .foregroundStyle(.secondary)
       } else {
@@ -280,14 +297,15 @@ struct OverviewSettingsView: View {
 
   private var checksGroup: some View {
     SettingsGroup(spacing: 8) {
-      Text("Status")
+      Text(L10n.string("Status"))
         .font(.headline)
 
       OverviewCheckRow(
         isHealthy: model.authorizationState.canReadEvents,
         title: "Calendar access",
         detail: model.authorizationState.canReadEvents
-          ? "Events are visible in the popover." : "Grant access to show events.",
+          ? L10n.string("Events are visible in the popover.")
+          : L10n.string("Grant access to show events."),
         destination: .calendars,
         select: selectPane
       )
@@ -314,8 +332,8 @@ struct OverviewSettingsView: View {
         isHealthy: updateService.automaticUpdatesEnabled,
         title: "Automatic updates",
         detail: updateService.automaticUpdatesEnabled
-          ? "\(ProductBrand.displayName) checks for updates in the background."
-          : "Automatic checks are off.",
+          ? L10n.string("MenuCue checks for updates in the background.")
+          : L10n.string("Automatic checks are off."),
         destination: .about,
         select: selectPane
       )
@@ -331,7 +349,7 @@ private struct OverviewMetricTile: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(title)
+      Text(L10n.string(title))
         .font(.system(size: 11, weight: .semibold))
         .foregroundStyle(.secondary)
         .textCase(.uppercase)
@@ -363,7 +381,7 @@ private struct OverviewCheckRow: View {
         .foregroundStyle(isHealthy ? Color.green : Color.orange)
         .frame(width: 18)
       VStack(alignment: .leading, spacing: 1) {
-        Text(title)
+        Text(L10n.string(title))
         Text(detail)
           .font(.caption)
           .foregroundStyle(.secondary)

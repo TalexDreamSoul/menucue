@@ -1,8 +1,7 @@
 import Combine
 import Foundation
 
-/// Which metric card the pointer is currently over. `nil` means no detail is shown
-/// and nothing extra is being probed.
+/// Which metric card currently owns the detail panel.
 enum MetricDetailTarget: String, Identifiable, CaseIterable {
   case cpu
   case memory
@@ -14,18 +13,16 @@ enum MetricDetailTarget: String, Identifiable, CaseIterable {
 
   var title: String {
     switch self {
-    case .cpu: return "CPU & GPU"
-    case .memory: return "Memory by app"
-    case .disk: return "Storage"
-    case .network: return "Network"
-    case .fan: return "Cooling"
+    case .cpu: return L10n.string("CPU & GPU")
+    case .memory: return L10n.string("Memory by app")
+    case .disk: return L10n.string("Storage")
+    case .network: return L10n.string("Network")
+    case .fan: return L10n.string("Cooling")
     }
   }
 }
 
-/// Backs the hover detail panels. Deliberately separate from `SystemMetricsService`:
-/// enumerating every process and walking the IO registry costs far more than the
-/// regular sample loop, so it only runs while a card is actually hovered.
+/// Runs expensive detail probes only while a metric card requests them.
 final class SystemDetailService: ObservableObject {
   @Published private(set) var target: MetricDetailTarget?
   @Published private(set) var gpu = GPUStats()
@@ -34,15 +31,30 @@ final class SystemDetailService: ObservableObject {
   @Published private(set) var isLoading = false
 
   private let refreshInterval: TimeInterval
-  private let queue = DispatchQueue(label: "com.tagzxia.app.menucue.system-detail", qos: .userInitiated)
-  private let sensorReader: SystemSensorReader
+  private let queue = DispatchQueue(
+    label: "com.tagzxia.app.menucue.system-detail",
+    qos: .userInitiated
+  )
+  private let sensorReader: SystemSensorReading
+  private let gpuProvider: () -> GPUStats
+  private let processProvider: () -> [ProcessMemoryEntry]
   private var timer: Timer?
-  /// Guards against a slow scan landing after the pointer has moved on.
-  private var generation = 0
+  private var generation: UInt64 = 0
+  private var isProbeInFlight = false
+  private var needsReload = false
 
-  init(refreshInterval: TimeInterval = 2, sensorReader: SystemSensorReader = SystemSensorReader()) {
+  init(
+    refreshInterval: TimeInterval = 2,
+    sensorReader: SystemSensorReading = SystemSensorReader(),
+    gpuProvider: @escaping () -> GPUStats = SystemDetailProbe.gpuStats,
+    processProvider: @escaping () -> [ProcessMemoryEntry] = {
+      SystemDetailProbe.topMemoryProcesses()
+    }
+  ) {
     self.refreshInterval = refreshInterval
     self.sensorReader = sensorReader
+    self.gpuProvider = gpuProvider
+    self.processProvider = processProvider
   }
 
   deinit {
@@ -53,6 +65,7 @@ final class SystemDetailService: ObservableObject {
     guard next != target else { return }
     target = next
     generation &+= 1
+    needsReload = false
     timer?.invalidate()
     timer = nil
 
@@ -73,7 +86,11 @@ final class SystemDetailService: ObservableObject {
     self.timer = timer
   }
 
-  /// Disk capacity does not move while you hover it, so re-scanning would be waste.
+  /// Keyboard and VoiceOver users can pin a panel without relying on hover.
+  func toggle(_ target: MetricDetailTarget) {
+    hover(self.target == target ? nil : target)
+  }
+
   private static func refreshes(_ target: MetricDetailTarget) -> Bool {
     switch target {
     case .cpu, .memory: return true
@@ -89,32 +106,61 @@ final class SystemDetailService: ObservableObject {
     }
   }
 
-  private func load(_ target: MetricDetailTarget, generation: Int) {
+  private func load(_ target: MetricDetailTarget, generation session: UInt64) {
     switch target {
-    case .cpu:
-      queue.async { [weak self] in
-        guard let self else { return }
-        let gpu = SystemDetailProbe.gpuStats()
-        let thermals = self.sensorReader.readThermalBreakdown()
-        DispatchQueue.main.async {
-          guard generation == self.generation else { return }
-          self.gpu = gpu
-          self.thermals = thermals
-          self.isLoading = false
-        }
-      }
-    case .memory:
-      queue.async { [weak self] in
-        guard let self else { return }
-        let processes = SystemDetailProbe.topMemoryProcesses()
-        DispatchQueue.main.async {
-          guard generation == self.generation else { return }
-          self.topProcesses = processes
-          self.isLoading = false
-        }
-      }
     case .disk, .network, .fan:
       isLoading = false
+      return
+    case .cpu, .memory:
+      break
     }
+
+    guard !isProbeInFlight else {
+      needsReload = true
+      return
+    }
+    isProbeInFlight = true
+
+    queue.async { [weak self] in
+      guard let self else { return }
+      let result: ProbeResult
+      switch target {
+      case .cpu:
+        result = .cpu(self.gpuProvider(), self.sensorReader.readThermalBreakdown())
+      case .memory:
+        result = .memory(self.processProvider())
+      case .disk, .network, .fan:
+        return
+      }
+
+      DispatchQueue.main.async { [weak self] in
+        self?.complete(result, generation: session)
+      }
+    }
+  }
+
+  private func complete(_ result: ProbeResult, generation session: UInt64) {
+    isProbeInFlight = false
+    if session == generation {
+      switch result {
+      case let .cpu(gpu, thermals):
+        self.gpu = gpu
+        self.thermals = thermals
+      case let .memory(processes):
+        self.topProcesses = processes
+      }
+      isLoading = false
+    }
+
+    let shouldReload = needsReload
+    needsReload = false
+    if shouldReload, let target {
+      load(target, generation: generation)
+    }
+  }
+
+  private enum ProbeResult {
+    case cpu(GPUStats, [ThermalReading])
+    case memory([ProcessMemoryEntry])
   }
 }

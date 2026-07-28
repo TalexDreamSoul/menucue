@@ -16,15 +16,25 @@ struct PinnedQuickActionGrid: View {
 
   var body: some View {
     let items = service.pinnedItems(for: model.settings.pinnedQuickActions)
-    if items.isEmpty {
-      CardPlaceholder(message: "Pin actions in Settings to reach them from here.")
-    } else {
-      LazyVGrid(columns: popoverActionColumns, spacing: 6) {
-        ForEach(items) { item in
-          QuickActionTile(item: item, style: .compact) {
-            service.perform(item.reference)
+    VStack(alignment: .leading, spacing: 7) {
+      if items.isEmpty {
+        CardPlaceholder(message: L10n.string("Pin actions in Settings to reach them from here."))
+      } else {
+        LazyVGrid(columns: popoverActionColumns, spacing: 6) {
+          ForEach(items) { item in
+            QuickActionTile(item: item, style: .compact) {
+              service.perform(item.reference)
+            }
           }
         }
+      }
+
+      if let feedbackMessage = service.feedbackMessage {
+        Text(feedbackMessage)
+          .font(.system(size: 10))
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+          .fixedSize(horizontal: false, vertical: true)
       }
     }
   }
@@ -155,7 +165,7 @@ struct QuickActionSettingsView: View {
               .foregroundStyle(.secondary)
           }
           Spacer()
-          Text("\(model.settings.pinnedQuickActions.count) / 7")
+          Text(L10n.format("%d / 7", model.settings.pinnedQuickActions.count))
             .font(.subheadline.weight(.semibold))
             .contentTransition(.numericText())
             .foregroundStyle(
@@ -221,10 +231,12 @@ struct QuickActionSettingsView: View {
 
       SettingsGroup(spacing: 12) {
         VStack(alignment: .leading, spacing: 2) {
-          Text("All actions")
+          Text(L10n.string("All actions"))
             .font(.headline)
           Text(
-            "Click a tile to run it now. Use the pin button to show it in the menu-bar popover."
+            L10n.string(
+              "Click a tile to run it now. Use the pin button to show it in the menu-bar popover."
+            )
           )
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -328,8 +340,16 @@ struct QuickActionSettingsView: View {
     }
     .buttonStyle(PressableButtonStyle(pressedScale: 0.88))
     .disabled(!isPinned && (isFull || !item.state.availability.isAvailable))
-    .help(isPinned ? "Unpin from popover" : isFull ? "Pin limit reached (7)" : "Pin to popover")
-    .accessibilityLabel(isPinned ? "Unpin \(item.title)" : "Pin \(item.title)")
+    .help(
+      L10n.string(
+        isPinned ? "Unpin from popover" : isFull ? "Pin limit reached (7)" : "Pin to popover"
+      )
+    )
+    .accessibilityLabel(
+      isPinned
+        ? L10n.format("Unpin %@", item.title)
+        : L10n.format("Pin %@", item.title)
+    )
   }
 
   @ViewBuilder
@@ -366,9 +386,12 @@ struct QuickActionSettingsView: View {
     powerHelper.removeHelper { result in
       switch result {
       case .success:
-        helperFeedback = "Power Helper removed."
+        helperFeedback = L10n.string("Power Helper removed.")
       case .failure(let error):
-        helperFeedback = error.localizedDescription
+        helperFeedback = L10n.format(
+          "Could not remove Power Helper: %@",
+          error.localizedDescription
+        )
       }
       service.refreshAll()
     }
@@ -525,14 +548,14 @@ private struct QuickActionTile: View {
 
   private var accessibilityValue: String {
     if let reason = item.state.availability.reason {
-      return "Unavailable. \(reason)"
+      return L10n.format("Unavailable. %@", reason)
     }
     if item.state.isRunning {
-      return "Running"
+      return L10n.string("Running")
     }
     if let isOn = item.state.isOn {
-      return isOn ? "On" : "Off"
+      return L10n.string(isOn ? "On" : "Off")
     }
-    return item.kind == .button ? "Button" : "Action"
+    return L10n.string(item.kind == .button ? "Button" : "Action")
   }
 }

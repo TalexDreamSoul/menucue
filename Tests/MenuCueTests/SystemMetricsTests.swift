@@ -127,23 +127,29 @@ final class SystemMetricsProbeLiveTests: XCTestCase {
     XCTAssertLessThanOrEqual(disk.used, disk.total)
   }
 
-  func testCumulativeCountersAdvanceBetweenSamples() {
+  func testCumulativeCountersAdvanceBetweenSamples() throws {
     let first = SystemMetricsProbe.cumulativeCounters()
-    // CPU ticks advance at 100 Hz, so burn wall-clock time rather than a fixed
-    // iteration count — the latter can finish inside a single tick.
-    var sink: UInt64 = 0
-    let busyUntil = Date().addingTimeInterval(0.2)
-    while Date() < busyUntil {
-      for value in 0..<50_000 { sink = sink &+ UInt64(value) }
-    }
-    XCTAssertGreaterThan(sink, 0)
-    let second = SystemMetricsProbe.cumulativeCounters()
+    let firstTicks = try XCTUnwrap(first.cpuTicks)
+    let deadline = Date().addingTimeInterval(1)
+    var second = first
 
+    repeat {
+      Thread.sleep(forTimeInterval: 0.05)
+      second = SystemMetricsProbe.cumulativeCounters()
+    } while (second.cpuTicks?.total ?? 0) <= firstTicks.total && Date() < deadline
+
+    let secondTicks = try XCTUnwrap(second.cpuTicks)
     XCTAssertGreaterThan(second.timestamp, first.timestamp)
-    XCTAssertGreaterThan(second.cpuTicks.total, first.cpuTicks.total)
-    XCTAssertGreaterThanOrEqual(second.diskReadBytes, first.diskReadBytes)
-    XCTAssertGreaterThanOrEqual(second.networkInBytes, first.networkInBytes)
-    XCTAssertGreaterThan(second.diskReadBytes, 0, "IOBlockStorageDriver statistics were empty")
+    XCTAssertGreaterThan(secondTicks.total, firstTicks.total)
+    if let firstDiskRead = first.diskReadBytes, let secondDiskRead = second.diskReadBytes {
+      XCTAssertGreaterThanOrEqual(secondDiskRead, firstDiskRead)
+    }
+    if first.networkInterfaceName == second.networkInterfaceName,
+      let firstNetworkIn = first.networkInBytes,
+      let secondNetworkIn = second.networkInBytes
+    {
+      XCTAssertGreaterThanOrEqual(secondNetworkIn, firstNetworkIn)
+    }
   }
 
   func testPrimaryIPv4PrefersAPhysicalInterface() throws {
@@ -154,6 +160,47 @@ final class SystemMetricsProbeLiveTests: XCTestCase {
     XCTAssertFalse(address.interface.hasPrefix("utun"))
     XCTAssertEqual(address.address.split(separator: ".").count, 4)
   }
+}
+
+final class SystemMetricsServiceLifecycleTests: XCTestCase {
+  func testReleasedSessionRejectsDelayedWorkerResult() {
+    let providerStarted = expectation(description: "counter provider started")
+    let unblockProvider = DispatchSemaphore(value: 0)
+    var counters = CumulativeCounters()
+    counters.timestamp = 100
+    counters.cpuTicks = CPUTicks(user: 10, system: 10, idle: 80, nice: 0)
+
+    let service = SystemMetricsService(
+      sampleInterval: 30,
+      sensorReader: SensorReaderStub(),
+      countersProvider: {
+        providerStarted.fulfill()
+        _ = unblockProvider.wait(timeout: .now() + 2)
+        return counters
+      },
+      memoryProvider: {
+        MemoryUsage(appMemory: 99, wired: 0, compressed: 0, cached: 0, total: 100)
+      },
+      diskCapacityProvider: { ("Test", 50, 100) }
+    )
+
+    service.retain()
+    wait(for: [providerStarted], timeout: 1)
+    service.release()
+    unblockProvider.signal()
+
+    let settled = expectation(description: "stale callback had time to arrive")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { settled.fulfill() }
+    wait(for: [settled], timeout: 1)
+
+    XCTAssertEqual(service.snapshot, SystemMetricsSnapshot())
+    XCTAssertTrue(service.cpuHistory.isEmpty)
+  }
+}
+
+private final class SensorReaderStub: SystemSensorReading {
+  func readFans() -> [FanReading] { [] }
+  func readCPUTemperature() -> Double? { nil }
 }
 
 /// Verifies the private-API sensor path really returns data on this hardware.
@@ -244,12 +291,42 @@ final class SystemMetricsCacheTests: XCTestCase {
     XCTAssertTrue(service.cpuHistory.isEmpty)
   }
 
-  func testReleasePersistsHistoryForTheNextLaunch() {
+  func testReleaseWithoutASuccessfulSampleDoesNotCreateCache() {
     let service = SystemMetricsService(defaults: defaults)
-    service.retain()
     service.release()
 
-    XCTAssertNotNil(defaults.data(forKey: SystemMetricsService.cacheKey))
+    XCTAssertNil(defaults.data(forKey: SystemMetricsService.cacheKey))
+  }
+
+  func testClosingBeforeFirstSampleDoesNotRefreshRestoredCacheAge() throws {
+    let savedAt = Date(timeIntervalSince1970: 1_000_000)
+    writeCache(savedAt: savedAt, busy: 0.4)
+    let providerStarted = expectation(description: "provider started")
+    let unblockProvider = DispatchSemaphore(value: 0)
+
+    let service = SystemMetricsService(
+      defaults: defaults,
+      now: savedAt.addingTimeInterval(60),
+      sensorReader: SensorReaderStub(),
+      countersProvider: {
+        providerStarted.fulfill()
+        _ = unblockProvider.wait(timeout: .now() + 2)
+        return CumulativeCounters(timestamp: 1)
+      }
+    )
+    service.retain()
+    wait(for: [providerStarted], timeout: 1)
+    service.release()
+    unblockProvider.signal()
+
+    let settled = expectation(description: "cancelled provider returned")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { settled.fulfill() }
+    wait(for: [settled], timeout: 1)
+
+    let data = try XCTUnwrap(defaults.data(forKey: SystemMetricsService.cacheKey))
+    let persisted = try JSONDecoder().decode(SystemMetricsService.Cache.self, from: data)
+    XCTAssertEqual(persisted.savedAt, savedAt)
+    XCTAssertEqual(persisted.snapshot.cpu.busy, 0.4, accuracy: 0.0001)
   }
 }
 
@@ -366,6 +443,47 @@ final class SystemMetricsServiceSamplingTests: XCTestCase {
     service.applySamplingSettings(faster)
 
     XCTAssertEqual(service.currentInterval, 3, accuracy: 0.001)
+  }
+
+  func testSlowSamplingCoalescesTicksAndDoesNotRunFollowUpAfterRelease() {
+    let providerStarted = expectation(description: "metrics provider started")
+    let unblockProvider = DispatchSemaphore(value: 0)
+    let lock = NSLock()
+    var callCount = 0
+
+    let service = SystemMetricsService(
+      sampleInterval: 0.5,
+      sensorReader: SensorReaderStub(),
+      countersProvider: {
+        lock.lock()
+        callCount += 1
+        let isFirstCall = callCount == 1
+        lock.unlock()
+        if isFirstCall { providerStarted.fulfill() }
+        _ = unblockProvider.wait(timeout: .now() + 3)
+        return CumulativeCounters(timestamp: 1)
+      }
+    )
+    service.retain()
+    wait(for: [providerStarted], timeout: 1)
+
+    let ticksElapsed = expectation(description: "multiple timer ticks elapsed")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) { ticksElapsed.fulfill() }
+    wait(for: [ticksElapsed], timeout: 2)
+    lock.lock()
+    let callsWhileBlocked = callCount
+    lock.unlock()
+    XCTAssertEqual(callsWhileBlocked, 1, "timer ticks must coalesce behind one slow sample")
+
+    service.release()
+    unblockProvider.signal()
+    let settled = expectation(description: "cancelled sample returned")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { settled.fulfill() }
+    wait(for: [settled], timeout: 1)
+    lock.lock()
+    let finalCallCount = callCount
+    lock.unlock()
+    XCTAssertEqual(finalCallCount, 1, "release must discard the coalesced follow-up")
   }
 }
 
@@ -514,63 +632,90 @@ final class SystemDetailProbeTests: XCTestCase {
   }
 }
 
-final class MetricsSamplingSyncTests: XCTestCase {
-  private func settings(sampling: MetricsSamplingSettings) -> AppSettings {
-    AppSettings(
-      statusBarSwitchIntervalSeconds: 5,
-      appearanceMode: .system,
-      appearanceTimeZoneID: "UTC",
-      appliesSystemAppearance: false,
-      overviewTimeZoneID: "UTC",
-      calendarWeekStartDay: .monday,
-      calendarSelectionMode: .all,
-      selectedCalendarIDs: [],
-      pinnedQuickActions: [],
-      metricsSampling: sampling
+final class SystemDetailServiceLifecycleTests: XCTestCase {
+  func testSlowProbeCoalescesRefreshTicksAndRejectsDismissedResult() {
+    let probeStarted = expectation(description: "detail probe started")
+    let unblockProbe = DispatchSemaphore(value: 0)
+    let lock = NSLock()
+    var callCount = 0
+
+    let service = SystemDetailService(
+      refreshInterval: 0.01,
+      sensorReader: SensorReaderStub(),
+      gpuProvider: {
+        lock.lock()
+        callCount += 1
+        let isFirstCall = callCount == 1
+        lock.unlock()
+        if isFirstCall { probeStarted.fulfill() }
+        _ = unblockProbe.wait(timeout: .now() + 2)
+        return GPUStats(
+          deviceUtilization: 0.75,
+          rendererUtilization: nil,
+          inUseMemory: nil
+        )
+      },
+      processProvider: { [] }
+    )
+
+    service.hover(.cpu)
+    wait(for: [probeStarted], timeout: 1)
+
+    let ticksElapsed = expectation(description: "refresh ticks elapsed")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { ticksElapsed.fulfill() }
+    wait(for: [ticksElapsed], timeout: 1)
+    lock.lock()
+    let callsWhileBlocked = callCount
+    lock.unlock()
+    XCTAssertEqual(callsWhileBlocked, 1, "slow probes must not queue without bound")
+
+    service.hover(nil)
+    unblockProbe.signal()
+    let settled = expectation(description: "dismissed result returned")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { settled.fulfill() }
+    wait(for: [settled], timeout: 1)
+
+    XCTAssertNil(service.target)
+    XCTAssertTrue(service.gpu.isEmpty, "a dismissed probe must not publish stale content")
+  }
+}
+
+final class MetricsSamplingPersistenceTests: XCTestCase {
+  private let suiteName = "MetricsSamplingPersistenceTests"
+
+  func testSamplingRoundTripsOnlyThroughLocalSettingsStore() {
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defaults.removePersistentDomain(forName: suiteName)
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let store = SettingsStore(defaults: defaults)
+    var settings = store.load()
+    settings.metricsSampling = MetricsSamplingSettings(
+      isAdaptive: true,
+      fastestIntervalSeconds: 2,
+      slowestIntervalSeconds: 15,
+      highBatteryPercent: 70,
+      lowBatteryPercent: 25
+    )
+    store.save(settings)
+
+    XCTAssertEqual(store.load().metricsSampling, settings.metricsSampling)
+    XCTAssertFalse(
+      PortableSettingField.allCases.map(\.rawValue).contains("metricsSampling"),
+      "machine-specific battery policy must never enter iCloud envelopes"
     )
   }
 
-  func testSamplingRoundTripsThroughAPortableEnvelope() {
-    var custom = MetricsSamplingSettings.default
-    custom.fastestIntervalSeconds = 2
-    custom.slowestIntervalSeconds = 15
-    custom.lowBatteryPercent = 25
+  func testMissingOrCorruptSamplingDataFallsBackToDefaults() {
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defaults.removePersistentDomain(forName: suiteName)
+    defer { defaults.removePersistentDomain(forName: suiteName) }
 
-    let source = settings(sampling: custom)
-    var destination = settings(sampling: .default)
+    let store = SettingsStore(defaults: defaults)
+    XCTAssertEqual(store.load().metricsSampling, .default)
 
-    let value = source.portableValue(for: .metricsSampling)
-    XCTAssertTrue(destination.applyPortableValue(value, for: .metricsSampling))
-    XCTAssertEqual(destination.metricsSampling, custom.normalized)
-  }
-
-  func testAPeerSendingOutOfRangeThresholdsIsNormalizedNotTrusted() {
-    var wild = MetricsSamplingSettings.default
-    wild.fastestIntervalSeconds = 999
-    wild.lowBatteryPercent = 99
-    wild.highBatteryPercent = 1
-
-    var destination = settings(sampling: .default)
-    XCTAssertTrue(
-      destination.applyPortableValue(.metricsSampling(wild), for: .metricsSampling))
-
-    let applied = destination.metricsSampling
-    XCTAssertTrue(MetricsSamplingSettings.intervalRange.contains(applied.fastestIntervalSeconds))
-    XCTAssertGreaterThan(applied.highBatteryPercent, applied.lowBatteryPercent)
-  }
-
-  func testEnvelopeFieldAndValueMustMatch() {
-    let envelope = PortableSettingEnvelope(
-      field: .metricsSampling,
-      modifiedAt: Date(timeIntervalSince1970: 0),
-      originDeviceID: "device",
-      value: .appearanceMode(.dark)
-    )
-    XCTAssertFalse(envelope.isCompatible)
-  }
-
-  func testSamplingIsPartOfTheSyncedFieldSet() {
-    XCTAssertTrue(PortableSettingField.allCases.contains(.metricsSampling))
+    defaults.set(Data("not-json".utf8), forKey: "metricsSampling.v1")
+    XCTAssertEqual(store.load().metricsSampling, .default)
   }
 }
 

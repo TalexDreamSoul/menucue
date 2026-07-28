@@ -19,9 +19,13 @@ private enum QuickActionExecutionError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .missingExecutable(let path):
-      return "Required system tool is unavailable: \(path)"
-    case .processFailed(let message), .permissionRequired(let message), .unavailable(let message):
-      return message
+      return L10n.format("Required system tool is unavailable: %@", path)
+    case .processFailed(let message):
+      return L10n.format("Action failed: %@", message)
+    case .permissionRequired(let message):
+      return L10n.format("Permission required: %@", message)
+    case .unavailable(let message):
+      return L10n.format("%@", message)
     }
   }
 }
@@ -100,7 +104,7 @@ final class QuickActionService: ObservableObject {
       let availability =
         exists
         ? QuickActionAvailability.available
-        : .unavailable("This Shortcut was renamed or deleted in Apple Shortcuts.")
+        : .unavailable(L10n.string("This Shortcut was renamed or deleted in Apple Shortcuts."))
       return QuickActionItem(
         reference: reference,
         title: name,
@@ -146,7 +150,9 @@ final class QuickActionService: ObservableObject {
       if let settingsURL = selectedItem.state.availability.settingsURL {
         NSWorkspace.shared.open(settingsURL)
       }
-      setFeedback(selectedItem.state.availability.reason ?? "This action is unavailable.")
+      setFeedback(
+        selectedItem.state.availability.reason ?? L10n.string("This action is unavailable.")
+      )
       return
     }
 
@@ -154,7 +160,7 @@ final class QuickActionService: ObservableObject {
     case .shortcut(let name):
       performProcessBacked(reference: reference) {
         _ = try Self.runProcess("/usr/bin/shortcuts", arguments: ["run", name])
-        return "Ran \(name)."
+        return L10n.format("Ran %@.", name)
       }
     case .builtIn(let actionID):
       perform(actionID)
@@ -176,7 +182,7 @@ final class QuickActionService: ObservableObject {
     case .turnOffDisplays:
       performProcessBacked(reference: .builtIn(actionID)) {
         _ = try Self.runProcess("/usr/bin/pmset", arguments: ["displaysleepnow"])
-        return "Displays are sleeping."
+        return L10n.string("Displays are sleeping.")
       }
     case .lowPowerMode:
       performPowerToggle(actionID, target: !powerHelperManager.lowPowerModeEnabled)
@@ -189,18 +195,22 @@ final class QuickActionService: ObservableObject {
       if let settingsURL = availability?.settingsURL {
         NSWorkspace.shared.open(settingsURL)
       }
-      setFeedback(availability?.reason ?? "This action is unavailable.")
+      setFeedback(availability?.reason ?? L10n.string("This action is unavailable."))
     case .darkMode:
       let target = !(states[actionID]?.isOn ?? false)
       appearanceService.setSystemDarkMode(target)
       refreshDarkModeState()
-      setFeedback(target ? "Dark Mode enabled." : "Dark Mode disabled.")
+      setFeedback(
+        target
+          ? L10n.string("Dark Mode enabled.")
+          : L10n.string("Dark Mode disabled.")
+      )
     case .lockScreen:
       performProcessBacked(reference: .builtIn(actionID)) {
         let source =
           "tell application \"System Events\" to keystroke \"q\" using {control down, command down}"
         try Self.runAppleScript(source)
-        return "Screen locked."
+        return L10n.string("Screen locked.")
       }
     case .keepScreenOn:
       toggleKeepAwake()
@@ -234,13 +244,17 @@ final class QuickActionService: ObservableObject {
       cleaningController.start(mode: .screen)
     case .cleanKeyboard:
       guard cleaningController.start(mode: .keyboard) else {
-        setFeedback("Allow Accessibility access, then try Clean Keyboard again.")
+        setFeedback(
+          L10n.string("Allow Accessibility access, then try Clean Keyboard again.")
+        )
         return
       }
     case .emptyTrash:
       performProcessBacked(reference: .builtIn(actionID)) {
         let removedCount = try Self.emptyUserTrash()
-        return removedCount == 1 ? "Removed 1 trash item." : "Removed \(removedCount) trash items."
+        return removedCount == 1
+          ? L10n.string("Removed 1 trash item.")
+          : L10n.format("Removed %d trash items.", removedCount)
       }
     }
   }
@@ -250,12 +264,12 @@ final class QuickActionService: ObservableObject {
       process.terminate()
       keepAwakeProcess = nil
       setState(.keepScreenOn, isOn: false, isRunning: false)
-      setFeedback("Keep Screen On disabled.")
+      setFeedback(L10n.string("Keep Screen On disabled."))
       return
     }
 
     guard FileManager.default.isExecutableFile(atPath: "/usr/bin/caffeinate") else {
-      setFeedback("The caffeinate system tool is unavailable.")
+      setFeedback(L10n.string("The caffeinate system tool is unavailable."))
       return
     }
 
@@ -274,9 +288,9 @@ final class QuickActionService: ObservableObject {
       try process.run()
       keepAwakeProcess = process
       setState(.keepScreenOn, isOn: true, isRunning: false)
-      setFeedback("Keep Screen On enabled.")
+      setFeedback(L10n.string("Keep Screen On enabled."))
     } catch {
-      setFeedback(error.localizedDescription)
+      setFeedback(Self.localizedActionError(error))
     }
   }
 
@@ -287,7 +301,7 @@ final class QuickActionService: ObservableObject {
     ]
     guard let path = candidatePaths.first(where: { FileManager.default.fileExists(atPath: $0) })
     else {
-      setFeedback("Screen Saver is unavailable on this macOS version.")
+      setFeedback(L10n.string("Screen Saver is unavailable on this macOS version."))
       return
     }
     NSWorkspace.shared.openApplication(
@@ -296,7 +310,7 @@ final class QuickActionService: ObservableObject {
     ) { [weak self] _, error in
       DispatchQueue.main.async {
         if let error {
-          self?.setFeedback(error.localizedDescription)
+          self?.setFeedback(Self.localizedActionError(error))
         }
       }
     }
@@ -318,7 +332,9 @@ final class QuickActionService: ObservableObject {
         arguments: ["write", domain, key, "-bool", storedTarget ? "true" : "false"]
       )
       _ = try? Self.runProcess("/usr/bin/killall", arguments: [processToRestart])
-      return targetOn ? "\(actionID.title) enabled." : "\(actionID.title) disabled."
+      return targetOn
+        ? L10n.format("%@ enabled.", actionID.title)
+        : L10n.format("%@ disabled.", actionID.title)
     }
   }
 
@@ -337,7 +353,7 @@ final class QuickActionService: ObservableObject {
         }
       } catch {
         DispatchQueue.main.async { [weak self] in
-          self?.setFeedback(error.localizedDescription)
+          self?.setFeedback(Self.localizedActionError(error))
           self?.setRunning(reference, false)
           self?.refreshAll()
         }
@@ -355,8 +371,8 @@ final class QuickActionService: ObservableObject {
     let hasNotchedDisplay = NSScreen.screens.contains { $0.safeAreaInsets.top > 0 }
     let notchReason =
       hasNotchedDisplay
-      ? "This build has no reliable public system-wide notch-hiding mechanism."
-      : "No notched built-in display is connected."
+      ? L10n.string("This build has no reliable public system-wide notch-hiding mechanism.")
+      : L10n.string("No notched built-in display is connected.")
     states[.hideNotch] = QuickActionState(
       availability: .unavailable(
         notchReason,
@@ -396,10 +412,14 @@ final class QuickActionService: ObservableObject {
       self.refreshPowerStates()
       switch result {
       case .success:
-        let actionName = actionID == .lowPowerMode ? "Low Power Mode" : "Don't Sleep When Closed"
-        self.setFeedback("\(actionName) \(target ? "enabled" : "disabled").")
+        let actionName = actionID.title
+        self.setFeedback(
+          target
+            ? L10n.format("%@ enabled.", actionName)
+            : L10n.format("%@ disabled.", actionName)
+        )
       case .failure(let error):
-        self.setFeedback(error.localizedDescription)
+        self.setFeedback(Self.localizedActionError(error))
       }
     }
 
@@ -413,11 +433,12 @@ final class QuickActionService: ObservableObject {
   private func confirmLidSleepRisk() -> Bool {
     let alert = NSAlert()
     alert.alertStyle = .warning
-    alert.messageText = "Keep Running With the Lid Closed?"
-    alert.informativeText =
+    alert.messageText = L10n.string("Keep Running With the Lid Closed?")
+    alert.informativeText = L10n.string(
       "This prevents system sleep and can increase heat and battery use. Keep your Mac ventilated and do not place it in a bag while enabled."
-    alert.addButton(withTitle: "Enable")
-    alert.addButton(withTitle: "Cancel")
+    )
+    alert.addButton(withTitle: L10n.string("Enable"))
+    alert.addButton(withTitle: L10n.string("Cancel"))
     return alert.runModal() == .alertFirstButtonReturn
   }
 
@@ -553,7 +574,8 @@ final class QuickActionService: ObservableObject {
       let message = result.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
       throw QuickActionExecutionError.processFailed(
         message.isEmpty
-          ? "\(URL(fileURLWithPath: executablePath).lastPathComponent) failed." : message
+          ? L10n.format("%@ failed.", URL(fileURLWithPath: executablePath).lastPathComponent)
+          : message
       )
     }
     return result
@@ -565,9 +587,16 @@ final class QuickActionService: ObservableObject {
     if let error {
       let message =
         error[NSAppleScript.errorMessage] as? String
-        ?? "macOS denied the requested Automation action."
+        ?? L10n.string("macOS denied the requested Automation action.")
       throw QuickActionExecutionError.permissionRequired(message)
     }
+  }
+
+  private static func localizedActionError(_ error: Error) -> String {
+    if error is QuickActionExecutionError {
+      return L10n.format("%@", error.localizedDescription)
+    }
+    return L10n.format("Action failed: %@", error.localizedDescription)
   }
 
   private static func emptyUserTrash() throws -> Int {
@@ -577,7 +606,9 @@ final class QuickActionService: ObservableObject {
         in: .userDomainMask
       ).first
     else {
-      throw QuickActionExecutionError.unavailable("The user Trash folder is unavailable.")
+      throw QuickActionExecutionError.unavailable(
+        L10n.string("The user Trash folder is unavailable.")
+      )
     }
 
     let items = try FileManager.default.contentsOfDirectory(
@@ -724,9 +755,9 @@ private struct CleaningOverlayView: View {
       VStack(spacing: 16) {
         Image(systemName: mode == .screen ? "sparkles.rectangle.stack" : "keyboard")
           .font(.system(size: 44, weight: .medium))
-        Text(mode == .screen ? "Clean Screen" : "Clean Keyboard")
+        Text(L10n.string(mode == .screen ? "Clean Screen" : "Clean Keyboard"))
           .font(.title2.weight(.semibold))
-        Text("Exits automatically in \(controller.secondsRemaining)s")
+        Text(L10n.format("Exits automatically in %ds", controller.secondsRemaining))
           .foregroundStyle(.secondary)
         Button("Exit Cleaning Mode") {
           controller.stop()

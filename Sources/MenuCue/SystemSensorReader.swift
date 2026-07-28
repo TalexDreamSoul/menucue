@@ -2,6 +2,16 @@ import Darwin
 import Foundation
 import IOKit
 
+protocol SystemSensorReading: AnyObject {
+  func readFans() -> [FanReading]
+  func readCPUTemperature() -> Double?
+  func readThermalBreakdown() -> [ThermalReading]
+}
+
+extension SystemSensorReading {
+  func readThermalBreakdown() -> [ThermalReading] { [] }
+}
+
 /// Fan speeds and die temperatures, which macOS exposes only through undocumented interfaces.
 ///
 /// Two back ends are used because neither covers every Mac:
@@ -11,7 +21,7 @@ import IOKit
 ///
 /// Both are best-effort. Any failure degrades to `nil`/empty so the Status tab simply
 /// hides the affected card instead of reporting a wrong number.
-final class SystemSensorReader {
+final class SystemSensorReader: SystemSensorReading {
   private let smc = SMCConnection()
   private lazy var thermalSensors = HIDThermalSensorClient()
 
@@ -45,16 +55,17 @@ final class SystemSensorReader {
     return nil
   }
 
-  /// Every cluster the machine exposes, for the CPU card's hover detail. The
-  /// headline `readCPUTemperature()` only reports the hottest one.
+  /// Returns every available thermal cluster for the CPU detail panel.
   func readThermalBreakdown() -> [ThermalReading] {
-    let hid = thermalSensors.clusterTemperatures()
-    guard hid.isEmpty else { return hid }
+    let hidReadings = thermalSensors.clusterTemperatures()
+    guard hidReadings.isEmpty else { return hidReadings }
 
-    // Intel fallback: name the classic keys rather than showing raw four-char codes.
     let intelKeys: [(key: String, label: String)] = [
-      ("TC0D", "CPU die"), ("TC0P", "CPU proximity"), ("TG0D", "GPU die"),
-      ("TA0P", "Ambient"), ("TM0P", "Memory"),
+      ("TC0D", L10n.string("CPU die")),
+      ("TC0P", L10n.string("CPU proximity")),
+      ("TG0D", L10n.string("GPU die")),
+      ("TA0P", L10n.string("Ambient")),
+      ("TM0P", L10n.string("Memory")),
     ]
     return intelKeys.compactMap { entry in
       guard let value = smc.readValue(key: entry.key), (1...125).contains(value) else { return nil }
@@ -73,7 +84,7 @@ final class SystemSensorReader {
 private final class SMCConnection {
   private var connection: io_connect_t = 0
   private let lock = NSLock()
-  private var didAttemptOpen = false
+  private var lastOpenAttempt: Date?
 
   deinit {
     if connection != 0 {
@@ -110,8 +121,10 @@ private final class SMCConnection {
 
   private func openIfNeeded() -> Bool {
     if connection != 0 { return true }
-    if didAttemptOpen { return false }
-    didAttemptOpen = true
+    if let lastOpenAttempt, Date().timeIntervalSince(lastOpenAttempt) < 30 {
+      return false
+    }
+    lastOpenAttempt = Date()
 
     let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
     guard service != 0 else { return false }
@@ -266,7 +279,7 @@ private final class HIDThermalSensorClient {
   private let lock = NSLock()
   private var sensors: [Sensor] = []
   private var client: AnyObject?
-  private var isUnavailable = false
+  private var retryAfter: Date?
 
   private typealias CreateClient = @convention(c) (CFAllocator?) -> Unmanaged<AnyObject>?
   private typealias SetMatching = @convention(c) (AnyObject?, CFDictionary?) -> Int32
@@ -301,17 +314,17 @@ private final class HIDThermalSensorClient {
     lock.lock()
     defer { lock.unlock() }
 
-    guard !isUnavailable else { return nil }
+    if let retryAfter, Date() < retryAfter { return nil }
     if sensors.isEmpty {
       discoverSensors()
       if sensors.isEmpty {
-        isUnavailable = true
+        scheduleRetry()
         return nil
       }
     }
 
     guard let copyEvent = Self.copyEvent, let eventFloatValue = Self.eventFloatValue else {
-      isUnavailable = true
+      scheduleRetry()
       return nil
     }
 
@@ -333,27 +346,28 @@ private final class HIDThermalSensorClient {
       guard !readings.isEmpty else { continue }
 
       // The hottest cluster is what a user means by "CPU temperature".
+      retryAfter = nil
       return readings.max()
     }
 
     return nil
   }
 
-  /// Averages each known cluster prefix into one labelled reading. Chips expose
-  /// several sensors per cluster; a user wants "P-cluster 68 C", not eight numbers.
+  /// Averages each known cluster prefix into one labelled reading.
   func clusterTemperatures() -> [ThermalReading] {
     lock.lock()
     defer { lock.unlock() }
 
-    guard !isUnavailable else { return [] }
+    if let retryAfter, Date() < retryAfter { return [] }
     if sensors.isEmpty {
       discoverSensors()
       if sensors.isEmpty {
-        isUnavailable = true
+        scheduleRetry()
         return []
       }
     }
     guard let copyEvent = Self.copyEvent, let eventFloatValue = Self.eventFloatValue else {
+      scheduleRetry()
       return []
     }
 
@@ -365,14 +379,18 @@ private final class HIDThermalSensorClient {
       return (1...125).contains(value) ? value : nil
     }
 
-    return Self.clusterLabels.compactMap { cluster in
-      let readings = sensors
+    let readings = Self.clusterLabels.compactMap { cluster -> ThermalReading? in
+      let values = sensors
         .filter { $0.name.hasPrefix(cluster.prefix) }
         .compactMap { read($0) }
-      guard !readings.isEmpty else { return nil }
-      let average = readings.reduce(0, +) / Double(readings.count)
-      return ThermalReading(label: cluster.label, celsius: average)
+      guard !values.isEmpty else { return nil }
+      return ThermalReading(
+        label: L10n.string(cluster.label),
+        celsius: values.reduce(0, +) / Double(values.count)
+      )
     }
+    if !readings.isEmpty { retryAfter = nil }
+    return readings
   }
 
   private static let clusterLabels: [(prefix: String, label: String)] = [
@@ -384,6 +402,12 @@ private final class HIDThermalSensorClient {
     ("PMU tdev", "Device"),
     ("ANE MTR Temp Sensor", "Neural Engine"),
   ]
+
+  private func scheduleRetry() {
+    sensors.removeAll()
+    client = nil
+    retryAfter = Date().addingTimeInterval(60)
+  }
 
   private func discoverSensors() {
     guard

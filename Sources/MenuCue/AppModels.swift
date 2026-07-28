@@ -5,7 +5,9 @@ enum MenuBarFormatMode: String, CaseIterable, Codable, Identifiable {
     case advanced
 
     var id: String { rawValue }
-    var title: String { self == .structured ? "Structured" : "Advanced" }
+    var title: String {
+        L10n.string(self == .structured ? "Structured" : "Advanced")
+    }
 }
 
 enum ClockCycle: String, CaseIterable, Codable, Identifiable {
@@ -17,9 +19,9 @@ enum ClockCycle: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: return "System"
-        case .twelveHour: return "12-hour"
-        case .twentyFourHour: return "24-hour"
+        case .system: return L10n.string("System")
+        case .twelveHour: return L10n.string("12-hour")
+        case .twentyFourHour: return L10n.string("24-hour")
         }
     }
 }
@@ -34,10 +36,10 @@ enum MenuBarDateStyle: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .hidden: return "Hidden"
-        case .systemShort: return "System Short"
-        case .abbreviated: return "Abbreviated"
-        case .iso: return "ISO"
+        case .hidden: return L10n.string("Hidden")
+        case .systemShort: return L10n.string("System Short")
+        case .abbreviated: return L10n.string("Abbreviated")
+        case .iso: return L10n.string("ISO")
         }
     }
 }
@@ -48,7 +50,14 @@ enum WeekdayStyle: String, CaseIterable, Codable, Identifiable {
     case full
 
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+
+    var title: String {
+        switch self {
+        case .hidden: return L10n.string("Hidden")
+        case .short: return L10n.string("Short")
+        case .full: return L10n.string("Full")
+        }
+    }
 }
 
 enum MenuBarSegmentOrder: String, CaseIterable, Codable, Identifiable {
@@ -56,7 +65,9 @@ enum MenuBarSegmentOrder: String, CaseIterable, Codable, Identifiable {
     case timeThenDate
 
     var id: String { rawValue }
-    var title: String { self == .dateThenTime ? "Date, then time" : "Time, then date" }
+    var title: String {
+        L10n.string(self == .dateThenTime ? "Date, then time" : "Time, then date")
+    }
 }
 
 struct MenuBarFormatSettings: Codable, Equatable {
@@ -447,8 +458,8 @@ enum TimeZoneMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: return "System"
-        case .custom: return "Custom"
+        case .system: return L10n.string("System")
+        case .custom: return L10n.string("Custom")
         }
     }
 }
@@ -463,10 +474,10 @@ enum AppearanceMode: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
-        case .automaticByTimeZone: return "Auto by Time Zone"
+        case .system: return L10n.string("System")
+        case .light: return L10n.string("Light")
+        case .dark: return L10n.string("Dark")
+        case .automaticByTimeZone: return L10n.string("Auto by Time Zone")
         }
     }
 }
@@ -479,8 +490,8 @@ enum CalendarSelectionMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .all: return "All Calendars"
-        case .custom: return "Selected Calendars"
+        case .all: return L10n.string("All Calendars")
+        case .custom: return L10n.string("Selected Calendars")
         }
     }
 }
@@ -499,13 +510,13 @@ enum WeekStartDay: Int, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .sunday: return "Sunday"
-        case .monday: return "Monday"
-        case .tuesday: return "Tuesday"
-        case .wednesday: return "Wednesday"
-        case .thursday: return "Thursday"
-        case .friday: return "Friday"
-        case .saturday: return "Saturday"
+        case .sunday: return L10n.string("Sunday")
+        case .monday: return L10n.string("Monday")
+        case .tuesday: return L10n.string("Tuesday")
+        case .wednesday: return L10n.string("Wednesday")
+        case .thursday: return L10n.string("Thursday")
+        case .friday: return L10n.string("Friday")
+        case .saturday: return L10n.string("Saturday")
         }
     }
 }
@@ -525,12 +536,12 @@ enum CalendarAuthorizationState: Equatable {
 
     var title: String {
         switch self {
-        case .notDetermined: return "Calendar access has not been requested."
-        case .fullAccess: return "Calendar access granted."
-        case .writeOnly: return "Calendar write-only access cannot read events."
-        case .denied: return "Calendar access denied."
-        case .restricted: return "Calendar access restricted."
-        case .unknown(let value): return "Calendar access: \(value)."
+        case .notDetermined: return L10n.string("Calendar access has not been requested.")
+        case .fullAccess: return L10n.string("Calendar access granted.")
+        case .writeOnly: return L10n.string("Calendar write-only access cannot read events.")
+        case .denied: return L10n.string("Calendar access denied.")
+        case .restricted: return L10n.string("Calendar access restricted.")
+        case .unknown(let value): return L10n.format("Calendar access: %@.", value)
         }
     }
 }
@@ -564,7 +575,7 @@ struct QuickEventDraft: Equatable {
 
     init(startDate: Date, calendarID: String?) {
         let roundedStartDate = Self.roundedStartDate(from: startDate)
-        self.title = "New Event"
+        self.title = L10n.string("New Event")
         self.location = ""
         self.notes = ""
         self.urlString = ""
@@ -598,11 +609,11 @@ enum EventRepeatMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .none: return "None"
-        case .daily: return "Daily"
-        case .weekly: return "Weekly"
-        case .monthly: return "Monthly"
-        case .yearly: return "Yearly"
+        case .none: return L10n.string("None")
+        case .daily: return L10n.string("Daily")
+        case .weekly: return L10n.string("Weekly")
+        case .monthly: return L10n.string("Monthly")
+        case .yearly: return L10n.string("Yearly")
         }
     }
 }
@@ -618,11 +629,11 @@ enum EventAlertMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .none: return "None"
-        case .atStart: return "At start"
-        case .fiveMinutesBefore: return "5 minutes before"
-        case .fifteenMinutesBefore: return "15 minutes before"
-        case .oneHourBefore: return "1 hour before"
+        case .none: return L10n.string("None")
+        case .atStart: return L10n.string("At start")
+        case .fiveMinutesBefore: return L10n.string("5 minutes before")
+        case .fifteenMinutesBefore: return L10n.string("15 minutes before")
+        case .oneHourBefore: return L10n.string("1 hour before")
         }
     }
 

@@ -31,6 +31,7 @@ ICONSET_DIR="$ROOT_DIR/.build/AppIcon.iconset"
 ICNS_PATH="$ROOT_DIR/.build/AppIcon.icns"
 SPARKLE_FRAMEWORK_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/Sparkle.framework"
 SPARKLE_FRAMEWORK_DESTINATION="$FRAMEWORKS_DIR/Sparkle.framework"
+LOCALIZATION_BUNDLE_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/MenuCue_MenuCue.bundle"
 
 cd "$ROOT_DIR"
 if [[ "$REQUIRE_STABLE_SIGNING" == "true" && "$CODESIGN_IDENTITY" == "-" ]]; then
@@ -43,11 +44,22 @@ if [[ ! -d "$SPARKLE_FRAMEWORK_SOURCE" ]]; then
     echo "Missing Sparkle framework: $SPARKLE_FRAMEWORK_SOURCE" >&2
     exit 1
 fi
+if [[ ! -d "$LOCALIZATION_BUNDLE_SOURCE" ]]; then
+    echo "Missing MenuCue localization bundle: $LOCALIZATION_BUNDLE_SOURCE" >&2
+    exit 1
+fi
 
 rm -rf "$APP_DIR" "$ICONSET_DIR" "$ICNS_PATH"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$FRAMEWORKS_DIR" "$HELPER_TOOLS_DIR" "$LAUNCH_DAEMONS_DIR" "$ICONSET_DIR"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 ditto "$SPARKLE_FRAMEWORK_SOURCE" "$SPARKLE_FRAMEWORK_DESTINATION"
+ditto "$LOCALIZATION_BUNDLE_SOURCE/en.lproj" "$RESOURCES_DIR/en.lproj"
+ZH_HANS_SOURCE="$(find "$LOCALIZATION_BUNDLE_SOURCE" -maxdepth 1 -type d -iname 'zh-hans.lproj' -print -quit)"
+if [[ -z "$ZH_HANS_SOURCE" ]]; then
+    echo "Missing zh-Hans localization in $LOCALIZATION_BUNDLE_SOURCE" >&2
+    exit 1
+fi
+ditto "$ZH_HANS_SOURCE" "$RESOURCES_DIR/zh-Hans.lproj"
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$HELPER_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
 cp "$ROOT_DIR/Resources/$HELPER_PLIST_NAME" "$LAUNCH_DAEMONS_DIR/$HELPER_PLIST_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME" "$HELPER_TOOLS_DIR/$HELPER_NAME"
@@ -91,6 +103,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <string>$DISPLAY_NAME</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleShortVersionString</key>
@@ -164,6 +183,13 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
             "$PROFILE_PLIST")"
     fi
     EXPECTED_APPLICATION_IDENTIFIER="$PROFILE_APP_IDENTIFIER_PREFIX.$BUNDLE_IDENTIFIER"
+    if ! PROFILE_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
+        -c 'Print :Entitlements:com.apple.developer.ubiquity-kvstore-identifier' \
+        "$PROFILE_PLIST" 2>/dev/null)"; then
+        echo "Provisioning profile is missing the iCloud key-value-store entitlement." >&2
+        exit 1
+    fi
+    EXPECTED_KVSTORE_IDENTIFIER="$PROFILE_APP_IDENTIFIER_PREFIX.$BUNDLE_IDENTIFIER"
 
     if [[ "$PROFILE_TEAM_ID" != "$APPLE_TEAM_ID" ]]; then
         echo "Provisioning profile team $PROFILE_TEAM_ID does not match APPLE_TEAM_ID $APPLE_TEAM_ID." >&2
@@ -174,10 +200,9 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
         echo "Provisioning profile does not authorize $BUNDLE_IDENTIFIER." >&2
         exit 1
     fi
-    if ! /usr/libexec/PlistBuddy \
-        -c 'Print :Entitlements:com.apple.developer.ubiquity-kvstore-identifier' \
-        "$PROFILE_PLIST" >/dev/null 2>&1; then
-        echo "Provisioning profile is missing the iCloud key-value-store entitlement." >&2
+    if [[ "$PROFILE_KVSTORE_IDENTIFIER" != "$EXPECTED_KVSTORE_IDENTIFIER" \
+        && "$PROFILE_KVSTORE_IDENTIFIER" != "$PROFILE_APP_IDENTIFIER_PREFIX.*" ]]; then
+        echo "Provisioning profile does not authorize iCloud KVS for $BUNDLE_IDENTIFIER." >&2
         exit 1
     fi
 
@@ -206,6 +231,15 @@ else
 fi
 
 codesign --verify --deep --strict "$APP_DIR"
+for localization in en zh-Hans; do
+    if [[ ! -f "$RESOURCES_DIR/$localization.lproj/Localizable.strings" \
+        || ! -f "$RESOURCES_DIR/$localization.lproj/InfoPlist.strings" ]]; then
+        echo "Missing packaged $localization localization resources." >&2
+        exit 1
+    fi
+    plutil -lint "$RESOURCES_DIR/$localization.lproj/Localizable.strings" >/dev/null
+    plutil -lint "$RESOURCES_DIR/$localization.lproj/InfoPlist.strings" >/dev/null
+done
 if ! otool -L "$MACOS_DIR/$APP_NAME" | grep -q '@rpath/Sparkle.framework/'; then
     echo "MenuCue does not link the embedded Sparkle framework through @rpath." >&2
     exit 1

@@ -6,6 +6,7 @@ private let eventAccentPalette: [Color] = [.orange, .purple, .blue, .green, .pin
 
 private func gregorianCalendar(for timeZone: TimeZone, weekStartDay: WeekStartDay) -> Calendar {
   var calendar = Calendar(identifier: .gregorian)
+  calendar.locale = .autoupdatingCurrent
   calendar.timeZone = timeZone
   calendar.firstWeekday = weekStartDay.firstWeekday
   return calendar
@@ -36,9 +37,9 @@ enum PopoverTab: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
-    case .status: return "Status"
-    case .calendar: return "Calendar"
-    case .actions: return "Actions"
+    case .status: return L10n.string("Status")
+    case .calendar: return L10n.string("Calendar")
+    case .actions: return L10n.string("Actions")
     }
   }
 
@@ -161,6 +162,7 @@ struct StatusPopoverView: View {
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
     }
+    .scrollBounceBehavior(.basedOnSize)
   }
 
   private func clockCard(date: Date) -> some View {
@@ -258,13 +260,14 @@ private struct DailyGuide {
   let unfavorable: [String]
 
   private static let favorableActivities = [
-    "专注", "计划", "学习", "会友", "出行", "运动",
-    "整理", "创作", "沟通", "休息", "复盘", "开始",
-  ]
+    "Focus", "Planning", "Learning", "Socializing", "Travel", "Exercise",
+    "Organizing", "Creating", "Communication", "Rest", "Reflection", "Starting",
+  ].map(L10n.string)
   private static let unfavorableActivities = [
-    "拖延", "熬夜", "冲动消费", "过度承诺", "仓促决定",
-    "争执", "冒险", "久坐", "分心", "强求结果",
-  ]
+    "Procrastination", "Staying up late", "Impulse spending", "Overcommitting",
+    "Hasty decisions", "Arguments", "Risk-taking", "Sitting too long", "Distraction",
+    "Forcing outcomes",
+  ].map(L10n.string)
 
   static func make(for date: Date, timeZone: TimeZone) -> DailyGuide {
     var calendar = Calendar(identifier: .gregorian)
@@ -312,8 +315,8 @@ private struct DailyGuideCard: View {
           .foregroundStyle(.secondary)
       }
 
-      guideRow(label: "宜", color: .green, activities: guide.favorable)
-      guideRow(label: "忌", color: .red, activities: guide.unfavorable)
+      guideRow(label: L10n.string("Good for"), color: .green, activities: guide.favorable)
+      guideRow(label: L10n.string("Avoid"), color: .red, activities: guide.unfavorable)
     }
     .padding(10)
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -339,7 +342,7 @@ private struct DailyGuideCard: View {
 
   private var dateText: String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "MMM d"
     return formatter.string(from: date)
@@ -487,15 +490,18 @@ private struct QuickEventEditor: View {
 struct SettingsWindowView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var updateService: UpdateService
+  @ObservedObject var languageService: AppLanguageService
   @State private var selectedPane: SettingsPane
 
   init(
     model: AppModel,
     updateService: UpdateService,
+    languageService: AppLanguageService,
     initialPane: SettingsPane = .overview
   ) {
     self.model = model
     self.updateService = updateService
+    self.languageService = languageService
     self._selectedPane = State(initialValue: initialPane)
   }
 
@@ -512,6 +518,7 @@ struct SettingsWindowView: View {
       SettingsContentView(
         model: model,
         updateService: updateService,
+        languageService: languageService,
         pane: selectedPane,
         selectPane: { pane in
           withAnimation(PopoverMotion.navigation) { selectedPane = pane }
@@ -536,41 +543,46 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   case appearance
   case calendars
   case iCloud
+  case languageAndRegion
   case about
 
   var id: String { rawValue }
 
   var title: String {
     switch self {
-    case .overview: return "Overview"
-    case .dateAndEvents: return "Date & Events"
-    case .quickActions: return "Quick Actions"
-    case .menuBarTimeZones: return "Menu Bar"
-    case .appearance: return "Appearance"
-    case .calendars: return "Calendars"
-    case .iCloud: return "iCloud Sync"
-    case .about: return "About"
+    case .overview: return L10n.string("Overview")
+    case .dateAndEvents: return L10n.string("Date & Events")
+    case .quickActions: return L10n.string("Quick Actions")
+    case .menuBarTimeZones: return L10n.string("Menu Bar")
+    case .appearance: return L10n.string("Appearance")
+    case .calendars: return L10n.string("Calendars")
+    case .iCloud: return L10n.string("iCloud Sync")
+    case .languageAndRegion: return L10n.string("Language & Region")
+    case .about: return L10n.string("About")
     }
   }
 
   var subtitle: String {
     switch self {
     case .overview:
-      return "This Mac at a glance, sampling behaviour, and anything needing attention."
+      return L10n.string(
+        "This Mac at a glance, sampling behavior, and anything needing attention.")
     case .dateAndEvents:
-      return "Calendar display, overview time zone, and week layout."
+      return L10n.string("Calendar display, overview time zone, and week layout.")
     case .quickActions:
-      return "Run any action, pin your favorites, and manage Apple Shortcuts."
+      return L10n.string("Run any action, pin your favorites, and manage Apple Shortcuts.")
     case .menuBarTimeZones:
-      return "Status item clocks and rotation behavior."
+      return L10n.string("Status item clocks and rotation behavior.")
     case .appearance:
-      return "App appearance and optional macOS Light/Dark automation."
+      return L10n.string("App appearance and optional macOS Light/Dark automation.")
     case .calendars:
-      return "Calendar permissions and event sources."
+      return L10n.string("Calendar permissions and event sources.")
     case .iCloud:
-      return "Portable preferences, conflict choices, and synchronization status."
+      return L10n.string("Portable preferences, conflict choices, and synchronization status.")
+    case .languageAndRegion:
+      return L10n.string("MenuCue language and macOS system region controls.")
     case .about:
-      return "Version, GitHub releases, and project links."
+      return L10n.string("Version, GitHub releases, and project links.")
     }
   }
 
@@ -583,6 +595,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .appearance: return "circle.lefthalf.filled"
     case .calendars: return "calendar.badge.clock"
     case .iCloud: return "icloud"
+    case .languageAndRegion: return "globe"
     case .about: return "info.circle"
     }
   }
@@ -778,7 +791,9 @@ private struct MenuBarFormatPreview: View {
         Text("Preview")
           .font(.caption.weight(.medium))
           .foregroundStyle(.secondary)
-        Text(output.combinedText.isEmpty ? "No visible output" : output.combinedText)
+        Text(
+          output.combinedText.isEmpty ? L10n.string("No visible output") : output.combinedText
+        )
           .font(.system(size: 13, weight: .semibold, design: .monospaced))
           .padding(.horizontal, 10)
           .padding(.vertical, 7)
@@ -912,6 +927,7 @@ private struct PreferenceSyncSettingsView: View {
 private struct SettingsContentView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var updateService: UpdateService
+  @ObservedObject var languageService: AppLanguageService
   let pane: SettingsPane
   let selectPane: (SettingsPane) -> Void
   @State private var pendingTimeZoneID = TimeZone.autoupdatingCurrent.identifier
@@ -950,6 +966,11 @@ private struct SettingsContentView: View {
       calendarSection
     case .iCloud:
       PreferenceSyncSettingsView(model: model)
+    case .languageAndRegion:
+      LanguageRegionSettingsView(
+        languageService: languageService,
+        powerHelper: model.quickActionService.powerHelperManager
+      )
     case .about:
       aboutSection
     }
@@ -958,7 +979,7 @@ private struct SettingsContentView: View {
   private var overviewSettingsSection: some View {
     SettingsGroup {
       TimeZonePicker(
-        title: "Display time zone",
+        title: L10n.string("Display time zone"),
         selection: binding(\.overviewTimeZoneID)
       )
       .frame(maxWidth: 460)
@@ -979,7 +1000,10 @@ private struct SettingsContentView: View {
   private var timeZoneSettingsSection: some View {
     SettingsGroup(spacing: 14) {
       Stepper(
-        "Switch every \(Int(model.settings.statusBarSwitchIntervalSeconds))s",
+        L10n.format(
+          "Switch every %ds",
+          Int(model.settings.statusBarSwitchIntervalSeconds)
+        ),
         value: binding(\.statusBarSwitchIntervalSeconds),
         in: 2...30,
         step: 1
@@ -1004,7 +1028,7 @@ private struct SettingsContentView: View {
                 .foregroundStyle(.tertiary)
 
               VStack(alignment: .leading, spacing: 2) {
-                Text(clock.isSystem ? "System Clock" : clock.title)
+                Text(clock.isSystem ? L10n.string("System Clock") : clock.title)
                   .font(.body)
                 Text(clock.isSystem ? clock.subtitle : clock.identifier)
                   .font(.caption)
@@ -1044,7 +1068,7 @@ private struct SettingsContentView: View {
       }
 
       HStack(alignment: .firstTextBaseline, spacing: 10) {
-        TimeZonePicker(title: "Add", selection: $pendingTimeZoneID)
+        TimeZonePicker(title: L10n.string("Add"), selection: $pendingTimeZoneID)
           .frame(maxWidth: 420)
         Button("Add") {
           model.addTimeZone(identifier: pendingTimeZoneID)
@@ -1071,7 +1095,7 @@ private struct SettingsContentView: View {
 
       if model.settings.appearanceMode == .automaticByTimeZone {
         TimeZonePicker(
-          title: "Auto reference",
+          title: L10n.string("Auto reference"),
           selection: binding(\.appearanceTimeZoneID)
         )
         .frame(maxWidth: 460)
@@ -1137,7 +1161,7 @@ private struct SettingsContentView: View {
       VStack(alignment: .leading, spacing: 4) {
         Text(ProductBrand.displayName)
           .font(.title2.weight(.semibold))
-        Text("Version \(appVersion)")
+        Text(L10n.format("Version %@", appVersion))
           .foregroundStyle(.secondary)
       }
 
@@ -1260,7 +1284,7 @@ private struct SettingsContentView: View {
   }
 
   private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.0"
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.4"
   }
 
   private var automaticUpdatesBinding: Binding<Bool> {
@@ -1274,22 +1298,22 @@ private struct SettingsContentView: View {
     switch updateService.status {
     case .idle:
       return updateService.automaticUpdatesEnabled
-        ? "\(ProductBrand.displayName) checks for updates every 12 hours."
-        : "Automatic updates are off. Manual checks remain available."
+        ? L10n.string("MenuCue checks for updates every 12 hours.")
+        : L10n.string("Automatic updates are off. Manual checks remain available.")
     case .checking:
-      return "Checking for updates..."
+      return L10n.string("Checking for updates...")
     case .available(let version):
-      return "Version \(version) is available."
+      return L10n.format("Version %@ is available.", version)
     case .downloading(let version):
-      return "Downloading version \(version)..."
+      return L10n.format("Downloading version %@...", version)
     case .downloaded(let version):
-      return "Version \(version) is downloaded and ready to install."
+      return L10n.format("Version %@ is downloaded and ready to install.", version)
     case .installing(let version):
-      return "Installing version \(version)..."
+      return L10n.format("Installing version %@...", version)
     case .current:
-      return "\(ProductBrand.displayName) is up to date."
+      return L10n.string("MenuCue is up to date.")
     case .failed(let message):
-      return "Update failed: \(message)"
+      return L10n.format("Update failed: %@", message)
     }
   }
 
@@ -1300,7 +1324,10 @@ private struct SettingsContentView: View {
 
   private var lastCheckText: String? {
     updateService.lastUpdateCheckDate.map { date in
-      "Last checked \(date.formatted(date: .abbreviated, time: .shortened))."
+      L10n.format(
+        "Last checked %@.",
+        date.formatted(date: .abbreviated, time: .shortened)
+      )
     }
   }
 
@@ -1435,7 +1462,7 @@ private struct ClockCard: View {
 
   private var timeText: String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = clock.timeZone
     formatter.dateFormat = "HH:mm:ss"
     return formatter.string(from: date)
@@ -1443,7 +1470,7 @@ private struct ClockCard: View {
 
   private var dateText: String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = clock.timeZone
     formatter.dateFormat = "EEE, MMM d"
     return formatter.string(from: date)
@@ -1483,8 +1510,10 @@ private struct MonthCalendarView: View {
         // first text element of a custom label, which silently dropped the year.
         Menu {
           ForEach(yearRange, id: \.self) { year in
-            Button("\(year)") {
+            Button {
               withAnimation(PopoverMotion.navigation) { setYear(year) }
+            } label: {
+              Text(verbatim: String(year))
             }
           }
         } label: {
@@ -1525,7 +1554,7 @@ private struct MonthCalendarView: View {
         }
 
         ForEach(weeks) { week in
-          Text("\(week.number)")
+          Text(verbatim: String(week.number))
             .font(.system(size: 9, weight: .medium, design: .rounded))
             .foregroundStyle(.quaternary)
             .frame(width: weekNumberColumnWidth, height: dateCellHeight, alignment: .center)
@@ -1538,7 +1567,7 @@ private struct MonthCalendarView: View {
               }
             } label: {
               VStack(spacing: 2) {
-                Text("\(day.number)")
+                Text(verbatim: String(day.number))
                   .font(.system(size: 12.5, weight: dayWeight(for: day), design: .rounded))
                   .foregroundStyle(dayForeground(for: day))
                 HStack(spacing: 2) {
@@ -1593,7 +1622,7 @@ private struct MonthCalendarView: View {
 
   private var monthName: String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "MMM"
     return formatter.string(from: monthDate)
@@ -1601,7 +1630,7 @@ private struct MonthCalendarView: View {
 
   private var yearTitle: String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "yyyy"
     return formatter.string(from: monthDate)
@@ -1609,7 +1638,7 @@ private struct MonthCalendarView: View {
 
   private var selectedDateText: String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "EEE, MMM d, yyyy"
     return formatter.string(from: selectedDate)
@@ -1622,12 +1651,23 @@ private struct MonthCalendarView: View {
 
     if calendar.isDate(selectedStart, inSameDayAs: todayStart) {
       let hours = max(0, Int(now.timeIntervalSince(todayStart) / 3600))
-      return hours == 0 ? "Less than 1 hour ago" : "\(hours) \(hours == 1 ? "hour" : "hours") ago"
+      if hours == 0 {
+        return L10n.string("Less than 1 hour ago")
+      }
+      return hours == 1
+        ? L10n.format("%d hour ago", hours)
+        : L10n.format("%d hours ago", hours)
     }
 
     let days = abs(calendar.dateComponents([.day], from: todayStart, to: selectedStart).day ?? 0)
-    let unit = days == 1 ? "day" : "days"
-    return selectedStart < todayStart ? "\(days) \(unit) ago" : "In \(days) \(unit)"
+    if selectedStart < todayStart {
+      return days == 1
+        ? L10n.format("%d day ago", days)
+        : L10n.format("%d days ago", days)
+    }
+    return days == 1
+      ? L10n.format("In %d day", days)
+      : L10n.format("In %d days", days)
   }
 
   private var daysInVisibleMonth: Int {
@@ -1837,9 +1877,19 @@ private struct MonthCalendarView: View {
 
   private func dayHelpText(for day: CalendarDay) -> String {
     let events = eventsForDay(day.date)
-    let eventSummary =
-      events.isEmpty ? "No events" : "\(events.count) \(events.count == 1 ? "event" : "events")"
-    return "\(dateTooltipText(for: day.date)) • \(eventSummary) • Click to select"
+    let eventSummary: String
+    if events.isEmpty {
+      eventSummary = L10n.string("No events")
+    } else if events.count == 1 {
+      eventSummary = L10n.format("%d event", events.count)
+    } else {
+      eventSummary = L10n.format("%d events", events.count)
+    }
+    return L10n.format(
+      "%@ • %@ • Click to select",
+      dateTooltipText(for: day.date),
+      eventSummary
+    )
   }
 
   private func eventsForDay(_ date: Date) -> [CalendarEventInfo] {
@@ -1848,7 +1898,7 @@ private struct MonthCalendarView: View {
 
   private func dateTooltipText(for date: Date) -> String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "EEEE, MMM d, yyyy"
     return formatter.string(from: date)
@@ -1872,7 +1922,7 @@ private struct CalendarNavButton: View {
             .font(.system(size: 10, weight: .bold))
             .frame(width: 22, height: 20)
         } else if let title {
-          Text(title)
+          Text(L10n.string(title))
             .font(.system(size: 11, weight: .semibold))
             .padding(.horizontal, 8)
             .frame(height: 20)
@@ -1889,7 +1939,7 @@ private struct CalendarNavButton: View {
     .onHover { hovering in
       withAnimation(PopoverMotion.hover) { isHovering = hovering }
     }
-    .help(help)
+    .help(L10n.string(help))
   }
 }
 
@@ -1985,20 +2035,24 @@ private struct AgendaList: View {
   private var dateRangeText: String {
     let start = Date()
     let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start
-    return "\(shortDateText(for: start)) – \(shortDateText(for: end))"
+    return L10n.format(
+      "%@ – %@",
+      shortDateText(for: start),
+      shortDateText(for: end)
+    )
   }
 
   private func dayTitle(for date: Date) -> String {
     if calendar.isDate(date, inSameDayAs: Date()) {
-      return "Today"
+      return L10n.string("Today")
     }
     if let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()),
       calendar.isDate(date, inSameDayAs: tomorrow)
     {
-      return "Tomorrow"
+      return L10n.string("Tomorrow")
     }
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "EEEE"
     return formatter.string(from: date)
@@ -2006,7 +2060,7 @@ private struct AgendaList: View {
 
   private func shortDateText(for date: Date) -> String {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
     formatter.dateFormat = "MMM d"
     return formatter.string(from: date)
@@ -2066,7 +2120,7 @@ private struct EventRow: View {
 
   private var timeText: String {
     if event.isAllDay {
-      return "All day"
+      return L10n.string("All day")
     }
 
     let formatter = DateFormatter()

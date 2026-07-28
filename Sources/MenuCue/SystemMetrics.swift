@@ -98,7 +98,7 @@ struct SystemHardwareInfo: Equatable {
       return "\(performanceCores)P + \(efficiencyCores)E"
     }
     if logicalCores > 0 {
-      return "\(logicalCores) cores"
+      return L10n.format("%d cores", logicalCores)
     }
     return ""
   }
@@ -130,12 +130,12 @@ enum SystemMetricsFormatter {
     let minutes = (total % 3_600) / 60
 
     if days > 0 {
-      return "\(days)d \(hours)h \(minutes)m"
+      return L10n.format("%dd %dh %dm", days, hours, minutes)
     }
     if hours > 0 {
-      return "\(hours)h \(minutes)m"
+      return L10n.format("%dh %dm", hours, minutes)
     }
-    return "\(minutes)m"
+    return L10n.format("%dm", minutes)
   }
 
   private static func byteText(_ value: Double, decimalsForGigabytes: Int) -> String {

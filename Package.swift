@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
   name: "MenuCue",
+  defaultLocalization: "en",
   platforms: [.macOS(.v14)],
   products: [
     .executable(name: "MenuCue", targets: ["MenuCue"]),
@@ -33,6 +34,7 @@ let package = Package(
         "Sparkle",
       ],
       path: "Sources/MenuCue",
+      resources: [.process("Resources")],
       linkerSettings: [
         .linkedFramework("AppKit"),
         .linkedFramework("ApplicationServices"),

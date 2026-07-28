@@ -26,20 +26,20 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
-    case .turnOffDisplays: return "Turn Off Displays"
-    case .lowPowerMode: return "Low Power Mode"
-    case .preventLidSleep: return "Don't Sleep When Closed"
-    case .darkMode: return "Dark Mode"
-    case .lockScreen: return "Lock Screen"
-    case .keepScreenOn: return "Keep Screen On"
-    case .screenSaver: return "Screen Saver"
-    case .hideDesktopIcons: return "Hide Desktop"
-    case .autoHideDock: return "Auto-hide Dock"
-    case .hideNotch: return "Hide Notch"
-    case .autoHideMenuBar: return "Auto-hide Menu Bar"
-    case .cleanScreen: return "Clean Screen"
-    case .cleanKeyboard: return "Clean Keyboard"
-    case .emptyTrash: return "Empty Trash"
+    case .turnOffDisplays: return L10n.string("Turn Off Displays")
+    case .lowPowerMode: return L10n.string("Low Power Mode")
+    case .preventLidSleep: return L10n.string("Don't Sleep When Closed")
+    case .darkMode: return L10n.string("Dark Mode")
+    case .lockScreen: return L10n.string("Lock Screen")
+    case .keepScreenOn: return L10n.string("Keep Screen On")
+    case .screenSaver: return L10n.string("Screen Saver")
+    case .hideDesktopIcons: return L10n.string("Hide Desktop")
+    case .autoHideDock: return L10n.string("Auto-hide Dock")
+    case .hideNotch: return L10n.string("Hide Notch")
+    case .autoHideMenuBar: return L10n.string("Auto-hide Menu Bar")
+    case .cleanScreen: return L10n.string("Clean Screen")
+    case .cleanKeyboard: return L10n.string("Clean Keyboard")
+    case .emptyTrash: return L10n.string("Empty Trash")
     }
   }
 

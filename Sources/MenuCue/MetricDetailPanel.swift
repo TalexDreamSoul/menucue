@@ -26,6 +26,18 @@ extension View {
           service.hover(nil)
         }
       }
+      .focusable()
+      .onKeyPress(.return) {
+        service.toggle(target)
+        return .handled
+      }
+      .onKeyPress(.space) {
+        service.toggle(target)
+        return .handled
+      }
+      .accessibilityLabel(target.title)
+      .accessibilityHint(L10n.string("Show metric details"))
+      .accessibilityAction { service.toggle(target) }
   }
 }
 
@@ -95,7 +107,7 @@ struct MetricDetailPanel: View {
       Divider().opacity(0.4)
       ForEach(detail.thermals) { reading in
         DetailRow(
-          label: reading.label,
+          label: L10n.string(reading.label),
           value: SystemMetricsFormatter.temperature(reading.celsius))
       }
     } else if detail.isLoading {
@@ -171,12 +183,15 @@ struct MetricDetailPanel: View {
     } else {
       ForEach(snapshot.fans) { fan in
         VStack(alignment: .leading, spacing: 2) {
-          DetailRow(label: "Fan \(fan.index + 1)", value: "\(Int(fan.currentRPM)) RPM")
+          DetailRow(
+            label: L10n.format("Fan %d", fan.index + 1),
+            value: L10n.format("%d RPM", Int(fan.currentRPM))
+          )
           if fan.maxRPM > fan.minRPM {
             MetricBar(fraction: fan.loadFraction, tint: .cyan, height: 3)
             DetailRow(
               label: "Range",
-              value: "\(Int(fan.minRPM))–\(Int(fan.maxRPM)) RPM",
+              value: L10n.format("%d–%d RPM", Int(fan.minRPM), Int(fan.maxRPM)),
               subdued: true)
           }
         }
@@ -193,7 +208,7 @@ private struct DetailRow: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      Text(label)
+      Text(L10n.string(label))
         .font(.system(size: subdued ? 9 : 10))
         .foregroundStyle(subdued ? .tertiary : .secondary)
         .lineLimit(1)
@@ -219,7 +234,7 @@ private struct DetailPlaceholder: View {
   let message: String
 
   var body: some View {
-    Text(message)
+    Text(L10n.string(message))
       .font(.system(size: 10))
       .foregroundStyle(.tertiary)
   }
