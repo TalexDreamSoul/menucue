@@ -80,6 +80,16 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     self.interactionView = interactionView
   }
 
+  /// Opens the popover without a click, so the swipe path can be exercised from a
+  /// script. Gated on MENUCUE_SWIPE_LOG so it never runs in a shipped launch.
+  func debugShowPopover() {
+    guard let button = statusItem.button else { return }
+    popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    if let win = popover.contentViewController?.view.window {
+      FileHandle.standardError.write(Data("[swipe] popover window=\(win.frame)\n".utf8))
+    }
+  }
+
   private func configurePopover() {
     popover.behavior = .transient
     popover.delegate = self

@@ -34,6 +34,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateService: updateService,
             languageService: languageService
         )
+        if ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.statusBarController?.debugShowPopover()
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
