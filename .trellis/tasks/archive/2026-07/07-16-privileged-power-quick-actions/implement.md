@@ -84,3 +84,10 @@ Then verify:
 - UI state is always queried, never inferred from the requested value.
 - The app never bypasses administrator approval.
 - No GitHub release is created in this task.
+
+## Completion update
+
+The original Helper and compact-action scope, the prominent unresolved-state remediation banner,
+and native Accessibility request before Lock Screen all pass the full test suite. The updated flow
+was visually checked in the settings window and shipped in MenuCue v0.6.0 (build 16), commit
+`bc31c95`.

@@ -39,3 +39,9 @@ swift test
 ## Rollback
 
 Remove the pane and app wiring while preserving stored local settings and Keychain data for downgrade safety. Explicit credential removal remains a user action.
+
+## Completion
+
+Completed in `bc31c95`: settings persistence, all four secure channel forms, rule editing,
+templates, preview, localization, and app-lifetime wiring pass focused and full tests. The pane was
+visually checked at the default settings-window size and shipped in MenuCue v0.6.0 (build 16).

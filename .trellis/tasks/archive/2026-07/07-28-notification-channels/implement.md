@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning for user review. Start child tasks, not this parent.
+Completed and released in MenuCue v0.6.0 (build 16) from commit `bc31c95`.
 
 ## Delivery order
 
@@ -83,6 +83,13 @@ codesign --verify --deep --strict .build/app/MenuCue.app
 - Rules: stop and remove monitor/runtime store; existing UI metric services remain unchanged.
 - UI: remove sidebar pane and app wiring; retain no background service.
 - Never clear user Keychain values as an automatic rollback/downgrade action.
+
+## Completion
+
+All three child deliverables passed their focused gates and the 347-test XCTest plus 2-test Swift
+Testing full suite. English and Simplified Chinese contain 757 matching localization keys. The
+stable signed archive, signed Appcast, GitHub Release, and Homebrew cask were independently
+re-downloaded or fetched and verified.
 
 ## Review gates
 

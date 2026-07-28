@@ -40,3 +40,9 @@ swift test
 ## Rollback
 
 Stop monitor/timers and remove additive runtime state wiring. Existing SystemMetrics, Dashboard, and Power diagnostics continue unchanged.
+
+## Completion
+
+Completed in `bc31c95`: the 41-metric catalog, persisted rule engine, dark-wake cursor,
+atomic runtime/outbox store, and app-lifetime monitor pass focused and full test suites and shipped
+in MenuCue v0.6.0 (build 16).

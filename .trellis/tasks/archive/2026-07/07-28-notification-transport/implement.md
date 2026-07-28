@@ -33,3 +33,8 @@ swift test
 ## Rollback
 
 All files are additive. Remove transport wiring without changing existing app state; never automatically delete Keychain entries during rollback.
+
+## Completion
+
+Completed in `bc31c95`: focused and full test suites pass, stable signed packaging passes,
+and the implementation shipped in MenuCue v0.6.0 (build 16).
