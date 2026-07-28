@@ -1,0 +1,30 @@
+{
+  "id": "power-insight-ai-interop",
+  "name": "power-insight-ai-interop",
+  "title": "MenuCue power insight and AI interop",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "TalexDreamSoul",
+  "assignee": "TalexDreamSoul",
+  "createdAt": "2026-07-28",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-28-popover-swipe-tracking",
+    "07-28-power-wake-insight",
+    "07-28-ai-interop-server"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
