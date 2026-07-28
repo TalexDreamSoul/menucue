@@ -74,7 +74,8 @@ final class StatusBarController: NSObject {
   private func configurePopover() {
     popover.behavior = .transient
     popover.contentSize = NSSize(width: PopoverMetrics.width, height: PopoverMetrics.height)
-    let hostingController = NSHostingController(
+    let relay = PopoverSwipeRelay()
+    let hostingController = PopoverContainerController(
       rootView: StatusPopoverView(
         model: model,
         openSettings: { [weak self] in
@@ -88,10 +89,11 @@ final class StatusBarController: NSObject {
         },
         quitApp: {
           NSApp.terminate(nil)
-        }
+        },
+        swipeRelay: relay
       )
     )
-    hostingController.view.appearance = NSApp.appearance
+    hostingController.applyAppearance(NSApp.appearance)
     popover.contentViewController = hostingController
   }
 

@@ -61,6 +61,8 @@ struct StatusPopoverView: View {
   /// Opens the Settings window on the Dashboard, pre-selected to a metric's tab.
   let openDashboard: (DashboardSection) -> Void
   let quitApp: () -> Void
+  /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
+  @ObservedObject var swipeRelay: PopoverSwipeRelay
   @StateObject private var metrics = SystemMetricsService()
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
@@ -102,7 +104,6 @@ struct StatusPopoverView: View {
     }
     .frame(width: PopoverMetrics.width, height: PopoverMetrics.height, alignment: .top)
     .background(Color(nsColor: .windowBackgroundColor))
-    .background(HorizontalSwipeNavigator { offset in select(selectedTab.moving(by: offset), direction: offset) })
     .focusable()
     .focused($isPopoverFocused)
     .focusEffectDisabled()
@@ -114,6 +115,10 @@ struct StatusPopoverView: View {
       let offset = press.key == .leftArrow ? -1 : 1
       select(selectedTab.moving(by: offset), direction: offset)
       return .handled
+    }
+    .onChange(of: swipeRelay.command) { _, command in
+      guard let command else { return }
+      select(selectedTab.moving(by: command.direction), direction: command.direction)
     }
     .sheet(isPresented: quickEventSheetBinding) {
       quickEventSheet

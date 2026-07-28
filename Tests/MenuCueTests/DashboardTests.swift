@@ -1,3 +1,5 @@
+import Combine
+import SwiftUI
 import Foundation
 import XCTest
 
@@ -222,5 +224,137 @@ final class DashboardHistoryCapacityTests: XCTestCase {
     let suite = UserDefaults(suiteName: "DashboardHistoryCapacityTests")!
     suite.removePersistentDomain(forName: "DashboardHistoryCapacityTests")
     return suite
+  }
+}
+
+final class SwipeRecognizerTests: XCTestCase {
+  func testADeliberateFlickAdvancesOneTab() {
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0), .pass)
+    // Fingers moving left push content left, revealing the tab to the right.
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -15, deltaY: 0, phase: .changed, isPrecise: true, now: 0.01),
+      .consume)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -15, deltaY: 0, phase: .changed, isPrecise: true, now: 0.02),
+      .navigate(1))
+  }
+
+  func testFlickingTheOtherWayGoesBack() {
+    var recognizer = SwipeRecognizer()
+    _ = recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: 40, deltaY: 0, phase: .changed, isPrecise: true, now: 0.01),
+      .navigate(-1))
+  }
+
+  func testOneGestureOnlyEverMovesOneTab() {
+    var recognizer = SwipeRecognizer()
+    _ = recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -40, deltaY: 0, phase: .changed, isPrecise: true, now: 0.01),
+      .navigate(1))
+    // A long flick keeps delivering deltas; they must not race through every tab.
+    for step in 0..<10 {
+      XCTAssertEqual(
+        recognizer.consume(
+          deltaX: -40, deltaY: 0, phase: .changed, isPrecise: true, now: 0.02 + Double(step) * 0.01),
+        .consume)
+    }
+    // Inertia after the fingers lift must not fire either.
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -80, deltaY: 0, phase: .momentum, isPrecise: true, now: 0.2),
+      .consume)
+  }
+
+  func testTheNextGestureIsArmedAgain() {
+    var recognizer = SwipeRecognizer()
+    _ = recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -40, deltaY: 0, phase: .changed, isPrecise: true, now: 0.01),
+      .navigate(1))
+    XCTAssertEqual(
+      recognizer.consume(deltaX: 0, deltaY: 0, phase: .ended, isPrecise: true, now: 0.2), .pass)
+    _ = recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0.3)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -40, deltaY: 0, phase: .changed, isPrecise: true, now: 0.31),
+      .navigate(1))
+  }
+
+  func testVerticalScrollingIsLeftAlone() {
+    var recognizer = SwipeRecognizer()
+    _ = recognizer.consume(deltaX: 0, deltaY: 0, phase: .began, isPrecise: true, now: 0)
+    // A real vertical scroll always drifts a little sideways; it must still scroll.
+    for step in 0..<20 {
+      XCTAssertEqual(
+        recognizer.consume(
+          deltaX: 3, deltaY: 30, phase: .changed, isPrecise: true, now: Double(step) * 0.01),
+        .pass,
+        "a vertical scroll was swallowed at step \(step)")
+    }
+  }
+
+  func testAWheelFiresOncePerDetentNotPerEvent() {
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -3, deltaY: 0, phase: .none, isPrecise: false, now: 1),
+      .navigate(1))
+    // Same detent, still inside the debounce window.
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -3, deltaY: 0, phase: .none, isPrecise: false, now: 1.1),
+      .consume)
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -3, deltaY: 0, phase: .none, isPrecise: false, now: 1.5),
+      .navigate(1))
+  }
+
+  func testAPhaselessTrackpadStillWorks() {
+    // Some devices report precise deltas with no phase at all.
+    var recognizer = SwipeRecognizer()
+    XCTAssertEqual(
+      recognizer.consume(deltaX: -30, deltaY: 2, phase: .none, isPrecise: true, now: 0),
+      .navigate(1))
+  }
+}
+
+@MainActor
+final class PopoverSwipeContainerTests: XCTestCase {
+  func testContainerOptsIntoHorizontalForwardingOnly() throws {
+    let controller = PopoverContainerController(rootView: Text("x").frame(width: 360, height: 620))
+    _ = controller.view
+    controller.viewDidLoad()
+    let container = try XCTUnwrap(controller.view as? PopoverSwipeContainerView)
+
+    // This opt-in is the entire mechanism: NSScrollView only forwards an axis it was
+    // asked for. Claiming the vertical axis too would steal ordinary scrolling.
+    XCTAssertTrue(container.wantsForwardedScrollEvents(for: .horizontal))
+    XCTAssertFalse(container.wantsForwardedScrollEvents(for: .vertical))
+  }
+
+  func testSwiftUIContentIsAChildOfTheContainer() throws {
+    let controller = PopoverContainerController(rootView: Text("x").frame(width: 360, height: 620))
+    _ = controller.view
+    controller.viewDidLoad()
+
+    // The container has to be an *ancestor* of the scroll views, or nothing is
+    // forwarded to it.
+    XCTAssertEqual(controller.children.count, 1)
+    let hosted = try XCTUnwrap(controller.children.first?.view)
+    XCTAssertTrue(controller.view.subviews.contains { $0 === hosted })
+  }
+
+  func testRepeatedSwipesInTheSameDirectionAreEachObserved() {
+    let relay = PopoverSwipeRelay()
+    var observed: [Int] = []
+    let cancellable = relay.$command.sink { command in
+      if let command { observed.append(command.direction) }
+    }
+    relay.send(1)
+    relay.send(1)
+    relay.send(-1)
+    cancellable.cancel()
+
+    // Publishing the bare direction would drop the second swipe as a duplicate.
+    XCTAssertEqual(observed, [1, 1, -1])
   }
 }
