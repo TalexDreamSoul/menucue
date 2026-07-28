@@ -114,9 +114,45 @@ enum PowerDiagnosticsParser {
     )
   }
 
+  /// Matches only the domains that record something which *happened*.
+  ///
+  /// The `(?!\s+Requests)` is the whole point. `pmset` pads its domain column, so a
+  /// bare `Wake\s+` also matches the `Wake Requests` domain — lines written at *sleep*
+  /// time listing wakes scheduled for the *future*. Around 30% of what this parser
+  /// returned were those: shown as wakes that had occurred, counted in the daily
+  /// totals, and persisted with a 500-character blob as their reason.
+  ///
+  /// Scheduled wakes now parse separately into `ScheduledWake`, so they cannot reach
+  /// `WakeEvent` by any path — the defect is structurally impossible rather than fixed.
+  static let wakeEventPattern =
+    #"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+([+-]\d{4})\s+(Sleep|DarkWake|Wake)(?!\s+Requests)\s+(.+)$"#
+
+  /// True when a raw log line is one this feature reads at all.
+  ///
+  /// Used as the streaming filter, which is what keeps the 23.9 MB of `Assertions`
+  /// lines out of memory entirely.
+  static func isInterestingLogLine(_ line: String) -> Bool {
+    isInterestingLogLine(Data(line.utf8)[...])
+  }
+
+  /// Byte-level form, used as the streaming filter. Runs on every one of the ~105,000
+  /// lines `pmset -g log` emits, so it never allocates.
+  static func isInterestingLogLine(_ line: Data.SubSequence) -> Bool {
+    // The domain column starts after "yyyy-MM-dd HH:mm:ss ±ZZZZ ".
+    let prefixLength = 26
+    guard line.count > prefixLength else { return false }
+    let domainStart = line.index(line.startIndex, offsetBy: prefixLength)
+    let domain = line[domainStart...]
+    return domain.starts(with: sleepPrefix) || domain.starts(with: wakePrefix)
+      || domain.starts(with: darkWakePrefix)
+  }
+
+  private static let sleepPrefix = Array("Sleep".utf8)
+  private static let wakePrefix = Array("Wake".utf8)
+  private static let darkWakePrefix = Array("DarkWake".utf8)
+
   static func parseWakeEvents(_ text: String) throws -> [WakeEvent] {
-    let pattern = #"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+([+-]\d{4})\s+(Sleep|DarkWake|Wake)\s+(.+)$"#
-    let expression = try NSRegularExpression(pattern: pattern)
+    let expression = try NSRegularExpression(pattern: wakeEventPattern)
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
