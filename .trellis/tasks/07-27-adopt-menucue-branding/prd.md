@@ -30,15 +30,15 @@ Rename the application from TouchMacer to MenuCue across all local technical ide
 
 ## Validation Evidence
 
-- `swift test`: 141 XCTest cases passed; 2 Swift Testing identity contract tests passed.
-- Stable packaging: `MenuCue.app` version `0.4.4`, build `13`, signed by the configured Apple Development identity.
+- `swift test`: 143 XCTest cases passed; 2 Swift Testing identity contract tests passed.
+- Stable packaging: `MenuCue.app` version `0.4.5`, build `14`, signed by the configured Apple Development identity.
 - Main designated identifier: `com.tagzxia.app.menucue`.
 - Helper designated identifier: `com.tagzxia.app.menucue.helper`.
-- Localization verification: 469 English/Simplified Chinese keys match and both resource sets are packaged.
-- Release archive: `MenuCue-v0.4.4-macos.zip`, SHA-256 `ee8d2b288b17f04bd68b777aaabf222953837eacbd29c40a0f645b7f7ab95b5c`.
-- Appcast contains only MenuCue `v0.4.4` and references the new repository/archive.
-- GitHub: `https://github.com/TalexDreamSoul/menucue`, release `v0.4.4` published and appcast-feed replaced.
-- Homebrew: cask `menucue` version `0.4.4`; `brew audit`, `brew style`, download/SHA verification, installation, bundle-ID inspection, and codesign verification passed.
+- Localization verification: 469 English/Simplified Chinese keys match, both resource sets are packaged, and brand-bearing SwiftUI keys have dedicated regression coverage.
+- Release archive: `MenuCue-v0.4.5-macos.zip`, SHA-256 `c1028775c19ff6f38ebfd27f0fff6d6fc47db489b3dcc3f16d1011202eb040f9`.
+- Appcast latest enclosure is MenuCue `v0.4.5` and references the new repository/archive.
+- GitHub: `https://github.com/TalexDreamSoul/menucue`, releases `v0.4.4` and corrective `v0.4.5` published; appcast-feed replaced with the current feed.
+- Homebrew: cask `menucue` version `0.4.5`; `brew audit`, `brew style`, download/SHA verification, installation/upgrade, bundle-ID inspection, and codesign verification passed.
 - Recovery backup: `/tmp/menucue-migration-20260727-191718`.
 
 ## External Operations Approved
@@ -47,4 +47,4 @@ The user explicitly approved renaming the GitHub repository and Homebrew cask in
 
 ## Release Decision
 
-The user explicitly approved committing and pushing the complete current worktree, publishing `v0.4.4` with a real `MenuCue.app` archive, and updating the renamed Homebrew cask to that release.
+The user explicitly approved committing and pushing the complete current worktree, publishing `v0.4.4` with a real `MenuCue.app` archive, and updating the renamed Homebrew cask. A localization-key regression found by final review was corrected in `v0.4.5` / build `14`, which is now the latest release and cask version.
