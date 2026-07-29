@@ -678,7 +678,23 @@ private final class CleaningModeController: ObservableObject {
 
   var onStateChange: (() -> Void)?
 
-  private var windows: [NSWindow] = []
+  private lazy var displayOverlays = CleaningDisplayOverlayCoordinator<NSWindow>(
+    notificationCenter: .default,
+    changeNotification: NSApplication.didChangeScreenParametersNotification,
+    displays: {
+      NSScreen.screens.compactMap { CleaningDisplaySnapshot(screen: $0) }
+    },
+    makeOverlay: { [weak self] display in
+      self?.makeOverlayWindow(for: display)
+    },
+    updateOverlay: { window, display in
+      window.setFrame(display.frame, display: true)
+      window.orderFront(nil)
+    },
+    removeOverlay: { window in
+      window.orderOut(nil)
+    }
+  )
   private var countdownTimer: Timer?
   private var localKeyMonitor: Any?
   private var escapeHoldTimer: Timer?
@@ -700,26 +716,7 @@ private final class CleaningModeController: ObservableObject {
 
     self.mode = mode
     secondsRemaining = CleaningModePolicy.durationSeconds
-    windows = NSScreen.screens.map { screen in
-      let window = NSWindow(
-        contentRect: screen.frame,
-        styleMask: [.borderless],
-        backing: .buffered,
-        defer: false,
-        screen: screen
-      )
-      window.level = .screenSaver
-      window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-      window.backgroundColor = .black
-      window.isOpaque = true
-      window.hasShadow = false
-      window.isReleasedWhenClosed = false
-      window.contentView = NSHostingView(
-        rootView: CleaningOverlayView(controller: self, mode: mode)
-      )
-      window.makeKeyAndOrderFront(nil)
-      return window
-    }
+    displayOverlays.start()
     NSApp.activate(ignoringOtherApps: true)
 
     countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
@@ -750,14 +747,35 @@ private final class CleaningModeController: ObservableObject {
       NSEvent.removeMonitor(localKeyMonitor)
       self.localKeyMonitor = nil
     }
-    windows.forEach { $0.orderOut(nil) }
-    windows.removeAll()
+    displayOverlays.stop()
     let hadMode = mode != nil
     mode = nil
     secondsRemaining = 0
     if hadMode {
       onStateChange?()
     }
+  }
+
+  private func makeOverlayWindow(for display: CleaningDisplaySnapshot) -> NSWindow? {
+    guard let mode, let screen = display.screen else { return nil }
+    let window = NSWindow(
+      contentRect: display.frame,
+      styleMask: [.borderless],
+      backing: .buffered,
+      defer: false,
+      screen: screen
+    )
+    window.level = .screenSaver
+    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+    window.backgroundColor = .black
+    window.isOpaque = true
+    window.hasShadow = false
+    window.isReleasedWhenClosed = false
+    window.contentView = NSHostingView(
+      rootView: CleaningOverlayView(controller: self, mode: mode)
+    )
+    window.makeKeyAndOrderFront(nil)
+    return window
   }
 
   private func installLocalEscapeMonitor() {

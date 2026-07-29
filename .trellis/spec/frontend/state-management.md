@@ -73,6 +73,54 @@ quickActionService.refreshAll() // publishes the observed macOS state
 
 `AppModel` is the only general settings mutation boundary. Feature services may own runtime state and side effects, but they do not mutate persisted settings. SwiftUI views compose `@ObservedObject` owners and send intents through model/service methods.
 
+## Scenario: Display-bound cleaning overlays
+
+### Scope / Trigger
+
+Use this pattern for full-screen runtime UI that must cover every connected display and remain correct while displays are connected, disconnected, rearranged, or resized.
+
+### Signatures
+
+- Display identity and geometry: `CleaningDisplaySnapshot(id:frame:screen:)`
+- Runtime reconciliation owner: `CleaningDisplayOverlayCoordinator.start()`, `stop()`
+- Topology event: `NSApplication.didChangeScreenParametersNotification`
+
+### Contracts
+
+- Derive stable display identity from `NSScreenNumber`; do not key overlays by array position or frame.
+- Keep exactly one overlay per current display ID. Reuse and resize retained overlays, remove missing IDs, and create newly observed IDs.
+- A topology refresh only reconciles overlays. It must not restart the cleaning countdown, input monitor, keyboard blocker, or published cleaning state.
+- Every overlay renders the same shared `CleaningModeController`, so countdown and exit behavior stay consistent across displays.
+- `stop()` removes both all overlays and the display-change observer. Never leave topology observers active outside cleaning mode.
+
+### Validation Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Second display present at start | Create one correctly framed overlay for each display |
+| Display added | Create only the new display's overlay |
+| Display resized or rearranged | Update the retained overlay frame in global screen coordinates |
+| Display removed | Order out and release only that display's overlay |
+| Cleaning mode stops | Remove all overlays and ignore later topology notifications |
+
+### Tests Required
+
+- Initial multi-display snapshots create one overlay per stable ID.
+- A topology notification removes stale overlays, reuses and resizes retained overlays, and creates added overlays.
+- After `stop()`, posting another topology notification has no effect.
+
+### Wrong vs Correct
+
+```swift
+// Wrong: becomes stale as soon as the display topology changes.
+let windows = NSScreen.screens.map(makeOverlay)
+
+// Correct: observe topology changes and reconcile by NSScreenNumber.
+displayOverlays.start()
+// ... later ...
+displayOverlays.stop()
+```
+
 ## Scenario: Entitlement-gated iCloud preference synchronization
 
 ### 1. Scope / Trigger
