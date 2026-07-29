@@ -170,6 +170,7 @@ Rebuilt the popover Battery Flow card around an AlDente-Pro-style Sankey diagram
 | `93056cb` | chore: record battery-flow-sankey task artifacts |
 | `7089696` | feat: show conservative runtime estimate on the battery card |
 | `bab8e6e` | chore: extend battery-flow task prd with runtime estimate |
+| `9d84447` | fix: make flow ribbons watt-proportional and the shimmer visible |
 
 ### Testing
 
@@ -184,4 +185,5 @@ Rebuilt the popover Battery Flow card around an AlDente-Pro-style Sankey diagram
 
 ### Next Steps
 
-- User confirms live states (charging split / unplug → on-battery) next time the popover is open
+- User confirmed charging split live; feedback round: ribbons reworked to uniform watt-proportional thickness with compact centered chips, shimmer changed to a visible bright core pulse (3 s), check pass fixed a chip-overlap edge in battery assist
+- Unplug → on-battery transition still unconfirmed live
