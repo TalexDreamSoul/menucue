@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
-- **Last Active**: 2026-07-28
+- **Total Sessions**: 5
+- **Last Active**: 2026-07-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~143 | Active |
+| `journal-1.md` | ~223 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-07-29 | Clean Screen multi-display support and v0.6.2 release prep | `0731dc4`, `7e845fb` | `master` |
 | 4 | 2026-07-28 | Release MenuCue v0.6.1 iCloud fix | `59ed3177db4eaca32bf6910d553f1186c3cd5f76` | `master` |
 | 3 | 2026-07-28 | Release MenuCue v0.6.0 notifications | `bc31c95f8d0a6b09efa9e4e3e3e1bfb2ed9fb3b1` | `master` |
 | 2 | 2026-07-27 | Complete MenuCue identity migration | `996a59a`, `459690f`, `004eb3e`, `0ef0456`, `2dc338d` | `master` |

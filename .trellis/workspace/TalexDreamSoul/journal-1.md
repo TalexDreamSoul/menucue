@@ -187,3 +187,37 @@ Rebuilt the popover Battery Flow card around an AlDente-Pro-style Sankey diagram
 
 - User confirmed charging split live; feedback round: ribbons reworked to uniform watt-proportional thickness with compact centered chips, shimmer changed to a visible bright core pulse (3 s), check pass fixed a chip-overlap edge in battery assist
 - Unplug → on-battery transition still unconfirmed live
+
+
+## Session 5: Clean Screen multi-display support and v0.6.2 release prep
+
+**Date**: 2026-07-29
+**Task**: Clean Screen multi-display support and v0.6.2 release prep
+**Branch**: `master`
+
+### Summary
+
+Made cleaning overlays track every connected display across topology changes, added regression coverage and runtime-state guidance, and prepared MenuCue 0.6.2 build 18 for release.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0731dc4` | (see git log) |
+| `7e845fb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
