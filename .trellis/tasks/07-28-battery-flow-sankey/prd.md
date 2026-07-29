@@ -36,6 +36,11 @@ Reference screenshots (user-provided):
 - R7. Visual language matches the popover system: PopoverMetrics radii/spacing,
   PopoverMotion animations, numericText transitions for wattage labels. Shimmer or
   glow animation must respect `accessibilityReduceMotion`.
+- R8. (Added 2026-07-28 mid-task) The card header's top-right stack shows an estimated
+  runtime ("预估续航") while the battery is actually draining. The figure must read
+  slightly conservative: take the more pessimistic of macOS's time-to-empty and the
+  linear percentage/rate projection, then apply a further ~10% haircut. Hidden while
+  charging, while drain is negligible, or when the estimate exceeds 24 h (idle noise).
 
 ## Constraints
 
@@ -57,3 +62,6 @@ Reference screenshots (user-provided):
       missing telemetry dict, zero/negative battery watts state classification.
 - [x] `swift build` and `swift test` pass; localization coverage tests pass with the new
       strings.
+- [x] Conservative runtime estimate (R8): unit tests cover haircut math, min-of-sources,
+      charging/idle/absurd-value suppression; line renders in the header's trailing
+      stack only when an estimate exists.
