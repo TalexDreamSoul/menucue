@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Flow state derives from PowerDiagnosticsService published values; follow the project's authoritative-runtime-state conventions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Product branding boundary and code standards for new UI strings/views."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Change spans probe (ioreg parse) → model → service → SwiftUI card; keep layer contracts clean."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse PopoverMetrics/PopoverMotion/MetricReadout instead of inventing parallel styling."}

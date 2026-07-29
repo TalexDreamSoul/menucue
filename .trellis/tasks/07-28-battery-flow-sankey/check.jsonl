@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify new strings respect the branding boundary and code standards."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check parser→model→view data flow consistency and fallback path."}
