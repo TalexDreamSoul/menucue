@@ -618,3 +618,51 @@ final class ProcessEnergyModelTests: XCTestCase {
     XCTAssertNotEqual(first, replacement)
   }
 }
+
+final class ConservativeRuntimeTests: XCTestCase {
+  private func status(
+    percentage: Int = 80,
+    charging: Bool? = false,
+    osMinutes: Int? = nil,
+    percentPerHour: Double? = nil
+  ) -> BatteryStatus {
+    BatteryStatus(
+      percentage: percentage,
+      isCharging: charging,
+      isOnAC: nil,
+      timeRemainingMinutes: osMinutes,
+      flow: percentPerHour.map { BatteryFlow(watts: -5, percentPerHour: $0) },
+      telemetry: nil)
+  }
+
+  func testTakesTheSmallerSourceAndAppliesTheHaircut() {
+    // Projection 80% / 20%/h = 240 min beats the OS's 300; 240 × 0.9 = 216.
+    let estimate = status(osMinutes: 300, percentPerHour: -20).conservativeRuntimeMinutes
+    XCTAssertEqual(estimate, 216)
+  }
+
+  func testOSEstimateAloneStillGetsTheHaircut() {
+    XCTAssertEqual(status(osMinutes: 200).conservativeRuntimeMinutes, 180)
+  }
+
+  func testRateProjectionAloneWorksWithoutOSEstimate() {
+    XCTAssertEqual(status(percentPerHour: -40).conservativeRuntimeMinutes, 108)
+  }
+
+  func testUnknownChargingStateIsTreatedAsDischarging() {
+    XCTAssertEqual(status(charging: nil, osMinutes: 100).conservativeRuntimeMinutes, 90)
+  }
+
+  func testChargingSuppressesTheEstimate() {
+    XCTAssertNil(status(charging: true, osMinutes: 300, percentPerHour: -20).conservativeRuntimeMinutes)
+  }
+
+  func testTrickleDrainInsideTheBandIsNotARuntime() {
+    XCTAssertNil(status(percentPerHour: -0.05).conservativeRuntimeMinutes)
+  }
+
+  func testAbsurdProjectionBeyondADayIsSuppressed() {
+    // 100% / 0.2%/h = 30 000 min: idle noise, not a runtime.
+    XCTAssertNil(status(percentage: 100, percentPerHour: -0.2).conservativeRuntimeMinutes)
+  }
+}

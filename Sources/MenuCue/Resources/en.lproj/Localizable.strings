@@ -223,6 +223,7 @@
 "Energy impact is a relative macOS score, not watts." = "Energy impact is a relative macOS score, not watts.";
 "English" = "English";
 "Error" = "Error";
+"Est. %@ left" = "Est. %@ left";
 "Events" = "Events";
 "Events are visible in the popover." = "Events are visible in the popover.";
 "Every available action is pinned." = "Every available action is pinned.";

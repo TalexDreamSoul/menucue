@@ -223,6 +223,7 @@
 "Energy impact is a relative macOS score, not watts." = "能耗影响是 macOS 相对评分，不是瓦特数。";
 "English" = "英语";
 "Error" = "错误";
+"Est. %@ left" = "预计续航 %@";
 "Events" = "日程";
 "Events are visible in the popover." = "日程已显示在弹窗中。";
 "Every available action is pinned." = "所有可用操作均已固定。";

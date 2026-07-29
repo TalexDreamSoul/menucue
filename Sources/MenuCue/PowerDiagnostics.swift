@@ -129,6 +129,25 @@ enum PowerFlowState: Equatable {
   }
 }
 
+extension BatteryStatus {
+  /// Runtime estimate for the card header, deliberately pessimistic: naive
+  /// percentage-over-rate projections and the OS's own figure both run optimistic, and
+  /// an estimate that under-promises reads as honest. Takes the smaller of the two
+  /// sources, then a further 10% haircut. nil while charging, while drain is inside
+  /// the trickle band, or beyond 24 h — an idle-noise projection, not a runtime.
+  var conservativeRuntimeMinutes: Int? {
+    guard isCharging != true else { return nil }
+    var candidates: [Double] = []
+    if let minutes = timeRemainingMinutes { candidates.append(Double(minutes)) }
+    if let rate = flow?.percentPerHour, rate < -0.1 {
+      candidates.append(Double(percentage) / -rate * 60)
+    }
+    guard let smallest = candidates.min() else { return nil }
+    let discounted = Int(smallest * 0.9)
+    return discounted <= 1_440 ? discounted : nil
+  }
+}
+
 struct PowerDiagnosticsSnapshot: Equatable {
   var wakeStatistics: WakeStatistics?
   var events: [WakeEvent] = []

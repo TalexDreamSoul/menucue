@@ -105,6 +105,14 @@ struct PowerTabView: View {
             Text(chargingText(battery.isCharging))
               .font(.system(size: 9, weight: .medium))
               .foregroundStyle(.secondary)
+            if let minutes = battery.conservativeRuntimeMinutes {
+              Text(L10n.format("Est. %@ left", runtimeText(minutes)))
+                .font(.system(size: 9, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(.tertiary)
+                .contentTransition(.numericText())
+                .animation(PopoverMotion.value, value: minutes)
+            }
           }
         }
         // The Sankey diagram needs classified telemetry; Intel Macs, desktops, and
@@ -482,6 +490,10 @@ struct PowerTabView: View {
   private func chargingText(_ charging: Bool?) -> String {
     guard let charging else { return L10n.string("Charging status unavailable") }
     return L10n.string(charging ? "Charging" : "Discharging")
+  }
+
+  private func runtimeText(_ minutes: Int) -> String {
+    String(format: "%d:%02d", minutes / 60, minutes % 60)
   }
 
   private func powerModeText(_ mode: PowerMode?) -> String {
