@@ -141,3 +141,47 @@ Restored the iCloud Sync pane with a matching MenuCue provisioning profile and e
 ### Next Steps
 
 - None - task complete
+
+---
+
+## Session 5: Battery card AlDente-style power flow
+
+**Date**: 2026-07-28
+**Task**: .trellis/tasks/07-28-battery-flow-sankey
+**Branch**: `master`
+
+### Summary
+
+Rebuilt the popover Battery Flow card around an AlDente-Pro-style Sankey diagram — adapter, battery, and system nodes joined by watt-proportional glowing ribbons — fed by `AdapterDetails` / `PowerTelemetryData` parsed from the ioreg read the probe already performs, with the old MetricBar layout kept as the no-telemetry fallback. Added a deliberately conservative runtime estimate (min of OS time-to-empty and rate projection, ×0.9) to the header. Verified visually via offscreen ImageRenderer scratch tests because the session ran with the screen locked.
+
+### Main Changes
+
+- `PowerDiagnostics.swift`: `PowerTelemetry`, `PowerFlowState` classifier (±0.5 W band), `parsePowerTelemetry` inline-dict matcher, `conservativeRuntimeMinutes`
+- `PowerFlowView.swift` (new): node chips, two-Bézier ribbons, palette-core gradients, visibility-gated shimmer
+- `PowerTabView.swift`: flow view integration + runtime estimate line
+- Specs: ioreg parsing contract (backend), headless render verification pattern (frontend)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `748eb94` | feat: add AlDente-style split power flow to the battery card |
+| `b38d00a` | docs: capture ioreg parsing contract and headless render verification |
+| `93056cb` | chore: record battery-flow-sankey task artifacts |
+| `7089696` | feat: show conservative runtime estimate on the battery card |
+| `bab8e6e` | chore: extend battery-flow task prd with runtime estimate |
+
+### Testing
+
+- [OK] `swift test`: 366 tests, 0 failures (parser fixtures with decoy keys, classifier table, runtime estimate suppression cases, localization parity)
+- [OK] Live probe on this machine parsed 140W adapter / 26.9W system load → `.directSupply`
+- [OK] All four flow states rendered offscreen and eyeballed
+- [PENDING] Plug-pull transition check in the running app (screen was locked; user to confirm live)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- User confirms live states (charging split / unplug → on-battery) next time the popover is open
