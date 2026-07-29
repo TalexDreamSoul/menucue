@@ -75,6 +75,60 @@ struct BatteryFlow: Equatable, Codable {
   let percentPerHour: Double
 }
 
+/// Live power-path telemetry from AppleSmartBattery. All fields optional because
+/// availability differs by hardware: `PowerTelemetryData` is Apple-Silicon-only, and
+/// `AdapterDetails.Watts` exists only while an adapter is attached.
+struct PowerTelemetry: Equatable, Codable {
+  /// `AdapterDetails.Watts` — the adapter's rated output. 0/absent maps to nil.
+  var adapterRatedWatts: Int?
+  /// `PowerTelemetryData.SystemPowerIn`, converted from milliwatts.
+  var systemInWatts: Double?
+  /// `PowerTelemetryData.SystemLoad`, converted from milliwatts.
+  var systemLoadWatts: Double?
+}
+
+/// Which way power is moving right now, classified for the Battery Flow card's
+/// Sankey view. `nil` from `make` means telemetry is insufficient and the card keeps
+/// its flat-bar layout.
+enum PowerFlowState: Equatable {
+  case charging(adapterW: Double, batteryW: Double, systemW: Double, ratedW: Int?)
+  case directSupply(systemW: Double, ratedW: Int?)
+  case batteryAssist(adapterW: Double, batteryW: Double, systemW: Double, ratedW: Int?)
+  case onBattery(dischargeW: Double)
+
+  /// Battery branch watts come from `flow.watts` (InstantAmperage × Voltage), whose
+  /// sign convention the existing parser proves; telemetry's `BatteryPower` field is
+  /// deliberately unused because its sign semantics are unverified. The ±0.5 W band
+  /// keeps trickle noise from flapping the layout between states.
+  static func make(battery: BatteryStatus) -> PowerFlowState? {
+    guard let isOnAC = battery.isOnAC, let flow = battery.flow else { return nil }
+    if !isOnAC {
+      // ≥ −0.05 is the idle/sleep edge: render a 0.0 W ribbon rather than no card.
+      return .onBattery(dischargeW: flow.watts >= -0.05 ? 0 : -flow.watts)
+    }
+    guard let telemetry = battery.telemetry, let systemLoad = telemetry.systemLoadWatts
+    else { return nil }
+    let rated = telemetry.adapterRatedWatts
+    let systemIn = telemetry.systemInWatts
+    if flow.watts > 0.5 {
+      return .charging(
+        adapterW: systemIn ?? (systemLoad + flow.watts),
+        batteryW: flow.watts,
+        systemW: systemLoad,
+        ratedW: rated)
+    }
+    if flow.watts < -0.5 {
+      let discharge = -flow.watts
+      return .batteryAssist(
+        adapterW: systemIn ?? max(0, systemLoad - discharge),
+        batteryW: discharge,
+        systemW: systemLoad,
+        ratedW: rated)
+    }
+    return .directSupply(systemW: systemIn ?? systemLoad, ratedW: rated)
+  }
+}
+
 struct PowerDiagnosticsSnapshot: Equatable {
   var wakeStatistics: WakeStatistics?
   var events: [WakeEvent] = []
@@ -321,6 +375,63 @@ enum PowerDiagnosticsParser {
       watts: Double(voltage) / 1_000 * Double(amperage) / 1_000,
       percentPerHour: Double(amperage) / Double(capacity) * 100
     )
+  }
+
+  /// Reads adapter and power-path telemetry from the same `ioreg -rn AppleSmartBattery`
+  /// output `parseBatteryRegistry` consumes. Returns nil only when nothing useful was
+  /// found; individual fields stay optional because availability differs by hardware.
+  static func parsePowerTelemetry(_ text: String) -> PowerTelemetry? {
+    /// Captures the single-line inline dictionary of a **top-level** property.
+    ///
+    /// The same anchoring problem `signed` documents applies here in dictionary form:
+    /// `AppleRawAdapterDetails` is a different top-level line that also carries
+    /// `"Watts"=`, so the property name must match exactly at the start of the line.
+    /// Requiring ` = {` additionally excludes it, since arrays print as ` = (`.
+    func inlineDictionary(_ key: String) -> String? {
+      let escaped = NSRegularExpression.escapedPattern(for: key)
+      let pattern = "^[\\s|+\\-]*\\\"\(escaped)\\\" = \\{(.*)$"
+      guard
+        let expression = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]),
+        let match = expression.firstMatch(
+          in: text, range: NSRange(text.startIndex..<text.endIndex, in: text)),
+        let payloadRange = Range(match.range(at: 1), in: text)
+      else { return nil }
+      return String(text[payloadRange])
+    }
+
+    /// Reads one `"Key"=value` entry inside a captured payload. The quotes are the
+    /// anchors: `"SystemPowerIn"=` cannot match inside `"SystemPowerInAccumulatorCount"=`
+    /// (no closing quote there) or `"AccumulatedSystemLoad"=` (no opening quote).
+    func field(_ payload: String, _ key: String) -> Int64? {
+      let escaped = NSRegularExpression.escapedPattern(for: key)
+      let pattern = "\\\"\(escaped)\\\"=(\\d+)"
+      guard
+        let expression = try? NSRegularExpression(pattern: pattern),
+        let match = expression.firstMatch(
+          in: payload, range: NSRange(payload.startIndex..<payload.endIndex, in: payload)),
+        let valueRange = Range(match.range(at: 1), in: payload)
+      else { return nil }
+      // Values beyond Int64 are unsigned two's-complement noise for these keys; treat
+      // the field as absent rather than reporting an absurd wattage.
+      return Int64(payload[valueRange])
+    }
+
+    var telemetry = PowerTelemetry()
+    // Unplugged Macs print `"AdapterDetails" = {}` or a dictionary with `Watts=0`.
+    if let adapter = inlineDictionary("AdapterDetails"),
+      let watts = field(adapter, "Watts"), watts > 0
+    {
+      telemetry.adapterRatedWatts = Int(watts)
+    }
+    if let payload = inlineDictionary("PowerTelemetryData") {
+      if let milliwatts = field(payload, "SystemPowerIn") {
+        telemetry.systemInWatts = Double(milliwatts) / 1_000
+      }
+      if let milliwatts = field(payload, "SystemLoad") {
+        telemetry.systemLoadWatts = Double(milliwatts) / 1_000
+      }
+    }
+    return telemetry == PowerTelemetry() ? nil : telemetry
   }
 
   private static func wakeReason(from message: String) -> String {

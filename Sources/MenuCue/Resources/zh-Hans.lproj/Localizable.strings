@@ -62,6 +62,9 @@
 "Activity" = "活动";
 "Activity on this Mac" = "这台 Mac 上的活动";
 "Adapt sampling rate to battery level" = "根据电池电量调整采样频率";
+"Adapter" = "适配器";
+"Adapter supplying %1$@ to the system" = "适配器正在以 %1$@ 向系统供电";
+"Adapter supplying %1$@ to the system and %2$@ to the battery" = "适配器正在以 %1$@ 向系统供电，并以 %2$@ 为电池充电";
 "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less." = "自适应采样在接通电源时以最快频率运行，并随电量下降逐步减慢，从而降低长时间使用电池时的能耗。";
 "Add" = "添加";
 "Add Location or Video Call" = "添加地点或视频通话";
@@ -119,6 +122,7 @@
 "Battery and AC currently use different values." = "电池和外接电源当前使用不同的值。";
 "Battery flow" = "电池流";
 "Battery flow unavailable" = "电池流不可用";
+"Battery supplying %1$@ to the system" = "电池正在以 %1$@ 向系统供电";
 "Both this Mac and iCloud contain settings. Choose which source should win for the first merge." = "这台 Mac 和 iCloud 中都有设置。请选择首次合并时采用哪一方。";
 "Built-in actions and Apple Shortcuts can be added once and reordered above." = "内置操作和 Apple 快捷指令均可添加一次，并可在上方调整顺序。";
 "Button" = "按钮";
@@ -523,6 +527,7 @@
 "System Default" = "跟随系统";
 "System Short" = "系统短格式";
 "System Time Zone" = "系统时区";
+"System drawing %1$@, %2$@ from the adapter and %3$@ from the battery" = "系统正在消耗 %1$@，其中 %2$@ 来自适配器，%3$@ 来自电池";
 "System time zone changed to %@." = "系统时区已更改为 %@。";
 "TCP Keepalive" = "TCP 保活";
 "Temperature" = "温度";

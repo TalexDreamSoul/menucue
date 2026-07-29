@@ -8,6 +8,8 @@ struct BatteryStatus: Equatable {
   let isOnAC: Bool?
   let timeRemainingMinutes: Int?
   let flow: BatteryFlow?
+  /// Defaulted so construction sites without telemetry keep compiling unchanged.
+  var telemetry: PowerTelemetry? = nil
 }
 
 struct CommandOutput {
@@ -383,12 +385,16 @@ struct SystemPowerDiagnosticsProbe: PowerDiagnosticsProbing {
       let time = values[kIOPSTimeToEmptyKey] as? Int
       let registry = try? runner.run("/usr/sbin/ioreg", arguments: ["-rn", "AppleSmartBattery"])
       let flow = registry.flatMap { try? PowerDiagnosticsParser.parseBatteryRegistry($0.standardOutput) }
+      // Telemetry rides on the same read; a second `ioreg` would double the cost of
+      // every 5-second refresh for identical bytes.
+      let telemetry = registry.flatMap { PowerDiagnosticsParser.parsePowerTelemetry($0.standardOutput) }
       return BatteryStatus(
         percentage: min(100, max(0, Int((Double(current) / Double(maximum) * 100).rounded()))),
         isCharging: charging,
         isOnAC: onAC,
         timeRemainingMinutes: (time ?? 0) > 0 ? time : nil,
-        flow: flow)
+        flow: flow,
+        telemetry: telemetry)
     }
     return nil
   }

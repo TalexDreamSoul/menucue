@@ -94,6 +94,155 @@ final class PowerDiagnosticsParserTests: XCTestCase {
     XCTAssertEqual(flow.watts, -12, accuracy: 0.001)
     XCTAssertEqual(flow.percentPerHour, -12.5, accuracy: 0.001)
   }
+
+  /// Trimmed from a live M-series capture. The `AppleRawAdapterDetails` decoy line
+  /// carries a *different* `"Watts"` so a matcher that is not line-anchored on the
+  /// exact property name would report 96 instead of 140. The telemetry payload keeps
+  /// its real neighbors (`SystemPowerInAccumulatorCount`, `AccumulatedSystemLoad`,
+  /// `SystemLoadAccumulatorCount`) whose names contain the wanted keys as substrings.
+  func testPowerTelemetryParsesInlineDictionariesPastSameNameDecoys() throws {
+    let telemetry = try XCTUnwrap(
+      PowerDiagnosticsParser.parsePowerTelemetry(
+        #"""
+              "AppleRawAdapterDetails" = ({"SerialString"="C4H51730AML16YCAK","Watts"=96,"Description"="pd charger","Current"=4990,"Name"="140W USB-C Power Adapter"})
+              "ExternalConnected" = Yes
+              "AdapterDetails" = {"SerialString"="C4H51730AML16YCAK","Watts"=140,"Description"="pd charger","AdapterPowerTier"=2,"Current"=4990,"Name"="140W USB-C Power Adapter","AdapterVoltage"=28000}
+              "PowerTelemetryData" = {"AccumulatedWallEnergyEstimate"=3168848681,"SystemEnergyConsumed"=29954,"SystemPowerInAccumulatorCount"=201840,"AdapterEfficiencyLoss"=2988,"SystemLoad"=107836,"AccumulatedSystemLoad"=10855124207,"SystemCurrentIn"=3965,"SystemLoadAccumulatorCount"=259737,"SystemVoltageIn"=27192,"SystemPowerIn"=107836,"BatteryPower"=0}
+              "InstantAmperage" = 0
+              "IsCharging" = No
+              "Voltage" = 12336
+        """#
+      ))
+
+    XCTAssertEqual(telemetry.adapterRatedWatts, 140)
+    XCTAssertEqual(try XCTUnwrap(telemetry.systemInWatts), 107.836, accuracy: 0.0001)
+    XCTAssertEqual(try XCTUnwrap(telemetry.systemLoadWatts), 107.836, accuracy: 0.0001)
+  }
+
+  func testPowerTelemetryUnpluggedRegistryYieldsNilNotZeros() {
+    XCTAssertNil(
+      PowerDiagnosticsParser.parsePowerTelemetry(
+        #"""
+              "ExternalConnected" = No
+              "AdapterDetails" = {}
+              "InstantAmperage" = -651
+              "Voltage" = 12100
+        """#
+      ))
+  }
+
+  /// Intel portables report an adapter but no `PowerTelemetryData`; a zero-watt
+  /// adapter entry means unplugged and maps to nil rather than a rated "0W".
+  func testPowerTelemetryKeepsPartialFieldsAndMapsZeroRatedWattsToNil() throws {
+    let intelOnAC = try XCTUnwrap(
+      PowerDiagnosticsParser.parsePowerTelemetry(
+        #"      "AdapterDetails" = {"Watts"=96,"Name"="96W USB-C Power Adapter"}"#
+      ))
+    XCTAssertEqual(intelOnAC.adapterRatedWatts, 96)
+    XCTAssertNil(intelOnAC.systemInWatts)
+    XCTAssertNil(intelOnAC.systemLoadWatts)
+
+    let zeroRated = try XCTUnwrap(
+      PowerDiagnosticsParser.parsePowerTelemetry(
+        #"""
+              "AdapterDetails" = {"Watts"=0,"FamilyCode"=0}
+              "PowerTelemetryData" = {"SystemLoad"=8250,"SystemPowerIn"=8250}
+        """#
+      ))
+    XCTAssertNil(zeroRated.adapterRatedWatts)
+    XCTAssertEqual(try XCTUnwrap(zeroRated.systemLoadWatts), 8.25, accuracy: 0.0001)
+  }
+
+  func testPowerTelemetryGarbageReturnsNil() {
+    XCTAssertNil(PowerDiagnosticsParser.parsePowerTelemetry("no adapters here"))
+    XCTAssertNil(PowerDiagnosticsParser.parsePowerTelemetry(""))
+  }
+}
+
+final class PowerFlowStateTests: XCTestCase {
+  private func status(
+    onAC: Bool?,
+    watts: Double?,
+    telemetry: PowerTelemetry? = nil
+  ) -> BatteryStatus {
+    BatteryStatus(
+      percentage: 60,
+      isCharging: nil,
+      isOnAC: onAC,
+      timeRemainingMinutes: nil,
+      flow: watts.map { BatteryFlow(watts: $0, percentPerHour: 0) },
+      telemetry: telemetry)
+  }
+
+  func testChargingSplitsAdapterOutputBetweenBatteryAndSystem() {
+    let state = PowerFlowState.make(
+      battery: status(
+        onAC: true, watts: 17.0,
+        telemetry: PowerTelemetry(adapterRatedWatts: 140, systemInWatts: 100.5, systemLoadWatts: 83.5)))
+
+    XCTAssertEqual(state, .charging(adapterW: 100.5, batteryW: 17.0, systemW: 83.5, ratedW: 140))
+  }
+
+  func testChargingDerivesAdapterWattsWhenSystemInMissing() {
+    let state = PowerFlowState.make(
+      battery: status(
+        onAC: true, watts: 17.0,
+        telemetry: PowerTelemetry(adapterRatedWatts: nil, systemInWatts: nil, systemLoadWatts: 83.5)))
+
+    XCTAssertEqual(state, .charging(adapterW: 100.5, batteryW: 17.0, systemW: 83.5, ratedW: nil))
+  }
+
+  func testTrickleBandClassifiesAsDirectSupply() {
+    let state = PowerFlowState.make(
+      battery: status(
+        onAC: true, watts: 0.4,
+        telemetry: PowerTelemetry(adapterRatedWatts: 140, systemInWatts: 78.7, systemLoadWatts: 75.1)))
+
+    XCTAssertEqual(state, .directSupply(systemW: 78.7, ratedW: 140))
+  }
+
+  func testBatteryAssistMergesAdapterAndBatteryIntoSystem() {
+    let state = PowerFlowState.make(
+      battery: status(
+        onAC: true, watts: -30.0,
+        telemetry: PowerTelemetry(adapterRatedWatts: 96, systemInWatts: 90.0, systemLoadWatts: 120.0)))
+
+    XCTAssertEqual(
+      state, .batteryAssist(adapterW: 90.0, batteryW: 30.0, systemW: 120.0, ratedW: 96))
+  }
+
+  func testBatteryAssistDerivesAdapterShareWhenSystemInMissing() {
+    let state = PowerFlowState.make(
+      battery: status(
+        onAC: true, watts: -30.0,
+        telemetry: PowerTelemetry(adapterRatedWatts: 96, systemInWatts: nil, systemLoadWatts: 120.0)))
+
+    XCTAssertEqual(
+      state, .batteryAssist(adapterW: 90.0, batteryW: 30.0, systemW: 120.0, ratedW: 96))
+  }
+
+  func testOnBatteryNeedsOnlyFlowAndClampsIdleNoiseToZero() {
+    XCTAssertEqual(
+      PowerFlowState.make(battery: status(onAC: false, watts: -8.25)),
+      .onBattery(dischargeW: 8.25))
+    XCTAssertEqual(
+      PowerFlowState.make(battery: status(onAC: false, watts: -0.03)),
+      .onBattery(dischargeW: 0))
+  }
+
+  func testMissingDataFallsBackToTheFlatCardLayout() {
+    // On AC with no telemetry at all: Intel Macs, parse failure.
+    XCTAssertNil(PowerFlowState.make(battery: status(onAC: true, watts: 5.0)))
+    // Telemetry without SystemLoad cannot place the system ribbon.
+    XCTAssertNil(
+      PowerFlowState.make(
+        battery: status(
+          onAC: true, watts: 5.0,
+          telemetry: PowerTelemetry(adapterRatedWatts: 96, systemInWatts: nil, systemLoadWatts: nil))))
+    // Unknown power source or missing flow cannot be classified.
+    XCTAssertNil(PowerFlowState.make(battery: status(onAC: nil, watts: 5.0)))
+    XCTAssertNil(PowerFlowState.make(battery: status(onAC: false, watts: nil)))
+  }
 }
 
 final class WakeHistoryStoreTests: XCTestCase {

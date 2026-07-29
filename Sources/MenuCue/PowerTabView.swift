@@ -107,7 +107,13 @@ struct PowerTabView: View {
               .foregroundStyle(.secondary)
           }
         }
-        MetricBar(fraction: Double(battery.percentage) / 100, tint: .green)
+        // The Sankey diagram needs classified telemetry; Intel Macs, desktops, and
+        // parse failures keep the flat capacity bar unchanged.
+        if let flowState = PowerFlowState.make(battery: battery) {
+          PowerFlowView(state: flowState)
+        } else {
+          MetricBar(fraction: Double(battery.percentage) / 100, tint: .green)
+        }
         HStack {
           if let flow = battery.flow {
             MetricReadout(

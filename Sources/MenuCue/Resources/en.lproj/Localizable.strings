@@ -62,6 +62,9 @@
 "Activity" = "Activity";
 "Activity on this Mac" = "Activity on this Mac";
 "Adapt sampling rate to battery level" = "Adapt sampling rate to battery level";
+"Adapter" = "Adapter";
+"Adapter supplying %1$@ to the system" = "Adapter supplying %1$@ to the system";
+"Adapter supplying %1$@ to the system and %2$@ to the battery" = "Adapter supplying %1$@ to the system and %2$@ to the battery";
 "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less." = "Adaptive sampling runs fastest on wall power and eases off as the battery drains, so a long unplugged session costs less.";
 "Add" = "Add";
 "Add Location or Video Call" = "Add Location or Video Call";
@@ -119,6 +122,7 @@
 "Battery and AC currently use different values." = "Battery and AC currently use different values.";
 "Battery flow" = "Battery flow";
 "Battery flow unavailable" = "Battery flow unavailable";
+"Battery supplying %1$@ to the system" = "Battery supplying %1$@ to the system";
 "Both this Mac and iCloud contain settings. Choose which source should win for the first merge." = "Both this Mac and iCloud contain settings. Choose which source should win for the first merge.";
 "Built-in actions and Apple Shortcuts can be added once and reordered above." = "Built-in actions and Apple Shortcuts can be added once and reordered above.";
 "Button" = "Button";
@@ -523,6 +527,7 @@
 "System Default" = "System Default";
 "System Short" = "System Short";
 "System Time Zone" = "System Time Zone";
+"System drawing %1$@, %2$@ from the adapter and %3$@ from the battery" = "System drawing %1$@, %2$@ from the adapter and %3$@ from the battery";
 "System time zone changed to %@." = "System time zone changed to %@.";
 "TCP Keepalive" = "TCP Keepalive";
 "Temperature" = "Temperature";
