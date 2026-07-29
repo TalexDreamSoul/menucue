@@ -52,6 +52,56 @@ Questions to answer:
 
 ---
 
+## Scenario: Parsing `ioreg -rn AppleSmartBattery` output
+
+### 1. Scope / Trigger
+
+- Trigger: any new field read from the battery/power registry dump.
+- The full contract lives in code:
+  `PowerDiagnosticsParser.parseBatteryRegistry` / `parsePowerTelemetry`
+  (`Sources/MenuCue/PowerDiagnostics.swift`) and `PowerDiagnosticsTests`.
+
+### 2. Signatures
+
+```swift
+static func parseBatteryRegistry(_ text: String) throws -> BatteryFlow   // throws on missing fields
+static func parsePowerTelemetry(_ text: String) -> PowerTelemetry?       // nil when nothing useful
+```
+
+### 3. Contracts
+
+- Two property shapes need two matchers. Top-level scalars (`"Voltage" = 12336`) sit
+  alone on a line with spaces around `=`; values inside inline dicts
+  (`"AdapterDetails" = {"Watts"=140,...}`) never do. A whole-text `firstMatch` for a
+  bare key name is wrong for both.
+- Decoy keys are the norm, not the exception: `AppleRawAdapterDetails` repeats
+  `"Watts"=`; `SystemPowerInAccumulatorCount` contains `SystemPowerIn`. Anchor the
+  top-level property name at line start, and match `"Key"=` quote-delimited inside a
+  captured payload.
+- Dict properties print with ` = {`; array properties with ` = (` — use that to
+  distinguish `AdapterDetails` from `AppleRawAdapterDetails`.
+- Units and signs: telemetry powers (`SystemPowerIn`, `SystemLoad`) are milliwatts;
+  battery current/voltage are mA/mV; `InstantAmperage` can arrive as unsigned
+  two's-complement and must keep its sign. Unplugged output may print `{}` or omit
+  `PowerTelemetryData` entirely (Intel), so every telemetry field stays optional.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+|---|---|
+| Top-level scalar missing | `parseBatteryRegistry` throws `missingField` |
+| Telemetry dict absent/empty | `parsePowerTelemetry` returns nil, no throw |
+| `Watts=0` or absent | `adapterRatedWatts` nil (not 0) |
+| Value beyond `Int64` | reinterpret as unsigned two's-complement, keep sign |
+
+### 5. Tests Required
+
+- Fixture with same-name decoy lines proves anchoring (use *different* values in decoy
+  vs real, or the assertion proves nothing).
+- Unplugged and garbage fixtures prove the nil/throw split.
+
+---
+
 ## Scenario: Privileged power Helper
 
 ### 1. Scope / Trigger
