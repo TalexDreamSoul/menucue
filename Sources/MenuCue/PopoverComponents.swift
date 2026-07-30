@@ -293,6 +293,17 @@ struct PopoverFooter: View {
       .menuIndicator(.hidden)
       .fixedSize()
       .accessibilityLabel("More options")
+
+      Button(action: openSettings) {
+        Image(systemName: "gearshape")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.secondary)
+          .frame(width: 28, height: 24)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .help("Settings")
+      .accessibilityLabel("Settings")
     }
   }
 

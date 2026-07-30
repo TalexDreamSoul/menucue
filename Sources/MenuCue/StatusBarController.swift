@@ -12,7 +12,47 @@ final class PopoverPresentationState: ObservableObject {
   }
 }
 
-final class StatusBarController: NSObject, NSPopoverDelegate {
+enum StatusContextMenuItemFactory {
+  @MainActor
+  static func checkForUpdatesItem(
+    target: AnyObject,
+    action: Selector,
+    isEnabled: Bool
+  ) -> NSMenuItem {
+    let item = NSMenuItem(
+      title: L10n.string("Check for Updates"),
+      action: action,
+      keyEquivalent: ""
+    )
+    item.target = target
+    item.isEnabled = isEnabled
+    return item
+  }
+}
+
+struct SettingsWindowDockController {
+  private let setActivationPolicy: (NSApplication.ActivationPolicy) -> Bool
+
+  init(
+    setActivationPolicy: @escaping (NSApplication.ActivationPolicy) -> Bool = {
+      NSApp.setActivationPolicy($0)
+    }
+  ) {
+    self.setActivationPolicy = setActivationPolicy
+  }
+
+  @MainActor
+  func settingsWillShow() {
+    _ = setActivationPolicy(.regular)
+  }
+
+  @MainActor
+  func settingsDidClose() {
+    _ = setActivationPolicy(.accessory)
+  }
+}
+
+final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private let statusItem: NSStatusItem
   private let popover: NSPopover
   private let model: AppModel
@@ -27,6 +67,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
   private var currentStatusClockID: String?
   private var clockSelection = StatusClockSelectionState()
   private lazy var clockRenderer = MenuBarClockRenderer(format: model.settings.menuBarFormat)
+  private let settingsWindowDockController = SettingsWindowDockController()
   private var interactionView: StatusItemInteractionView?
   private var accumulatedScrollDelta: CGFloat = 0
   private var didSwitchDuringGesture = false
@@ -72,7 +113,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
     interactionView.onSecondaryClick = { [weak self, weak button] in
       guard let self, let button else { return }
-      self.showContextMenu(relativeTo: button)
+      Task { @MainActor in
+        self.showContextMenu(relativeTo: button)
+      }
     }
     interactionView.onScroll = { [weak self] event in
       self?.handleStatusItemScroll(event)
@@ -112,13 +155,19 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
       rootView: StatusPopoverView(
         model: model,
         openSettings: { [weak self] in
-          self?.showSettingsWindow()
+          Task { @MainActor in
+            self?.showSettingsWindow()
+          }
         },
         openQuickActionSettings: { [weak self] in
-          self?.showSettingsWindow(initialPane: .quickActions)
+          Task { @MainActor in
+            self?.showSettingsWindow(initialPane: .quickActions)
+          }
         },
         openDashboard: { [weak self] section in
-          self?.showSettingsWindow(initialPane: .dashboard, dashboardSection: section)
+          Task { @MainActor in
+            self?.showSettingsWindow(initialPane: .dashboard, dashboardSection: section)
+          }
         },
         quitApp: {
           NSApp.terminate(nil)
@@ -459,6 +508,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
   }
 
 
+  @MainActor
   private func showContextMenu(relativeTo button: NSStatusBarButton) {
     let menu = NSMenu()
     let overviewItem = NSMenuItem(
@@ -476,6 +526,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     )
     settingsItem.target = self
     menu.addItem(settingsItem)
+
+    menu.addItem(
+      StatusContextMenuItemFactory.checkForUpdatesItem(
+        target: self,
+        action: #selector(checkForUpdatesFromMenu(_:)),
+        isEnabled: updateService.canCheckForUpdates
+      )
+    )
 
     let newEventItem = NSMenuItem(
       title: L10n.string("New Event…"),
@@ -535,8 +593,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     togglePopover()
   }
 
+  @MainActor
   @objc private func openSettingsFromMenu(_ sender: NSMenuItem) {
     showSettingsWindow()
+  }
+
+  @MainActor
+  @objc private func checkForUpdatesFromMenu(_ sender: NSMenuItem) {
+    updateService.checkForUpdates()
   }
 
   @objc private func openNewEventFromMenu(_ sender: NSMenuItem) {
@@ -566,11 +630,19 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     PopoverPresentationState.shared.setVisible(false)
   }
 
+  @MainActor
+  func windowWillClose(_ notification: Notification) {
+    guard let window = notification.object as? NSWindow, window === settingsWindow else { return }
+    settingsWindowDockController.settingsDidClose()
+  }
+
+  @MainActor
   private func showSettingsWindow(
     initialPane: SettingsPane = .overview,
     dashboardSection: DashboardSection = .cpu
   ) {
     popover.performClose(nil)
+    settingsWindowDockController.settingsWillShow()
     model.refreshCalendarData()
     model.quickActionService.refreshAll()
 
@@ -596,6 +668,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
       window = makeSettingsWindow(hostingController: hostingController)
       settingsWindow = window
     }
+    window.delegate = self
 
     window.contentViewController?.view.appearance = NSApp.appearance
     window.makeKeyAndOrderFront(nil)
