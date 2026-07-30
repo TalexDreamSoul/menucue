@@ -323,3 +323,36 @@ Replaced device-bound development release signing with Developer ID, hardened ru
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Support macOS Ventura and refresh distribution
+
+**Date**: 2026-07-30
+**Task**: Support macOS Ventura and refresh distribution
+**Branch**: `master`
+
+### Summary
+
+Lowered MenuCue to macOS 13 with API fallbacks, deterministic persistence, notarization retries, and a verified v0.6.6 package.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `624f030` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
