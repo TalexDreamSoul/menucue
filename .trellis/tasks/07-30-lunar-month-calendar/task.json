@@ -1,7 +1,7 @@
 {
-  "id": "macos-status-clock",
-  "name": "macos-status-clock",
-  "title": "macOS status bar clock with calendar and timezone appearance",
+  "id": "lunar-month-calendar",
+  "name": "lunar-month-calendar",
+  "title": "Lunar month calendar and event semantics",
   "description": "",
   "status": "in_progress",
   "dev_type": null,
@@ -10,7 +10,7 @@
   "priority": "P2",
   "creator": "TalexDreamSoul",
   "assignee": "TalexDreamSoul",
-  "createdAt": "2026-07-04",
+  "createdAt": "2026-07-30",
   "completedAt": null,
   "branch": null,
   "base_branch": "master",
@@ -18,11 +18,9 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [
-    "07-29-calendar-lunar-fusion"
-  ],
-  "parent": null,
+  "children": [],
+  "parent": "07-29-calendar-lunar-fusion",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Implementation and quality gates completed on 2026-07-30; awaiting explicitly authorized commit and archive.",
   "meta": {}
 }
