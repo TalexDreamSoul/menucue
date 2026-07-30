@@ -209,6 +209,7 @@
 "Download" = "Download";
 "Downloading version %@..." = "Downloading version %@...";
 "Drag to set the carousel order. Scroll over the menu-bar clock to switch temporarily; after one interval, rotation continues unless a context-menu clock is pinned." = "Drag to set the carousel order. Scroll over the menu-bar clock to switch temporarily; after one interval, rotation continues unless a context-menu clock is pinned.";
+"Drag to set the tab order. The first tab opens after launch; horizontal swipes follow this order." = "Drag to set the tab order. The first tab opens after launch; horizontal swipes follow this order.";
 "E%d" = "E%d";
 "E-cluster" = "E-cluster";
 "Efficiency" = "Efficiency";
@@ -402,6 +403,7 @@
 "Pinned actions" = "Pinned actions";
 "Pinned actions, ordering, availability, and Apple Shortcuts." = "Pinned actions, ordering, availability, and Apple Shortcuts.";
 "Planning" = "Planning";
+"Popover tabs" = "Popover tabs";
 "Portable clock and appearance preferences can stay consistent across your Macs. Calendar access, Quick Actions, and system controls remain local." = "Portable clock and appearance preferences can stay consistent across your Macs. Calendar access, Quick Actions, and system controls remain local.";
 "Portable preferences, conflict choices, and synchronization status." = "Portable preferences, conflict choices, and synchronization status.";
 "Power" = "Power";

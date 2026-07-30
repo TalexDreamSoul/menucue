@@ -184,13 +184,14 @@ struct CardPlaceholder: View {
 
 /// Segmented switcher across the top of the popover.
 struct PopoverTabBar: View {
+  let tabs: [PopoverTab]
   @Binding var selection: PopoverTab
   @Namespace private var highlight
   @State private var hoveredTab: PopoverTab?
 
   var body: some View {
     HStack(spacing: 2) {
-      ForEach(PopoverTab.allCases) { tab in
+      ForEach(tabs) { tab in
         Button {
           guard selection != tab else { return }
           withAnimation(PopoverMotion.navigation) { selection = tab }

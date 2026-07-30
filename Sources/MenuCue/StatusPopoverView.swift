@@ -17,20 +17,7 @@ private func eventAccentColor(for event: CalendarEventInfo) -> Color {
   return eventAccentPalette[scalarTotal % eventAccentPalette.count]
 }
 
-enum PopoverTab: String, CaseIterable, Identifiable {
-  case status
-  case power
-  case calendar
-  case actions
-
-  var id: String { rawValue }
-
-  func moving(by offset: Int) -> PopoverTab {
-    let tabs = Self.allCases
-    guard let index = tabs.firstIndex(of: self) else { return self }
-    return tabs[(index + offset + tabs.count) % tabs.count]
-  }
-
+extension PopoverTab {
   static func allowsNavigation(modifiers: EventModifiers) -> Bool {
     let shortcutModifiers: EventModifiers = [.shift, .control, .option, .command]
     return modifiers.intersection(shortcutModifiers).isEmpty
@@ -76,9 +63,30 @@ struct StatusPopoverView: View {
   @State private var navigationDirection = 1
   @FocusState private var isPopoverFocused: Bool
 
+  init(
+    model: AppModel,
+    openSettings: @escaping () -> Void,
+    openQuickActionSettings: @escaping () -> Void,
+    openDashboard: @escaping (DashboardSection) -> Void,
+    quitApp: @escaping () -> Void,
+    swipeRelay: SwipeRelay
+  ) {
+    self.model = model
+    self.openSettings = openSettings
+    self.openQuickActionSettings = openQuickActionSettings
+    self.openDashboard = openDashboard
+    self.quitApp = quitApp
+    self.swipeRelay = swipeRelay
+    _selectedTab = State(initialValue: model.settings.popoverTabOrder.first ?? .status)
+  }
+
+  private var tabs: [PopoverTab] {
+    model.settings.popoverTabOrder
+  }
+
   var body: some View {
     VStack(spacing: 0) {
-      PopoverTabBar(selection: tabSelection)
+      PopoverTabBar(tabs: tabs, selection: tabSelection)
         .padding(.horizontal, PopoverMetrics.contentPadding)
         .padding(.top, 10)
         .padding(.bottom, 8)
@@ -116,18 +124,18 @@ struct StatusPopoverView: View {
     .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .down) { press in
       guard PopoverTab.allowsNavigation(modifiers: press.modifiers) else { return .ignored }
       let offset = press.key == .leftArrow ? -1 : 1
-      select(selectedTab.moving(by: offset), direction: offset)
+      select(selectedTab.moving(by: offset, in: tabs), direction: offset)
       return .handled
     }
     .onChange(of: swipeRelay.command) { _, command in
       guard let command else { return }
+      let destination = selectedTab.moving(by: command.direction, in: tabs)
       if ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1" {
         FileHandle.standardError.write(
-          Data(
-            "[swipe] TAB \(selectedTab.rawValue) -> \(selectedTab.moving(by: command.direction).rawValue)\n"
-              .utf8))
+          Data("[swipe] TAB \(selectedTab.rawValue) -> \(destination.rawValue)\n".utf8)
+        )
       }
-      select(selectedTab.moving(by: command.direction), direction: command.direction)
+      select(destination, direction: command.direction)
     }
     .sheet(isPresented: quickEventSheetBinding) {
       quickEventSheet
@@ -140,14 +148,17 @@ struct StatusPopoverView: View {
     Binding(
       get: { selectedTab },
       set: { tab in
-        let tabs = PopoverTab.allCases
-        guard
-          let from = tabs.firstIndex(of: selectedTab),
-          let to = tabs.firstIndex(of: tab)
-        else { return }
-        select(tab, direction: to >= from ? 1 : -1)
+        select(tab, direction: navigationDirection(to: tab))
       }
     )
+  }
+
+  private func navigationDirection(to tab: PopoverTab) -> Int {
+    guard
+      let from = tabs.firstIndex(of: selectedTab),
+      let to = tabs.firstIndex(of: tab)
+    else { return 1 }
+    return to >= from ? 1 : -1
   }
 
   private func select(_ tab: PopoverTab, direction: Int) {
@@ -175,7 +186,7 @@ struct StatusPopoverView: View {
       StatusTabView(
         model: model,
         metrics: metrics,
-        openAllActions: { select(.actions, direction: 1) },
+        openAllActions: { select(.actions, direction: navigationDirection(to: .actions)) },
         openDashboard: openDashboard
       )
       .transition(tabTransition)

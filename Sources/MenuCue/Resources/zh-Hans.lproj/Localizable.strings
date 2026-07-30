@@ -209,6 +209,7 @@
 "Download" = "下载";
 "Downloading version %@..." = "正在下载版本 %@...";
 "Drag to set the carousel order. Scroll over the menu-bar clock to switch temporarily; after one interval, rotation continues unless a context-menu clock is pinned." = "拖动可设置轮播顺序。在菜单栏时钟上滚动可临时切换；一个间隔后将继续轮播，除非已在上下文菜单中固定时钟。";
+"Drag to set the tab order. The first tab opens after launch; horizontal swipes follow this order." = "拖动可调整页签顺序。App 启动后默认打开第一个页签；横向滑动也按此顺序切换。";
 "E%d" = "E%d";
 "E-cluster" = "能效核心簇";
 "Efficiency" = "能效";
@@ -402,6 +403,7 @@
 "Pinned actions" = "已固定操作";
 "Pinned actions, ordering, availability, and Apple Shortcuts." = "固定操作、顺序、可用性和 Apple 快捷指令。";
 "Planning" = "计划";
+"Popover tabs" = "弹出面板页签";
 "Portable clock and appearance preferences can stay consistent across your Macs. Calendar access, Quick Actions, and system controls remain local." = "可在多台 Mac 间同步时钟和外观偏好设置。日历访问、快捷操作和系统控制仍保留在本机。";
 "Portable preferences, conflict choices, and synchronization status." = "可同步偏好设置、冲突选择和同步状态。";
 "Power" = "电源";

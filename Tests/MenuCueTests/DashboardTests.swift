@@ -343,6 +343,20 @@ final class PopoverSwipeContainerTests: XCTestCase {
     XCTAssertTrue(controller.view.subviews.contains { $0 === hosted })
   }
 
+  func testInjectedRelayIsSharedWithTheContainer() throws {
+    let relay = SwipeRelay()
+    let controller = SwipeForwardingController(
+      rootView: Text("x").frame(width: 360, height: 620),
+      relay: relay
+    )
+    _ = controller.view
+    controller.viewDidLoad()
+    let container = try XCTUnwrap(controller.view as? SwipeForwardingView)
+
+    XCTAssertTrue(controller.relay === relay)
+    XCTAssertTrue(container.relay === relay)
+  }
+
   func testRepeatedSwipesInTheSameDirectionAreEachObserved() {
     let relay = SwipeRelay()
     var observed: [Int] = []

@@ -161,6 +161,12 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func movePopoverTabs(fromOffsets source: IndexSet, toOffset destination: Int) {
+        updateSettings { settings in
+            settings.movePopoverTabs(fromOffsets: source, toOffset: destination)
+        }
+    }
+
     func updateClockLabel(id: String, label: String?) {
         updateSettings { settings in
             settings.updateClockLabel(id: id, label: label)

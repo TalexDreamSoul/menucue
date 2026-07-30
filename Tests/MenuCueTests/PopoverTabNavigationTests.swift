@@ -1,19 +1,20 @@
 import XCTest
+
 @testable import MenuCue
 
 final class PopoverTabNavigationTests: XCTestCase {
   func testMovingForwardCyclesThroughTabsAndWraps() {
-    XCTAssertEqual(PopoverTab.status.moving(by: 1), .power)
-    XCTAssertEqual(PopoverTab.power.moving(by: 1), .calendar)
-    XCTAssertEqual(PopoverTab.calendar.moving(by: 1), .actions)
+    XCTAssertEqual(PopoverTab.status.moving(by: 1), .calendar)
+    XCTAssertEqual(PopoverTab.calendar.moving(by: 1), .power)
+    XCTAssertEqual(PopoverTab.power.moving(by: 1), .actions)
     XCTAssertEqual(PopoverTab.actions.moving(by: 1), .status)
   }
 
   func testMovingBackwardCyclesThroughTabsAndWraps() {
     XCTAssertEqual(PopoverTab.status.moving(by: -1), .actions)
-    XCTAssertEqual(PopoverTab.actions.moving(by: -1), .calendar)
-    XCTAssertEqual(PopoverTab.calendar.moving(by: -1), .power)
-    XCTAssertEqual(PopoverTab.power.moving(by: -1), .status)
+    XCTAssertEqual(PopoverTab.actions.moving(by: -1), .power)
+    XCTAssertEqual(PopoverTab.power.moving(by: -1), .calendar)
+    XCTAssertEqual(PopoverTab.calendar.moving(by: -1), .status)
   }
 
   func testOnlyUserShortcutModifiersBlockArrowNavigation() {

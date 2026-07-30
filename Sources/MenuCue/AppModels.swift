@@ -131,6 +131,7 @@ struct AppSettings: Equatable {
     var calendarSelectionMode: CalendarSelectionMode
     var selectedCalendarIDs: Set<String>
     var pinnedQuickActions: [QuickActionReference]
+    private(set) var popoverTabOrder: [PopoverTab]
     /// Machine-local: battery behaviour differs per Mac, so this is not synced.
     var metricsSampling: MetricsSamplingSettings
     /// Set once the user has opened the power feature. Until then nothing samples in
@@ -158,6 +159,7 @@ struct AppSettings: Equatable {
         calendarSelectionMode: CalendarSelectionMode,
         selectedCalendarIDs: Set<String>,
         pinnedQuickActions: [QuickActionReference],
+        popoverTabOrder: [PopoverTab] = PopoverTab.allCases,
         metricsSampling: MetricsSamplingSettings = .default,
         powerMonitoringEnabled: Bool = false,
         notificationSettings: NotificationSettings = .default,
@@ -181,6 +183,9 @@ struct AppSettings: Equatable {
         self.powerMonitoringEnabled = powerMonitoringEnabled
         self.notificationSettings = notificationSettings
         self.pinnedQuickActions = pinnedQuickActions
+        self.popoverTabOrder = PopoverTab.normalizedOrder(
+            rawValues: popoverTabOrder.map(\.rawValue)
+        )
         self.preferenceSyncEnabled = preferenceSyncEnabled
         self.preferenceSyncOnboardingCompleted = preferenceSyncOnboardingCompleted
         self.portableModificationDates = portableModificationDates
@@ -264,6 +269,21 @@ struct AppSettings: Equatable {
         )
         remaining.insert(contentsOf: moving, at: insertionIndex)
         clockEntries = remaining
+    }
+
+    mutating func movePopoverTabs(fromOffsets source: IndexSet, toOffset destination: Int) {
+        guard !source.isEmpty else { return }
+        let moving = source.sorted().map { popoverTabOrder[$0] }
+        var remaining = popoverTabOrder.enumerated()
+            .filter { !source.contains($0.offset) }
+            .map(\.element)
+        let removedBeforeDestination = source.filter { $0 < destination }.count
+        let insertionIndex = min(
+            remaining.count,
+            max(0, destination - removedBeforeDestination)
+        )
+        remaining.insert(contentsOf: moving, at: insertionIndex)
+        popoverTabOrder = PopoverTab.normalizedOrder(rawValues: remaining.map(\.rawValue))
     }
 
     @discardableResult

@@ -73,6 +73,73 @@ quickActionService.refreshAll() // publishes the observed macOS state
 
 `AppModel` is the only general settings mutation boundary. Feature services may own runtime state and side effects, but they do not mutate persisted settings. SwiftUI views compose `@ObservedObject` owners and send intents through model/service methods.
 
+## Scenario: Ordered popover tabs and swipe delivery
+
+### 1. Scope / Trigger
+
+Use this pattern when the popover tab order is configurable or an AppKit gesture container publishes navigation into SwiftUI.
+
+### 2. Signatures
+
+- Stable identity: `PopoverTab.rawValue`
+- Ordered setting: `AppSettings.popoverTabOrder`
+- Local key: `popoverTabOrder.v1`
+- Mutation boundary: `AppModel.movePopoverTabs(fromOffsets:toOffset:)`
+- Navigation: `PopoverTab.moving(by:in:)`
+- Event bridge: `SwipeForwardingController(rootView:relay:)`
+
+### 3. Contracts
+
+- The product default is Status, Calendar, Power, Actions.
+- Persist raw IDs locally; this field is not part of `PortableSettingField` or iCloud sync.
+- Keep the first occurrence of each known stored ID, ignore unknown IDs individually, then append every missing built-in tab in product-default order.
+- The tab bar, click animation direction, arrow keys, horizontal wheel input, and trackpad swipe all consume `AppSettings.popoverTabOrder`.
+- The configured first tab initializes the first popover view after launch. Retained SwiftUI state preserves the last selected tab across later popover presentations in that app session.
+- The AppKit container and observing SwiftUI view must receive the same `SwipeRelay` instance. Never create an unconnected relay inside the container.
+- Horizontal handling must not opt into or consume vertical-dominant scrolling.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Preference missing | Use Status, Calendar, Power, Actions |
+| Empty, duplicate, or unknown IDs | Normalize to every known tab exactly once |
+| New built-in tab after upgrade | Append it after valid stored entries |
+| Movement crosses either end | Wrap in the configured order |
+| Repeated same-direction gestures | Publish each with a distinct sequence |
+| AppKit and SwiftUI receive different relays | Invalid wiring; no tab update is observable |
+| Vertical-dominant gesture | Pass through to the nested scroll view |
+
+### 5. Good / Base / Bad Cases
+
+- Good: create one `SwipeRelay`, pass it to both `StatusPopoverView` and `SwipeForwardingController`, and observe one tab update per recognized gesture.
+- Base: no stored preference resolves to the product default; opening the popover a second time retains the current session selection.
+- Bad: the container constructs its own relay while SwiftUI observes another instance; logs show `navigate(1)` but no `TAB old -> new` transition.
+
+### 6. Tests Required
+
+- Missing, empty, duplicate, unknown, reordered, and round-tripped preferences assert the complete ordered array.
+- Forward and backward movement assert configured-order wraparound.
+- Container tests assert `controller.relay === container.relay === injectedRelay`.
+- Recognizer tests assert one navigation per gesture, repeated gesture delivery, and vertical pass-through.
+- Real-trackpad acceptance with `MENUCUE_SWIPE_LOG=1` must show both `accumulator -> navigate(...)` and the corresponding `TAB old -> new` line.
+
+### 7. Wrong vs Correct
+
+```swift
+// Wrong: gesture events and SwiftUI updates travel through different objects.
+let relay = SwipeRelay()
+let controller = SwipeForwardingController(rootView: Content(swipeRelay: relay))
+// SwipeForwardingView silently owns another SwipeRelay.
+
+// Correct: one relay crosses the AppKit/SwiftUI boundary.
+let relay = SwipeRelay()
+let controller = SwipeForwardingController(
+  rootView: Content(swipeRelay: relay),
+  relay: relay
+)
+```
+
 ## Scenario: Display-bound cleaning overlays
 
 ### Scope / Trigger

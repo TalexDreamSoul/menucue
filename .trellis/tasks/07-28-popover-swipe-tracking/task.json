@@ -1,9 +1,9 @@
 {
   "id": "popover-swipe-tracking",
   "name": "popover-swipe-tracking",
-  "title": "Fix popover trackpad swipe navigation",
+  "title": "Configure popover tab order and swipe navigation",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

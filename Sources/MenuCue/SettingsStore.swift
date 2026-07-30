@@ -13,6 +13,7 @@ final class SettingsStore {
         static let calendarSelectionMode = "calendarSelectionMode"
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let pinnedQuickActions = "pinnedQuickActions"
+        static let popoverTabOrder = "popoverTabOrder.v1"
         static let metricsSampling = "metricsSampling.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
         static let notificationSettings = "notificationSettings.v1"
@@ -72,6 +73,7 @@ final class SettingsStore {
             ) ?? .all,
             selectedCalendarIDs: Set(defaults.stringArray(forKey: Key.selectedCalendarIDs) ?? []),
             pinnedQuickActions: loadPinnedQuickActions(),
+            popoverTabOrder: loadPopoverTabOrder(),
             metricsSampling: loadMetricsSampling(),
             powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
             notificationSettings: loadNotificationSettings(),
@@ -101,6 +103,7 @@ final class SettingsStore {
         defaults.set(settings.calendarSelectionMode.rawValue, forKey: Key.calendarSelectionMode)
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
+        defaults.set(settings.popoverTabOrder.map(\.rawValue), forKey: Key.popoverTabOrder)
         defaults.set(settings.powerMonitoringEnabled, forKey: Key.powerMonitoringEnabled)
         if let data = try? encoder.encode(settings.notificationSettings) {
             defaults.set(data, forKey: Key.notificationSettings)
@@ -200,6 +203,15 @@ final class SettingsStore {
         }
         return WeekStartDay(rawValue: defaults.integer(forKey: Key.calendarWeekStartDay))
             ?? defaultValue
+    }
+
+    private func loadPopoverTabOrder() -> [PopoverTab] {
+        guard defaults.object(forKey: Key.popoverTabOrder) != nil else {
+            return PopoverTab.allCases
+        }
+        return PopoverTab.normalizedOrder(
+            rawValues: defaults.stringArray(forKey: Key.popoverTabOrder) ?? []
+        )
     }
 
     private func loadPinnedQuickActions() -> [QuickActionReference] {

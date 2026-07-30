@@ -156,8 +156,18 @@ final class SwipeRelay: ObservableObject {
 /// — which is what a real flick did — the swipe silently does nothing. Deferring to
 /// it traded a tested accumulator for an untestable black box.
 final class SwipeForwardingView: NSView {
-  let relay = SwipeRelay()
+  let relay: SwipeRelay
   private var recognizer = SwipeRecognizer()
+
+  init(frame frameRect: NSRect, relay: SwipeRelay = SwipeRelay()) {
+    self.relay = relay
+    super.init(frame: frameRect)
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) is not used")
+  }
 
   /// Set `MENUCUE_SWIPE_LOG=1` to trace what actually arrives here.
   private static let isLogging = ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1"
@@ -219,9 +229,10 @@ final class SwipeForwardingView: NSView {
 /// forwarded horizontal events.
 final class SwipeForwardingController<Content: View>: NSViewController {
   private let hosting: NSHostingController<Content>
+  private let swipeRelay: SwipeRelay
 
   var relay: SwipeRelay {
-    containerView.relay
+    swipeRelay
   }
 
   private var containerView: SwipeForwardingView {
@@ -229,8 +240,9 @@ final class SwipeForwardingController<Content: View>: NSViewController {
     view as! SwipeForwardingView
   }
 
-  init(rootView: Content) {
+  init(rootView: Content, relay: SwipeRelay = SwipeRelay()) {
     self.hosting = NSHostingController(rootView: rootView)
+    self.swipeRelay = relay
     super.init(nibName: nil, bundle: nil)
   }
 
@@ -240,7 +252,7 @@ final class SwipeForwardingController<Content: View>: NSViewController {
   }
 
   override func loadView() {
-    view = SwipeForwardingView(frame: .zero)
+    view = SwipeForwardingView(frame: .zero, relay: swipeRelay)
   }
 
   override func viewDidLoad() {

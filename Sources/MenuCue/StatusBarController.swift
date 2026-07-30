@@ -124,7 +124,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
           NSApp.terminate(nil)
         },
         swipeRelay: relay
-      )
+      ),
+      relay: relay
     )
     hostingController.applyAppearance(NSApp.appearance)
     popover.contentViewController = hostingController
@@ -582,7 +583,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         initialPane: initialPane,
         initialDashboardSection: dashboardSection,
         swipeRelay: relay
-      )
+      ),
+      relay: relay
     )
     hostingController.applyAppearance(NSApp.appearance)
 

@@ -35,6 +35,7 @@ struct OverviewSettingsView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
       machineGroup
+      popoverTabsGroup
       metricsGroup
       samplingGroup
       activeActionsGroup
@@ -77,6 +78,43 @@ struct OverviewSettingsView: View {
         L10n.format("up %@", SystemMetricsFormatter.uptime(Date().timeIntervalSince(bootDate))))
     }
     return parts.joined(separator: " · ")
+  }
+
+  // MARK: - Popover tabs
+
+  private var popoverTabsGroup: some View {
+    SettingsGroup(spacing: 10) {
+      Text(L10n.string("Popover tabs"))
+        .font(.headline)
+
+      List {
+        ForEach(model.settings.popoverTabOrder) { tab in
+          HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal")
+              .foregroundStyle(.tertiary)
+            Image(systemName: tab.systemImage)
+              .foregroundStyle(.secondary)
+              .frame(width: 18)
+            Text(tab.title)
+            Spacer()
+          }
+          .padding(.vertical, 2)
+        }
+        .onMove { source, destination in
+          model.movePopoverTabs(fromOffsets: source, toOffset: destination)
+        }
+      }
+      .frame(height: 142)
+
+      Text(
+        L10n.string(
+          "Drag to set the tab order. The first tab opens after launch; horizontal swipes follow this order."
+        )
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .fixedSize(horizontal: false, vertical: true)
+    }
   }
 
   // MARK: - Metrics
