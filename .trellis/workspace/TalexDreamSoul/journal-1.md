@@ -255,3 +255,38 @@ Added local drag ordering for popover tabs, unified configured-order navigation,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Date settings, AirPlay overlays, and quick access
+
+**Date**: 2026-07-29
+**Task**: Date settings, AirPlay overlays, and quick access
+**Branch**: `master`
+
+### Summary
+
+Consolidated date and time settings, fixed Sidecar overlay placement, and added settings/update shortcuts with Dock-visible settings.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `de205c3` | (see git log) |
+| `c191d18` | (see git log) |
+| `053a814` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
