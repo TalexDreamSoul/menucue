@@ -8,6 +8,8 @@ enum PortableSettingField: String, CaseIterable, Codable, Hashable {
     case statusBarSwitchInterval
     case overviewTimeZone
     case calendarWeekStartDay
+    case showsLunarCalendar
+    case allDayEventDatePolicy
     case appearanceMode
 }
 
@@ -17,6 +19,8 @@ enum PortableSettingValue: Codable, Equatable {
     case statusBarSwitchInterval(TimeInterval)
     case overviewTimeZone(String)
     case calendarWeekStartDay(WeekStartDay)
+    case showsLunarCalendar(Bool)
+    case allDayEventDatePolicy(AllDayEventDatePolicy)
     case appearanceMode(AppearanceMode)
 }
 
@@ -50,6 +54,8 @@ struct PortableSettingEnvelope: Codable, Equatable {
              (.statusBarSwitchInterval, .statusBarSwitchInterval),
              (.overviewTimeZone, .overviewTimeZone),
              (.calendarWeekStartDay, .calendarWeekStartDay),
+             (.showsLunarCalendar, .showsLunarCalendar),
+             (.allDayEventDatePolicy, .allDayEventDatePolicy),
              (.appearanceMode, .appearanceMode):
             return true
         default:
@@ -489,6 +495,8 @@ extension AppSettings {
             return .statusBarSwitchInterval(statusBarSwitchIntervalSeconds)
         case .overviewTimeZone: return .overviewTimeZone(overviewTimeZoneID)
         case .calendarWeekStartDay: return .calendarWeekStartDay(calendarWeekStartDay)
+        case .showsLunarCalendar: return .showsLunarCalendar(showsLunarCalendar)
+        case .allDayEventDatePolicy: return .allDayEventDatePolicy(allDayEventDatePolicy)
         case .appearanceMode: return .appearanceMode(appearanceMode)
         }
     }
@@ -511,6 +519,10 @@ extension AppSettings {
             overviewTimeZoneID = identifier
         case let (.calendarWeekStartDay, .calendarWeekStartDay(day)):
             calendarWeekStartDay = day
+        case let (.showsLunarCalendar, .showsLunarCalendar(isEnabled)):
+            showsLunarCalendar = isEnabled
+        case let (.allDayEventDatePolicy, .allDayEventDatePolicy(policy)):
+            allDayEventDatePolicy = policy
         case let (.appearanceMode, .appearanceMode(mode)):
             appearanceMode = mode
         default:

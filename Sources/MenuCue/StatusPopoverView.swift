@@ -217,11 +217,22 @@ struct StatusPopoverView: View {
           selectedDate: $selectedCalendarDate,
           events: model.events,
           timeZone: model.settings.overviewTimeZone,
-          weekStartDay: model.settings.calendarWeekStartDay
+          weekStartDay: model.settings.calendarWeekStartDay,
+          showsLunarCalendar: model.settings.showsLunarCalendar,
+          allDayEventDatePolicy: model.settings.allDayEventDatePolicy
         )
-        DailyGuideCard(
+        .onAppear {
+          model.setVisibleCalendarMonth(visibleMonthDate)
+        }
+        .onChange(of: visibleMonthDate) { value in
+          model.setVisibleCalendarMonth(value)
+        }
+        CalendarDateDetailCard(
           date: selectedCalendarDate,
-          timeZone: model.settings.overviewTimeZone
+          events: model.events,
+          timeZone: model.settings.overviewTimeZone,
+          showsLunarCalendar: model.settings.showsLunarCalendar,
+          allDayEventDatePolicy: model.settings.allDayEventDatePolicy
         )
         eventsSection
       }
@@ -275,7 +286,8 @@ struct StatusPopoverView: View {
         AgendaList(
           events: model.events,
           timeZone: model.settings.overviewTimeZone,
-          weekStartDay: model.settings.calendarWeekStartDay
+          weekStartDay: model.settings.calendarWeekStartDay,
+          allDayEventDatePolicy: model.settings.allDayEventDatePolicy
         )
       }
     }
@@ -321,59 +333,17 @@ struct StatusPopoverView: View {
   }
 }
 
-private struct DailyGuide {
-  let favorable: [String]
-  let unfavorable: [String]
-
-  private static let favorableActivities = [
-    "Focus", "Planning", "Learning", "Socializing", "Travel", "Exercise",
-    "Organizing", "Creating", "Communication", "Rest", "Reflection", "Starting",
-  ].map(L10n.string)
-  private static let unfavorableActivities = [
-    "Procrastination", "Staying up late", "Impulse spending", "Overcommitting",
-    "Hasty decisions", "Arguments", "Risk-taking", "Sitting too long", "Distraction",
-    "Forcing outcomes",
-  ].map(L10n.string)
-
-  static func make(for date: Date, timeZone: TimeZone) -> DailyGuide {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = timeZone
-    let components = calendar.dateComponents([.year, .month, .day], from: date)
-    let seed =
-      (components.year ?? 0) * 372
-      + (components.month ?? 0) * 31
-      + (components.day ?? 0)
-
-    return DailyGuide(
-      favorable: picks(from: favorableActivities, count: 3, seed: seed, step: 5),
-      unfavorable: picks(from: unfavorableActivities, count: 2, seed: seed * 7 + 3, step: 3)
-    )
-  }
-
-  private static func picks(
-    from activities: [String],
-    count: Int,
-    seed: Int,
-    step: Int
-  ) -> [String] {
-    guard !activities.isEmpty else { return [] }
-    let start = ((seed % activities.count) + activities.count) % activities.count
-    return (0..<min(count, activities.count)).map { offset in
-      activities[(start + offset * step) % activities.count]
-    }
-  }
-}
-
-private struct DailyGuideCard: View {
+private struct CalendarDateDetailCard: View {
   let date: Date
+  let events: [CalendarEventInfo]
   let timeZone: TimeZone
+  let showsLunarCalendar: Bool
+  let allDayEventDatePolicy: AllDayEventDatePolicy
 
   var body: some View {
-    let guide = DailyGuide.make(for: date, timeZone: timeZone)
-
     VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .firstTextBaseline) {
-        Text("Daily Guide")
+        Text("Date Details")
           .font(.subheadline.weight(.semibold))
         Spacer()
         Text(dateText)
@@ -381,37 +351,121 @@ private struct DailyGuideCard: View {
           .foregroundStyle(.secondary)
       }
 
-      guideRow(label: L10n.string("Good for"), color: .green, activities: guide.favorable)
-      guideRow(label: L10n.string("Avoid"), color: .red, activities: guide.unfavorable)
+      if let lunarInfo {
+        Label(lunarInfo.fullText, systemImage: "moon.stars")
+          .font(.caption.weight(.medium))
+          .foregroundStyle(.secondary)
+
+        if !lunarInfo.sexagenaryYearText.isEmpty {
+          Text(L10n.format("Sexagenary year: %@", lunarInfo.sexagenaryYearText))
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+
+        if let dateContextTitle {
+          Label(dateContextTitle, systemImage: "sparkles")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Color.accentColor)
+        }
+      }
+
+      Divider()
+
+      Text("Selected date events")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+
+      if selectedEvents.isEmpty {
+        Text("No events on this date.")
+          .font(.caption)
+          .foregroundStyle(.tertiary)
+      } else {
+        ForEach(selectedEvents.prefix(4)) { event in
+          SelectedDateEventRow(
+            event: event,
+            timeZone: timeZone,
+            accent: eventAccentColor(for: event)
+          )
+        }
+      }
     }
     .padding(10)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(Color.secondary.opacity(0.06))
     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    .help("A light daily guide generated on-device for the selected date.")
   }
 
-  private func guideRow(label: String, color: Color, activities: [String]) -> some View {
-    HStack(spacing: 8) {
-      Text(label)
-        .font(.caption.weight(.bold))
-        .foregroundStyle(color)
-        .frame(width: 24, height: 20)
-        .background(color.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-      Text(activities.joined(separator: " · "))
-        .font(.caption.weight(.medium))
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-    }
+  private var civilDate: CivilDateKey {
+    CivilDateKey(date: date, timeZone: timeZone)
+  }
+
+  private var lunarInfo: LunarDateInfo? {
+    guard showsLunarCalendar else { return nil }
+    return LunarDateProvider(timeZone: timeZone, locale: L10n.appLocale).info(for: date)
+  }
+
+  private var solarTerm: SolarTerm? {
+    guard showsLunarCalendar else { return nil }
+    return SolarTermStore.bundled?.term(on: civilDate)
+  }
+
+  private var dateContextTitle: String? {
+    lunarInfo?.festival?.title ?? solarTerm?.title
+  }
+
+  private var selectedEvents: [CalendarEventInfo] {
+    EventDateProjector.eventsByCivilDate(
+      events,
+      timeZone: timeZone,
+      allDayPolicy: allDayEventDatePolicy
+    )[civilDate] ?? []
   }
 
   private var dateText: String {
     let formatter = DateFormatter()
     formatter.locale = .autoupdatingCurrent
     formatter.timeZone = timeZone
-    formatter.dateFormat = "MMM d"
+    formatter.dateFormat = "EEE, MMM d, yyyy"
     return formatter.string(from: date)
+  }
+}
+
+private struct SelectedDateEventRow: View {
+  let event: CalendarEventInfo
+  let timeZone: TimeZone
+  let accent: Color
+
+  var body: some View {
+    HStack(spacing: 8) {
+      RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+        .fill(accent)
+        .frame(width: 3, height: 28)
+
+      VStack(alignment: .leading, spacing: 1) {
+        Text(event.title)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+        Text(event.calendarTitle)
+          .font(.caption2)
+          .foregroundStyle(.tertiary)
+          .lineLimit(1)
+      }
+
+      Spacer(minLength: 8)
+
+      Text(timeText)
+        .font(.caption2.weight(.medium))
+        .foregroundStyle(.secondary)
+    }
+  }
+
+  private var timeText: String {
+    guard !event.isAllDay else { return L10n.string("All day") }
+    let formatter = DateFormatter()
+    formatter.locale = .autoupdatingCurrent
+    formatter.timeZone = timeZone
+    formatter.dateFormat = "HH:mm"
+    return formatter.string(from: event.startDate)
   }
 }
 
@@ -1294,6 +1348,23 @@ private struct SettingsContentView: View {
         .font(.caption)
         .foregroundStyle(.secondary)
 
+      Toggle("Show lunar calendar", isOn: binding(\.showsLunarCalendar))
+
+      Text("Show lunar dates, traditional festivals, and solar terms in the month view.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Picker("All-day events", selection: binding(\.allDayEventDatePolicy)) {
+        ForEach(AllDayEventDatePolicy.allCases) { policy in
+          Text(policy.title).tag(policy)
+        }
+      }
+      .frame(maxWidth: 320)
+
+      Text("Keep their original civil date, or regroup them using the overview time zone.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
       Divider()
 
       HStack {
@@ -1662,10 +1733,12 @@ private struct MonthCalendarView: View {
   let events: [CalendarEventInfo]
   let timeZone: TimeZone
   let weekStartDay: WeekStartDay
+  let showsLunarCalendar: Bool
+  let allDayEventDatePolicy: AllDayEventDatePolicy
   @State private var hoveredDate: Date?
 
   private let weekNumberColumnWidth: CGFloat = 22
-  private let dateCellHeight: CGFloat = 27
+  private var dateCellHeight: CGFloat { showsLunarCalendar ? 39 : 27 }
   private let weekdayRowHeight: CGFloat = 20
   /// Day columns flex so the grid spans the whole card. Fixed-width columns left
   /// roughly a third of the card empty on the trailing edge.
@@ -1745,22 +1818,36 @@ private struct MonthCalendarView: View {
                 monthDate = day.date
               }
             } label: {
-              VStack(spacing: 2) {
+              VStack(spacing: showsLunarCalendar ? 0 : 2) {
                 Text(verbatim: String(day.number))
                   .font(.system(size: 12.5, weight: dayWeight(for: day), design: .rounded))
                   .foregroundStyle(dayForeground(for: day))
+
+                if showsLunarCalendar {
+                  Text(day.secondaryText ?? " ")
+                    .font(.system(size: 8.5, weight: .medium))
+                    .foregroundStyle(secondaryForeground(for: day))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .frame(maxWidth: 32, minHeight: 10, maxHeight: 10)
+                }
+
                 HStack(spacing: 2) {
-                  ForEach(Array(day.eventColors.enumerated()), id: \.offset) { _, color in
+                  ForEach(Array(day.events.prefix(3).enumerated()), id: \.offset) { _, event in
                     Circle()
-                      .fill(day.isSelected ? Color.white.opacity(0.85) : color)
+                      .fill(
+                        day.isSelected
+                          ? Color.white.opacity(0.85) : eventAccentColor(for: event)
+                      )
                       .frame(width: 3, height: 3)
                   }
                 }
-                .frame(height: 3)
+                .frame(height: showsLunarCalendar ? 4 : 3)
               }
-              // The chip is sized independently of the flexible column so the
-              // selection reads as a rounded square instead of a full-width bar.
-              .frame(width: 32, height: 25)
+              .frame(
+                width: showsLunarCalendar ? 34 : 32,
+                height: showsLunarCalendar ? 37 : 25
+              )
               .background(
                 dayChipFill(for: day),
                 in: RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -1770,6 +1857,7 @@ private struct MonthCalendarView: View {
               .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(dayAccessibilityLabel(for: day))
             .help(dayHelpText(for: day))
             .onHover { isHovering in
               withAnimation(PopoverMotion.hover) {
@@ -1868,30 +1956,25 @@ private struct MonthCalendarView: View {
       let weekDays = Array(days[index..<min(index + 7, days.count)])
       return CalendarWeek(
         id: weekDays.first?.date ?? monthStart,
-        number: weekNumber(for: weekDays.first?.date ?? monthStart), days: weekDays)
+        number: weekDays.first?.weekNumber ?? calendar.component(.weekOfYear, from: monthStart),
+        days: weekDays
+      )
     }
   }
 
-  private var days: [CalendarDay] {
-    let currentMonth = calendar.component(.month, from: monthStart)
-
-    return (-leadingDays..<(42 - leadingDays)).compactMap { offset in
-      guard let date = calendar.date(byAdding: .day, value: offset, to: monthStart) else {
-        return nil
-      }
-      let eventColors = eventsForDay(date)
-        .prefix(3)
-        .map(eventAccentColor)
-      return CalendarDay(
-        id: date,
-        date: date,
-        number: calendar.component(.day, from: date),
-        isInMonth: calendar.component(.month, from: date) == currentMonth,
-        isToday: calendar.isDate(date, inSameDayAs: Date()),
-        isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
-        eventColors: Array(eventColors)
-      )
-    }
+  private var days: [CalendarDayPresentation] {
+    CalendarMonthBuilder(
+      timeZone: timeZone,
+      weekStartDay: weekStartDay,
+      showsLunarCalendar: showsLunarCalendar,
+      allDayEventDatePolicy: allDayEventDatePolicy,
+      solarTerms: SolarTermStore.bundled
+    ).days(
+      monthDate: monthDate,
+      selectedDate: selectedDate,
+      now: Date(),
+      events: events
+    )
   }
 
   private func weekNumber(for date: Date) -> Int {
@@ -2033,46 +2116,54 @@ private struct MonthCalendarView: View {
 
   /// Selection is a filled chip and today is a tinted chip; the rest is carried by
   /// type color rather than per-cell borders.
-  private func dayChipFill(for day: CalendarDay) -> Color {
+  private func dayChipFill(for day: CalendarDayPresentation) -> Color {
     if day.isSelected { return .accentColor }
     if day.isToday { return .accentColor.opacity(0.14) }
     if isHovered(day) { return .primary.opacity(0.07) }
     return .clear
   }
 
-  private func dayForeground(for day: CalendarDay) -> Color {
+  private func dayForeground(for day: CalendarDayPresentation) -> Color {
     if day.isSelected { return .white }
     if day.isToday { return .accentColor }
     return day.isInMonth ? .primary : .secondary.opacity(0.4)
   }
 
-  private func dayWeight(for day: CalendarDay) -> Font.Weight {
+  private func secondaryForeground(for day: CalendarDayPresentation) -> Color {
+    if day.isSelected { return .white.opacity(0.82) }
+    return day.isInMonth ? .secondary : .secondary.opacity(0.35)
+  }
+
+  private func dayWeight(for day: CalendarDayPresentation) -> Font.Weight {
     (day.isSelected || day.isToday) ? .bold : .medium
   }
 
-  private func isHovered(_ day: CalendarDay) -> Bool {
+  private func isHovered(_ day: CalendarDayPresentation) -> Bool {
     hoveredDate.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false
   }
 
-  private func dayHelpText(for day: CalendarDay) -> String {
-    let events = eventsForDay(day.date)
+  private func dayAccessibilityLabel(for day: CalendarDayPresentation) -> String {
     let eventSummary: String
-    if events.isEmpty {
+    if day.events.isEmpty {
       eventSummary = L10n.string("No events")
-    } else if events.count == 1 {
-      eventSummary = L10n.format("%d event", events.count)
+    } else if day.events.count == 1 {
+      eventSummary = L10n.format("%d event", day.events.count)
     } else {
-      eventSummary = L10n.format("%d events", events.count)
+      eventSummary = L10n.format("%d events", day.events.count)
     }
-    return L10n.format(
-      "%@ • %@ • Click to select",
-      dateTooltipText(for: day.date),
-      eventSummary
-    )
+    var parts = [dateTooltipText(for: day.date)]
+    if let lunar = day.lunar {
+      parts.append(lunar.fullText)
+    }
+    if let context = day.lunar?.festival?.title ?? day.solarTerm?.title {
+      parts.append(context)
+    }
+    parts.append(eventSummary)
+    return parts.joined(separator: ", ")
   }
 
-  private func eventsForDay(_ date: Date) -> [CalendarEventInfo] {
-    events.filter { calendar.isDate($0.startDate, inSameDayAs: date) }
+  private func dayHelpText(for day: CalendarDayPresentation) -> String {
+    "\(dayAccessibilityLabel(for: day)) • \(L10n.string("Click to select"))"
   }
 
   private func dateTooltipText(for date: Date) -> String {
@@ -2122,26 +2213,17 @@ private struct CalendarNavButton: View {
   }
 }
 
-private struct CalendarDay: Identifiable {
-  let id: Date
-  let date: Date
-  let number: Int
-  let isInMonth: Bool
-  let isToday: Bool
-  let isSelected: Bool
-  let eventColors: [Color]
-}
-
 private struct CalendarWeek: Identifiable {
   let id: Date
   let number: Int
-  let days: [CalendarDay]
+  let days: [CalendarDayPresentation]
 }
 
 private struct AgendaList: View {
   let events: [CalendarEventInfo]
   let timeZone: TimeZone
   let weekStartDay: WeekStartDay
+  let allDayEventDatePolicy: AllDayEventDatePolicy
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -2154,7 +2236,7 @@ private struct AgendaList: View {
           .foregroundStyle(.secondary)
       }
 
-      if weekEvents.isEmpty {
+      if groupedWeekEvents.isEmpty {
         Text("No events in the next 7 days.")
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -2186,34 +2268,28 @@ private struct AgendaList: View {
     gregorianCalendar(for: timeZone, weekStartDay: weekStartDay)
   }
 
-  private var weekEvents: [CalendarEventInfo] {
-    let start = Date()
-    let end =
-      calendar.date(byAdding: .day, value: 7, to: start)
-      ?? start.addingTimeInterval(7 * 24 * 60 * 60)
-    return
-      events
-      .filter { $0.endDate >= start && $0.startDate < end }
-      .sorted { $0.startDate < $1.startDate }
-  }
-
   private var groupedWeekEvents: [AgendaDayGroup] {
-    let grouped = Dictionary(grouping: weekEvents) { event in
-      calendar.startOfDay(for: event.startDate)
-    }
-    return grouped.keys.sorted().map { day in
-      AgendaDayGroup(
+    let grouped = AgendaEventProjector.eventsByCivilDate(
+      events,
+      now: Date(),
+      timeZone: timeZone,
+      allDayPolicy: allDayEventDatePolicy
+    )
+
+    return grouped.keys.sorted().compactMap { key in
+      guard let day = key.date(in: timeZone) else { return nil }
+      return AgendaDayGroup(
         id: day,
         title: dayTitle(for: day),
         dateText: shortDateText(for: day),
-        events: grouped[day]?.sorted { $0.startDate < $1.startDate } ?? []
+        events: grouped[key]?.sorted { $0.startDate < $1.startDate } ?? []
       )
     }
   }
 
   private var dateRangeText: String {
     let start = Date()
-    let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start
+    let end = calendar.date(byAdding: .day, value: 6, to: start) ?? start
     return L10n.format(
       "%@ – %@",
       shortDateText(for: start),

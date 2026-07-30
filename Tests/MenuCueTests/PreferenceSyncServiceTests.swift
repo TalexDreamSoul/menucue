@@ -101,6 +101,39 @@ final class PreferenceSyncServiceTests: XCTestCase {
         XCTAssertEqual(try storedEnvelope(in: cloud, field: .statusBarSwitchInterval), updatedInterval)
     }
 
+    func testLunarFieldsRoundTripAsIndependentCloudEnvelopes() throws {
+        let cloud = InMemoryPreferenceCloudStore()
+        let service = entitledService(cloud: cloud)
+        let lunar = envelope(
+            field: .showsLunarCalendar,
+            date: oldDate,
+            value: .showsLunarCalendar(true)
+        )
+        let allDayPolicy = envelope(
+            field: .allDayEventDatePolicy,
+            date: newDate,
+            value: .allDayEventDatePolicy(.overviewTimeZone)
+        )
+        service.configure(
+            localEnvelopeProvider: {
+                [
+                    .showsLunarCalendar: lunar,
+                    .allDayEventDatePolicy: allDayPolicy,
+                ]
+            },
+            importHandler: { _, _ in }
+        )
+
+        service.start(enabled: false, onboardingCompleted: false, storedIdentityToken: nil)
+        service.completeOnboarding(enable: true)
+
+        XCTAssertEqual(try storedEnvelope(in: cloud, field: .showsLunarCalendar), lunar)
+        XCTAssertEqual(
+            try storedEnvelope(in: cloud, field: .allDayEventDatePolicy),
+            allDayPolicy
+        )
+    }
+
     func testDisablementPreservesCloudDataAndStopsFurtherUploads() throws {
         let cloud = InMemoryPreferenceCloudStore()
         let service = entitledService(cloud: cloud)

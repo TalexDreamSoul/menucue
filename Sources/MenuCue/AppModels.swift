@@ -128,6 +128,8 @@ struct AppSettings: Equatable {
     var appliesSystemAppearance: Bool
     var overviewTimeZoneID: String
     var calendarWeekStartDay: WeekStartDay
+    var showsLunarCalendar: Bool
+    var allDayEventDatePolicy: AllDayEventDatePolicy
     var calendarSelectionMode: CalendarSelectionMode
     var selectedCalendarIDs: Set<String>
     var pinnedQuickActions: [QuickActionReference]
@@ -156,6 +158,8 @@ struct AppSettings: Equatable {
         appliesSystemAppearance: Bool,
         overviewTimeZoneID: String,
         calendarWeekStartDay: WeekStartDay,
+        showsLunarCalendar: Bool = false,
+        allDayEventDatePolicy: AllDayEventDatePolicy = .preserveSource,
         calendarSelectionMode: CalendarSelectionMode,
         selectedCalendarIDs: Set<String>,
         pinnedQuickActions: [QuickActionReference],
@@ -177,6 +181,8 @@ struct AppSettings: Equatable {
         self.appliesSystemAppearance = appliesSystemAppearance
         self.overviewTimeZoneID = overviewTimeZoneID
         self.calendarWeekStartDay = calendarWeekStartDay
+        self.showsLunarCalendar = showsLunarCalendar
+        self.allDayEventDatePolicy = allDayEventDatePolicy
         self.calendarSelectionMode = calendarSelectionMode
         self.selectedCalendarIDs = selectedCalendarIDs
         self.metricsSampling = metricsSampling.normalized
@@ -590,6 +596,28 @@ struct CalendarEventInfo: Identifiable, Equatable {
     let startDate: Date
     let endDate: Date
     let isAllDay: Bool
+    let sourceStartCivilDate: CivilDateKey?
+    let sourceEndCivilDateExclusive: CivilDateKey?
+
+    init(
+        id: String,
+        title: String,
+        calendarTitle: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        sourceStartCivilDate: CivilDateKey? = nil,
+        sourceEndCivilDateExclusive: CivilDateKey? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.calendarTitle = calendarTitle
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isAllDay = isAllDay
+        self.sourceStartCivilDate = sourceStartCivilDate
+        self.sourceEndCivilDateExclusive = sourceEndCivilDateExclusive
+    }
 }
 
 struct QuickEventDraft: Equatable {

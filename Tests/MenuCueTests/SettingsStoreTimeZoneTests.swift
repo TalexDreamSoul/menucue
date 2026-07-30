@@ -172,4 +172,54 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         XCTAssertEqual(TimeZoneCatalog.flag(for: "Asia/Shanghai"), "🇨🇳")
         XCTAssertEqual(TimeZoneCatalog.flag(for: "Europe/London"), "🇬🇧")
     }
+
+    func testLunarDisplayDefaultsOnForChineseCultureRegionsAndOffElsewhere() {
+        let cnDefaults = UserDefaults(suiteName: "\(suiteName!).cn")!
+        let usDefaults = UserDefaults(suiteName: "\(suiteName!).us")!
+        defer {
+            cnDefaults.removePersistentDomain(forName: "\(suiteName!).cn")
+            usDefaults.removePersistentDomain(forName: "\(suiteName!).us")
+        }
+
+        XCTAssertTrue(SettingsStore(defaults: cnDefaults, regionCodeProvider: { "CN" }).load().showsLunarCalendar)
+        XCTAssertFalse(SettingsStore(defaults: usDefaults, regionCodeProvider: { "US" }).load().showsLunarCalendar)
+    }
+
+    func testDerivedLunarDefaultPersistsAfterRegionChanges() {
+        let first = SettingsStore(defaults: defaults, regionCodeProvider: { "CN" }).load()
+        let afterRegionChange = SettingsStore(defaults: defaults, regionCodeProvider: { "US" }).load()
+
+        XCTAssertTrue(first.showsLunarCalendar)
+        XCTAssertTrue(afterRegionChange.showsLunarCalendar)
+    }
+
+    func testLunarDisplayAndAllDayPolicyPersist() {
+        var settings = store.load()
+        settings.showsLunarCalendar = true
+        settings.allDayEventDatePolicy = .overviewTimeZone
+
+        store.save(settings)
+        let reloaded = SettingsStore(defaults: defaults).load()
+
+        XCTAssertTrue(reloaded.showsLunarCalendar)
+        XCTAssertEqual(reloaded.allDayEventDatePolicy, .overviewTimeZone)
+    }
+
+    func testLunarDisplayAndAllDayPolicyRoundTripAsPortableFields() {
+        var source = store.load()
+        source.showsLunarCalendar = true
+        source.allDayEventDatePolicy = .overviewTimeZone
+        var destination = store.load()
+
+        XCTAssertTrue(destination.applyPortableValue(
+            source.portableValue(for: .showsLunarCalendar),
+            for: .showsLunarCalendar
+        ))
+        XCTAssertTrue(destination.applyPortableValue(
+            source.portableValue(for: .allDayEventDatePolicy),
+            for: .allDayEventDatePolicy
+        ))
+        XCTAssertTrue(destination.showsLunarCalendar)
+        XCTAssertEqual(destination.allDayEventDatePolicy, .overviewTimeZone)
+    }
 }

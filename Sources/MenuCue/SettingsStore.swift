@@ -10,6 +10,8 @@ final class SettingsStore {
         static let appliesSystemAppearance = "appliesSystemAppearance"
         static let overviewTimeZoneID = "overviewTimeZoneID"
         static let calendarWeekStartDay = "calendarWeekStartDay"
+        static let showsLunarCalendar = "showsLunarCalendar.v1"
+        static let allDayEventDatePolicy = "allDayEventDatePolicy.v1"
         static let calendarSelectionMode = "calendarSelectionMode"
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let pinnedQuickActions = "pinnedQuickActions"
@@ -30,11 +32,18 @@ final class SettingsStore {
     }
 
     private let defaults: UserDefaults
+    private let regionCodeProvider: () -> String?
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        regionCodeProvider: @escaping () -> String? = {
+            Locale.autoupdatingCurrent.region?.identifier
+        }
+    ) {
         self.defaults = defaults
+        self.regionCodeProvider = regionCodeProvider
     }
 
     func load() -> AppSettings {
@@ -68,6 +77,8 @@ final class SettingsStore {
             overviewTimeZoneID: defaults.string(forKey: Key.overviewTimeZoneID)
                 ?? systemTimeZoneID,
             calendarWeekStartDay: loadCalendarWeekStartDay(defaultValue: .monday),
+            showsLunarCalendar: loadShowsLunarCalendar(),
+            allDayEventDatePolicy: loadAllDayEventDatePolicy(),
             calendarSelectionMode: CalendarSelectionMode(
                 rawValue: defaults.string(forKey: Key.calendarSelectionMode) ?? ""
             ) ?? .all,
@@ -100,6 +111,8 @@ final class SettingsStore {
         defaults.set(settings.appliesSystemAppearance, forKey: Key.appliesSystemAppearance)
         defaults.set(settings.overviewTimeZoneID, forKey: Key.overviewTimeZoneID)
         defaults.set(settings.calendarWeekStartDay.rawValue, forKey: Key.calendarWeekStartDay)
+        defaults.set(settings.showsLunarCalendar, forKey: Key.showsLunarCalendar)
+        defaults.set(settings.allDayEventDatePolicy.rawValue, forKey: Key.allDayEventDatePolicy)
         defaults.set(settings.calendarSelectionMode.rawValue, forKey: Key.calendarSelectionMode)
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
@@ -195,6 +208,25 @@ final class SettingsStore {
             return defaultValue
         }
         return min(30, max(2, defaults.double(forKey: Key.statusBarSwitchIntervalSeconds)))
+    }
+
+    private func loadShowsLunarCalendar() -> Bool {
+        if defaults.object(forKey: Key.showsLunarCalendar) != nil {
+            return defaults.bool(forKey: Key.showsLunarCalendar)
+        }
+        let enabledRegions: Set<String> = ["CN", "HK", "MO", "TW", "SG"]
+        let defaultValue = regionCodeProvider().map { enabledRegions.contains($0.uppercased()) } ?? false
+        defaults.set(defaultValue, forKey: Key.showsLunarCalendar)
+        return defaultValue
+    }
+
+    private func loadAllDayEventDatePolicy() -> AllDayEventDatePolicy {
+        guard let rawValue = defaults.string(forKey: Key.allDayEventDatePolicy),
+              let policy = AllDayEventDatePolicy(rawValue: rawValue)
+        else {
+            return .preserveSource
+        }
+        return policy
     }
 
     private func loadCalendarWeekStartDay(defaultValue: WeekStartDay) -> WeekStartDay {

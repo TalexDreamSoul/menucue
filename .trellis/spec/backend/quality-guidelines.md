@@ -66,11 +66,13 @@ Questions to answer:
 - Submit the assembled app to Apple notarization, wait for `Accepted`, staple the ticket, validate it, and require `spctl --assess` to report `Notarized Developer ID`.
 - Create the Sparkle ZIP only after stapling so the downloadable app contains the ticket.
 - Keep signing keys, provisioning profiles, API keys, and notary credentials outside the repository; use Keychain profiles and environment-provided paths.
+- Custom `.app` assembly must copy every SwiftPM runtime resource into `Contents/Resources`. Runtime lookup uses the main app bundle when packaged and `Bundle.module` under SwiftPM tests; a successful package build alone does not prove the installed app can load a resource.
 
 ### 3. Tests Required
 
 - Contract tests assert Developer ID/profile/runtime/notarization guardrails in both release scripts.
 - Release validation must cover the app extracted from the final ZIP, not only the build directory.
+- Every runtime resource added to `Package.swift` must have a packaged-file check; signed data files additionally verify their digest after packaging.
 - An invalid release stays draft and is absent from the public appcast until all checks pass.
 
 ---

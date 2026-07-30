@@ -1,5 +1,75 @@
+import AppKit
 import Combine
+import EventKit
 import Foundation
+
+final class CalendarRefreshController {
+    static let observedNames: [Notification.Name] = [
+        .EKEventStoreChanged,
+        .NSCalendarDayChanged,
+        .NSSystemTimeZoneDidChange,
+        .NSSystemClockDidChange,
+        NSLocale.currentLocaleDidChangeNotification,
+    ]
+
+    private let notificationCenter: NotificationCenter
+    private let workspaceNotificationCenter: NotificationCenter
+    private let delay: TimeInterval
+    private let action: () -> Void
+    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private var workItem: DispatchWorkItem?
+
+    init(
+        notificationCenter: NotificationCenter = .default,
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+        delay: TimeInterval = 0.2,
+        action: @escaping () -> Void
+    ) {
+        self.notificationCenter = notificationCenter
+        self.workspaceNotificationCenter = workspaceNotificationCenter
+        self.delay = delay
+        self.action = action
+        start()
+    }
+
+    deinit {
+        workItem?.cancel()
+        for (center, token) in observers {
+            center.removeObserver(token)
+        }
+    }
+
+    private func start() {
+        for name in Self.observedNames {
+            let token = notificationCenter.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.schedule()
+            }
+            observers.append((notificationCenter, token))
+        }
+
+        let token = workspaceNotificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.schedule()
+        }
+        observers.append((workspaceNotificationCenter, token))
+    }
+
+    private func schedule() {
+        workItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.action()
+        }
+        self.workItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+}
 
 final class AppModel: ObservableObject {
     @Published private(set) var settings: AppSettings
@@ -28,6 +98,8 @@ final class AppModel: ObservableObject {
     private let calendarService: CalendarService
     private let appearanceService: AppearanceService
     private let launchAtLoginService: LaunchAtLoginManaging
+    private var visibleCalendarMonthDate = Date()
+    private var calendarRefreshController: CalendarRefreshController?
 
     init(
         settingsStore: SettingsStore,
@@ -84,6 +156,9 @@ final class AppModel: ObservableObject {
             onboardingCompleted: settings.preferenceSyncOnboardingCompleted,
             storedIdentityToken: settings.iCloudIdentityTokenData
         )
+        calendarRefreshController = CalendarRefreshController { [weak self] in
+            self?.refreshCalendarData()
+        }
         configureNotificationServices(settings.notificationSettings)
     }
 
@@ -320,7 +395,10 @@ final class AppModel: ObservableObject {
     }
 
 
-    func refreshCalendarData() {
+    func refreshCalendarData(visibleMonthDate: Date? = nil) {
+        if let visibleMonthDate {
+            self.visibleCalendarMonthDate = visibleMonthDate
+        }
         authorizationState = calendarService.authorizationState
         guard authorizationState.canReadEvents else {
             calendars = []
@@ -329,6 +407,15 @@ final class AppModel: ObservableObject {
         }
 
         calendars = calendarService.calendars()
+        refreshEventsIfPossible()
+    }
+
+    func setVisibleCalendarMonth(_ date: Date) {
+        let timeZone = settings.overviewTimeZone
+        let previous = CivilDateKey(date: visibleCalendarMonthDate, timeZone: timeZone)
+        let next = CivilDateKey(date: date, timeZone: timeZone)
+        guard previous.year != next.year || previous.month != next.month else { return }
+        visibleCalendarMonthDate = date
         refreshEventsIfPossible()
     }
 
@@ -462,6 +549,9 @@ final class AppModel: ObservableObject {
             events = []
             return
         }
-        events = calendarService.upcomingEvents(settings: settings)
+        events = calendarService.events(
+            settings: settings,
+            visibleMonthDate: visibleCalendarMonthDate
+        )
     }
 }

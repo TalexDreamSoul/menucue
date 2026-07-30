@@ -8,6 +8,15 @@ enum L10n {
     return Bundle.module
   }()
 
+  static var appLocale: Locale {
+    guard let identifier = bundle.preferredLocalizations.first,
+          identifier != "Base"
+    else {
+      return .autoupdatingCurrent
+    }
+    return Locale(identifier: identifier)
+  }
+
   static func string(_ key: String) -> String {
     bundle.localizedString(forKey: key, value: key, table: nil)
   }

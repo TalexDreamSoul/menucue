@@ -1,6 +1,17 @@
 import EventKit
 import Foundation
 
+enum CalendarEventOccurrenceIdentifier {
+    static func make(
+        eventIdentifier: String?,
+        calendarItemIdentifier: String,
+        startDate: Date
+    ) -> String {
+        let base = eventIdentifier ?? calendarItemIdentifier
+        return "\(base)-\(startDate.timeIntervalSinceReferenceDate.bitPattern)"
+    }
+}
+
 enum CalendarServiceError: LocalizedError {
     case missingDefaultCalendar
 
@@ -52,33 +63,68 @@ final class CalendarService {
             }
     }
 
-    func upcomingEvents(settings: AppSettings, daysAhead: Int = 14) -> [CalendarEventInfo] {
+    func events(
+        settings: AppSettings,
+        visibleMonthDate: Date,
+        daysAhead: Int = 14
+    ) -> [CalendarEventInfo] {
         let allCalendars = eventStore.calendars(for: .event)
         let selectedCalendars: [EKCalendar]
         switch settings.calendarSelectionMode {
         case .all:
             selectedCalendars = allCalendars
         case .custom:
-            selectedCalendars = allCalendars.filter { settings.selectedCalendarIDs.contains($0.calendarIdentifier) }
+            selectedCalendars = allCalendars.filter {
+                settings.selectedCalendarIDs.contains($0.calendarIdentifier)
+            }
         }
 
         guard !selectedCalendars.isEmpty else { return [] }
 
-        let startDate = Date()
-        let endDate = Calendar.current.date(byAdding: .day, value: daysAhead, to: startDate) ?? startDate.addingTimeInterval(14 * 24 * 60 * 60)
-        let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: selectedCalendars)
-        return eventStore.events(matching: predicate)
+        let ranges = CalendarEventQueryPlanner.ranges(
+            visibleMonthDate: visibleMonthDate,
+            now: Date(),
+            timeZone: settings.overviewTimeZone,
+            weekStartDay: settings.calendarWeekStartDay,
+            daysAhead: daysAhead
+        )
+        var eventsByID: [String: EKEvent] = [:]
+        for range in ranges {
+            let predicate = eventStore.predicateForEvents(
+                withStart: range.start,
+                end: range.end,
+                calendars: selectedCalendars
+            )
+            for event in eventStore.events(matching: predicate) {
+                let occurrenceID = CalendarEventOccurrenceIdentifier.make(
+                    eventIdentifier: event.eventIdentifier,
+                    calendarItemIdentifier: event.calendarItemIdentifier,
+                    startDate: event.startDate
+                )
+                eventsByID[occurrenceID] = event
+            }
+        }
+
+        let sourceTimeZone = TimeZone.autoupdatingCurrent
+        return eventsByID.values
             .sorted { $0.startDate < $1.startDate }
-            .prefix(12)
             .map { event in
                 CalendarEventInfo(
-                    id: event.eventIdentifier ?? "\(event.calendarItemIdentifier)-\(event.startDate.timeIntervalSince1970)",
+                    id: CalendarEventOccurrenceIdentifier.make(
+                        eventIdentifier: event.eventIdentifier,
+                        calendarItemIdentifier: event.calendarItemIdentifier,
+                        startDate: event.startDate
+                    ),
                     title: event.title?.isEmpty == false
                         ? event.title : L10n.string("Untitled Event"),
                     calendarTitle: event.calendar.title,
                     startDate: event.startDate,
                     endDate: event.endDate,
-                    isAllDay: event.isAllDay
+                    isAllDay: event.isAllDay,
+                    sourceStartCivilDate: event.isAllDay
+                        ? CivilDateKey(date: event.startDate, timeZone: sourceTimeZone) : nil,
+                    sourceEndCivilDateExclusive: event.isAllDay
+                        ? CivilDateKey(date: event.endDate, timeZone: sourceTimeZone) : nil
                 )
             }
     }

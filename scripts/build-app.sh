@@ -9,8 +9,8 @@ BUNDLE_IDENTIFIER="com.tagzxia.app.menucue"
 HELPER_BUNDLE_IDENTIFIER="com.tagzxia.app.menucue.helper"
 HELPER_PLIST_NAME="$HELPER_BUNDLE_IDENTIFIER.plist"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.6.7"
-BUILD_NUMBER="26"
+APP_VERSION="0.6.8"
+BUILD_NUMBER="27"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
 SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
@@ -74,6 +74,15 @@ if [[ -z "$ZH_HANS_SOURCE" ]]; then
     exit 1
 fi
 ditto "$ZH_HANS_SOURCE" "$RESOURCES_DIR/zh-Hans.lproj"
+for resource in \
+    solar-terms-1901-2100.json \
+    solar-terms-1901-2100.metadata.json; do
+    if [[ ! -f "$LOCALIZATION_BUNDLE_SOURCE/$resource" ]]; then
+        echo "Missing bundled calendar resource: $resource" >&2
+        exit 1
+    fi
+    cp "$LOCALIZATION_BUNDLE_SOURCE/$resource" "$RESOURCES_DIR/$resource"
+done
 cp "$ROOT_DIR/.build/$BUILD_CONFIG/$HELPER_NAME" "$MACOS_DIR/$HELPER_NAME"
 cp "$ROOT_DIR/Resources/$HELPER_PLIST_NAME" "$LAUNCH_DAEMONS_DIR/$HELPER_PLIST_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME" "$MACOS_DIR/$HELPER_NAME"
@@ -272,6 +281,14 @@ for localization in en zh-Hans; do
     fi
     plutil -lint "$RESOURCES_DIR/$localization.lproj/Localizable.strings" >/dev/null
     plutil -lint "$RESOURCES_DIR/$localization.lproj/InfoPlist.strings" >/dev/null
+done
+for resource in \
+    solar-terms-1901-2100.json \
+    solar-terms-1901-2100.metadata.json; do
+    if [[ ! -f "$RESOURCES_DIR/$resource" ]]; then
+        echo "Missing packaged calendar resource: $resource" >&2
+        exit 1
+    fi
 done
 if ! otool -L "$MACOS_DIR/$APP_NAME" | grep -q '@rpath/Sparkle.framework/'; then
     echo "MenuCue does not link the embedded Sparkle framework through @rpath." >&2
