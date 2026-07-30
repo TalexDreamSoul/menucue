@@ -41,6 +41,42 @@ final class CleaningDisplayOverlayCoordinatorTests: XCTestCase {
     XCTAssertEqual(harness.coordinator.overlayCount, 2)
   }
 
+  func testInitialWindowContentRectUsesScreenLocalCoordinates() {
+    let display = CleaningDisplaySnapshot(
+      id: 11,
+      frame: NSRect(x: 2056, y: 137, width: 1590, height: 1192)
+    )
+
+    XCTAssertEqual(
+      CleaningOverlayWindowFactory.contentRect(for: display),
+      NSRect(x: 0, y: 0, width: 1590, height: 1192)
+    )
+  }
+
+  @MainActor
+  func testWindowTargetsConnectedNonPrimaryScreenWithoutDoubleApplyingItsOrigin() throws {
+    _ = NSApplication.shared
+    guard let screen = NSScreen.screens.first(where: { $0.frame.origin != .zero }) else {
+      throw XCTSkip("No connected non-primary display")
+    }
+    let display = try XCTUnwrap(CleaningDisplaySnapshot(screen: screen))
+
+    let window = try XCTUnwrap(CleaningOverlayWindowFactory.makeWindow(for: display))
+    defer { window.close() }
+
+    XCTAssertFalse(window.isVisible, "factory must not present test windows")
+    XCTAssertEqual(window.frame, screen.frame)
+    XCTAssertEqual(CleaningDisplaySnapshot(screen: try XCTUnwrap(window.screen))?.id, display.id)
+    XCTAssertEqual(window.level, .screenSaver)
+    XCTAssertTrue(window.collectionBehavior.contains(.canJoinAllSpaces))
+    XCTAssertTrue(window.collectionBehavior.contains(.fullScreenAuxiliary))
+    XCTAssertTrue(window.collectionBehavior.contains(.stationary))
+    XCTAssertEqual(window.backgroundColor, .black)
+    XCTAssertTrue(window.isOpaque)
+    XCTAssertFalse(window.hasShadow)
+    XCTAssertFalse(window.isReleasedWhenClosed)
+  }
+
   func testStopRemovesOverlaysAndDisplayObserver() {
     let harness = OverlayCoordinatorHarness(displays: [
       CleaningDisplaySnapshot(id: 1, frame: NSRect(x: 0, y: 0, width: 1440, height: 900))

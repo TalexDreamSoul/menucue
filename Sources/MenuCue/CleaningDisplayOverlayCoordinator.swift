@@ -21,6 +21,31 @@ struct CleaningDisplaySnapshot {
   }
 }
 
+enum CleaningOverlayWindowFactory {
+  static func contentRect(for display: CleaningDisplaySnapshot) -> NSRect {
+    NSRect(origin: .zero, size: display.frame.size)
+  }
+
+  static func makeWindow(for display: CleaningDisplaySnapshot) -> NSWindow? {
+    dispatchPrecondition(condition: .onQueue(.main))
+    guard let screen = display.screen else { return nil }
+    let window = NSWindow(
+      contentRect: contentRect(for: display),
+      styleMask: [.borderless],
+      backing: .buffered,
+      defer: false,
+      screen: screen
+    )
+    window.level = .screenSaver
+    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+    window.backgroundColor = .black
+    window.isOpaque = true
+    window.hasShadow = false
+    window.isReleasedWhenClosed = false
+    return window
+  }
+}
+
 final class CleaningDisplayOverlayCoordinator<Overlay: AnyObject> {
   typealias DisplayProvider = () -> [CleaningDisplaySnapshot]
   typealias OverlayFactory = (CleaningDisplaySnapshot) -> Overlay?

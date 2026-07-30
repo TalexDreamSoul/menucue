@@ -155,6 +155,9 @@ Use this pattern for full-screen runtime UI that must cover every connected disp
 ### Contracts
 
 - Derive stable display identity from `NSScreenNumber`; do not key overlays by array position or frame.
+- `NSWindow(contentRect:..., screen: targetScreen)` consumes a rectangle in the target screen's local coordinate space. Initial full-screen content must use origin `.zero` and the target frame's size. Passing `NSScreen.frame` here double-applies any non-zero display origin.
+- `NSWindow.setFrame` consumes global virtual-desktop coordinates. Topology updates must continue applying the snapshot's full global frame.
+- AppKit screen discovery, window construction, and presentation run on the main queue; window factories should assert this boundary.
 - Keep exactly one overlay per current display ID. Reuse and resize retained overlays, remove missing IDs, and create newly observed IDs.
 - A topology refresh only reconciles overlays. It must not restart the cleaning countdown, input monitor, keyboard blocker, or published cleaning state.
 - Every overlay renders the same shared `CleaningModeController`, so countdown and exit behavior stay consistent across displays.
@@ -164,7 +167,8 @@ Use this pattern for full-screen runtime UI that must cover every connected disp
 
 | Condition | Required behavior |
 |---|---|
-| Second display present at start | Create one correctly framed overlay for each display |
+| Second display present at start | Create one correctly framed overlay per display using a screen-local initial content rect |
+| AirPlay/Sidecar display has non-zero global origin | Initial window frame resolves to that display's exact global frame and screen ID |
 | Display added | Create only the new display's overlay |
 | Display resized or rearranged | Update the retained overlay frame in global screen coordinates |
 | Display removed | Order out and release only that display's overlay |
@@ -173,10 +177,35 @@ Use this pattern for full-screen runtime UI that must cover every connected disp
 ### Tests Required
 
 - Initial multi-display snapshots create one overlay per stable ID.
+- A non-zero display frame produces an initial content rect with origin `.zero` and matching size.
+- When a non-primary display is connected, an unpresented production window reports that display's exact frame and `NSScreenNumber`; skip only when no non-primary display exists.
+- Window tests preserve screen-saver level, all-Spaces/full-screen/stationary behavior, opaque black background, and lifecycle attributes without presenting the black overlay.
 - A topology notification removes stale overlays, reuses and resizes retained overlays, and creates added overlays.
 - After `stop()`, posting another topology notification has no effect.
 
 ### Wrong vs Correct
+
+```swift
+// Wrong: `screen:` treats this global origin as local and adds the screen origin again.
+NSWindow(
+  contentRect: targetScreen.frame,
+  styleMask: [.borderless],
+  backing: .buffered,
+  defer: false,
+  screen: targetScreen
+)
+
+// Correct: initial construction is screen-local; later `setFrame` updates are global.
+let localContentRect = NSRect(origin: .zero, size: targetScreen.frame.size)
+let window = NSWindow(
+  contentRect: localContentRect,
+  styleMask: [.borderless],
+  backing: .buffered,
+  defer: false,
+  screen: targetScreen
+)
+window.setFrame(targetScreen.frame, display: true)
+```
 
 ```swift
 // Wrong: becomes stale as soon as the display topology changes.

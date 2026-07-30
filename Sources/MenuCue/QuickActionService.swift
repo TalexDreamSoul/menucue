@@ -757,20 +757,9 @@ private final class CleaningModeController: ObservableObject {
   }
 
   private func makeOverlayWindow(for display: CleaningDisplaySnapshot) -> NSWindow? {
-    guard let mode, let screen = display.screen else { return nil }
-    let window = NSWindow(
-      contentRect: display.frame,
-      styleMask: [.borderless],
-      backing: .buffered,
-      defer: false,
-      screen: screen
-    )
-    window.level = .screenSaver
-    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-    window.backgroundColor = .black
-    window.isOpaque = true
-    window.hasShadow = false
-    window.isReleasedWhenClosed = false
+    guard let mode, let window = CleaningOverlayWindowFactory.makeWindow(for: display) else {
+      return nil
+    }
     window.contentView = NSHostingView(
       rootView: CleaningOverlayView(controller: self, mode: mode)
     )
