@@ -356,3 +356,37 @@ Lowered MenuCue to macOS 13 with API fallbacks, deterministic persistence, notar
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Lunar calendar and event semantics
+
+**Date**: 2026-07-30
+**Task**: Lunar calendar and event semantics
+**Branch**: `master`
+
+### Summary
+
+Planned the calendar/holiday/reminder roadmap and shipped the offline lunar month calendar, solar terms, multi-day EventKit projection, lifecycle refresh, localized settings, accessibility, tests, and release packaging resources.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `49d0f4e` | (see git log) |
+| `d0a5c9b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

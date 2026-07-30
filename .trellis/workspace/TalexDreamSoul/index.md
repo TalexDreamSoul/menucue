@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
+- **Total Sessions**: 10
 - **Last Active**: 2026-07-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~358 | Active |
+| `journal-1.md` | ~392 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 10 | 2026-07-30 | Lunar calendar and event semantics | `49d0f4e`, `d0a5c9b` | `master` |
 | 9 | 2026-07-30 | Support macOS Ventura and refresh distribution | `624f030` | `master` |
 | 8 | 2026-07-29 | Notarized Developer ID release pipeline | `7f9b5ec` | `master` |
 | 7 | 2026-07-29 | Date settings, AirPlay overlays, and quick access | `de205c3`, `c191d18`, `053a814` | `master` |
