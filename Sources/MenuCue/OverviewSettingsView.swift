@@ -7,12 +7,16 @@ import SwiftUI
 /// Deliberately does not start sampling. It renders the snapshot the popover last
 /// captured, labelled with its age, so opening Settings costs no battery.
 struct OverviewSettingsView: View {
+  static let calendarStatusDestination: SettingsPane = .dateAndTime
+  static let calendarStatusSection: DateTimeSettingsSection = .calendar
+
   @ObservedObject var model: AppModel
   @ObservedObject var updateService: UpdateService
   @ObservedObject private var powerHelper: PowerHelperManager
   @ObservedObject private var syncService: PreferenceSyncService
   @ObservedObject private var quickActionService: QuickActionService
   let selectPane: (SettingsPane) -> Void
+  let selectDateTimeSection: (DateTimeSettingsSection) -> Void
 
   private let hardware = SystemMetricsProbe.hardwareInfo()
   private let bootDate = SystemMetricsProbe.bootDate()
@@ -22,11 +26,13 @@ struct OverviewSettingsView: View {
   init(
     model: AppModel,
     updateService: UpdateService,
-    selectPane: @escaping (SettingsPane) -> Void
+    selectPane: @escaping (SettingsPane) -> Void,
+    selectDateTimeSection: @escaping (DateTimeSettingsSection) -> Void
   ) {
     self.model = model
     self.updateService = updateService
     self.selectPane = selectPane
+    self.selectDateTimeSection = selectDateTimeSection
     self.powerHelper = model.quickActionService.powerHelperManager
     self.syncService = model.preferenceSyncService
     self.quickActionService = model.quickActionService
@@ -344,8 +350,8 @@ struct OverviewSettingsView: View {
         detail: model.authorizationState.canReadEvents
           ? L10n.string("Events are visible in the popover.")
           : L10n.string("Grant access to show events."),
-        destination: .calendars,
-        select: selectPane
+        destination: Self.calendarStatusDestination,
+        select: { _ in selectDateTimeSection(Self.calendarStatusSection) }
       )
 
       OverviewCheckRow(

@@ -774,3 +774,17 @@
 "storage.volume.usedPercent" = "卷使用率";
 "swap.used" = "已用交换空间";
 "swap.used.percent" = "交换空间使用率";
+
+/* 日期与时间设置聚合 */
+"Calendar & Events" = "日历与日程";
+"Changes the time zone for all apps and system services on this Mac." = "更改这台 Mac 上所有 App 和系统服务的时区。";
+"Choose the event sources and date layout used in the popover." = "选择弹出面板使用的日程来源和日期布局。";
+"Configure the menu-bar clock and the date shown in MenuCue." = "配置菜单栏时钟和 MenuCue 中显示的日期。";
+"Date & Time" = "日期与时间";
+"Language" = "语言";
+"Menu Bar & Display" = "菜单栏与显示";
+"Menu-bar clocks, calendar events, and time-zone controls." = "菜单栏时钟、日历日程和时区控制。";
+"MenuCue language and macOS language settings." = "MenuCue 语言和 macOS 语言设置。";
+"macOS System Time Zone" = "macOS 系统时区";
+"Overview Display" = "概览显示";
+"This changes dates and times shown inside MenuCue without changing macOS." = "仅更改 MenuCue 内显示的日期和时间，不会更改 macOS。";

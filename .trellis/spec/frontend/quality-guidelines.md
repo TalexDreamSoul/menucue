@@ -49,6 +49,38 @@ window.title = "\(ProductBrand.displayName) Settings"
 
 Packaging must set `CFBundleDisplayName`, `CFBundleName`, and `CFBundleExecutable` to `MenuCue`. The identity contract is covered by `ProductBrandTests`; update that test together with any intentional future rename.
 
+## Settings navigation and section deep links
+
+### Convention: Route status actions to the owning section
+
+**What**: When a settings pane contains multiple scrollable feature groups, model each deep-linkable group with a stable `Hashable` section identifier. A status or remediation action must select the owning pane and request its section in the same state transition. The detail view uses `ScrollViewReader` and scrolls after the destination content is installed.
+
+**Why**: Selecting only the parent pane can leave the requested control below the fold, preserving the same findability problem that consolidation was intended to solve.
+
+**Example**:
+
+```swift
+enum DateTimeSettingsSection: Hashable {
+  case menuBar
+  case calendar
+  case systemTimeZone
+}
+
+requestedDateTimeSection = .calendar
+selectedPane = .dateAndTime
+
+ScrollViewReader { proxy in
+  content
+    .task(id: activeDateTimeSection) {
+      guard let section = activeDateTimeSection else { return }
+      await Task.yield()
+      proxy.scrollTo(section, anchor: .top)
+    }
+}
+```
+
+Direct sidebar navigation must clear any pending section request so an old deep link does not unexpectedly reposition a later visit. Tests must assert both the destination pane and destination section.
+
 ## Testing Requirements
 
 <!-- What level of testing is expected -->

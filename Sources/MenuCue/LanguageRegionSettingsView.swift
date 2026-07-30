@@ -114,21 +114,13 @@ enum LanguageRegionLinks {
   )!
 }
 
-struct LanguageRegionSettingsView: View {
+struct LanguageSettingsView: View {
   @ObservedObject var languageService: AppLanguageService
-  @ObservedObject var powerHelper: PowerHelperManager
 
   @State private var pendingLanguage: AppLanguage
-  @State private var timeZoneSearch = ""
-  @State private var timeZoneSelection = SystemTimeZoneSelectionState(
-    currentIdentifier: TimeZone.autoupdatingCurrent.identifier
-  )
-  @State private var feedbackMessage: String?
-  @State private var feedbackIsError = false
 
-  init(languageService: AppLanguageService, powerHelper: PowerHelperManager) {
+  init(languageService: AppLanguageService) {
     self.languageService = languageService
-    self.powerHelper = powerHelper
     self._pendingLanguage = State(initialValue: languageService.selectedLanguage)
   }
 
@@ -136,17 +128,7 @@ struct LanguageRegionSettingsView: View {
     VStack(alignment: .leading, spacing: 24) {
       appLanguageSection
       Divider()
-      systemTimeZoneSection
-      Divider()
       globalLanguageSection
-    }
-    .onAppear(perform: refreshSystemTimeZone)
-    .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
-      refreshSystemTimeZone()
-    }
-    .onChange(of: powerHelper.systemTimeZoneIdentifier) { _, identifier in
-      guard let identifier else { return }
-      timeZoneSelection.observe(identifier)
     }
   }
 
@@ -191,12 +173,53 @@ struct LanguageRegionSettingsView: View {
     }
   }
 
+  private var globalLanguageSection: some View {
+    SettingsGroup(spacing: 10) {
+      Text("macOS Language")
+        .font(.headline)
+      Text("Global language changes are managed by macOS and may require signing out.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      Button {
+        NSWorkspace.shared.open(LanguageRegionLinks.systemLanguageSettings)
+      } label: {
+        Label("Open Language & Region Settings", systemImage: "gearshape")
+      }
+    }
+  }
+}
+
+struct SystemTimeZoneSettingsView: View {
+  @ObservedObject var powerHelper: PowerHelperManager
+
+  @State private var timeZoneSearch = ""
+  @State private var timeZoneSelection = SystemTimeZoneSelectionState(
+    currentIdentifier: TimeZone.autoupdatingCurrent.identifier
+  )
+  @State private var feedbackMessage: String?
+  @State private var feedbackIsError = false
+
+  var body: some View {
+    systemTimeZoneSection
+      .onAppear(perform: refreshSystemTimeZone)
+      .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+        refreshSystemTimeZone()
+      }
+      .onChange(of: powerHelper.systemTimeZoneIdentifier) { _, identifier in
+        guard let identifier else { return }
+        timeZoneSelection.observe(identifier)
+      }
+  }
+
   private var systemTimeZoneSection: some View {
     SettingsGroup(spacing: 12) {
       HStack(alignment: .firstTextBaseline) {
         VStack(alignment: .leading, spacing: 3) {
-          Text("System Time Zone")
+          Text("macOS System Time Zone")
             .font(.headline)
+          Text("Changes the time zone for all apps and system services on this Mac.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
           Text(timeZoneSelection.observedIdentifier)
             .font(.caption.monospaced())
             .foregroundStyle(.secondary)
@@ -247,21 +270,6 @@ struct LanguageRegionSettingsView: View {
           .font(.caption)
           .foregroundStyle(feedbackIsError ? Color.red : Color.green)
           .fixedSize(horizontal: false, vertical: true)
-      }
-    }
-  }
-
-  private var globalLanguageSection: some View {
-    SettingsGroup(spacing: 10) {
-      Text("macOS Language")
-        .font(.headline)
-      Text("Global language changes are managed by macOS and may require signing out.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      Button {
-        NSWorkspace.shared.open(LanguageRegionLinks.systemLanguageSettings)
-      } label: {
-        Label("Open Language & Region Settings", systemImage: "gearshape")
       }
     }
   }

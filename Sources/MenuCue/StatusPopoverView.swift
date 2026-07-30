@@ -561,6 +561,7 @@ struct SettingsWindowView: View {
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
   @State private var selectedPane: SettingsPane
+  @State private var requestedDateTimeSection: DateTimeSettingsSection?
   /// Which Dashboard tab a popover card deep-linked to. Only read when the window
   /// opens on `.dashboard`; `showSettingsWindow` rebuilds this view on every call,
   /// so a repeat deep-link re-honors it.
@@ -582,11 +583,12 @@ struct SettingsWindowView: View {
     self.languageService = languageService
     self.initialDashboardSection = initialDashboardSection
     self._selectedPane = State(initialValue: initialPane)
+    self._requestedDateTimeSection = State(initialValue: nil)
   }
 
   var body: some View {
     NavigationSplitView {
-      List(availablePanes, selection: $selectedPane) { pane in
+      List(availablePanes, selection: selectedPaneBinding) { pane in
         Label(pane.title, systemImage: pane.systemImage)
           .tag(pane)
       }
@@ -604,8 +606,14 @@ struct SettingsWindowView: View {
         pane: selectedPane,
         initialDashboardSection: initialDashboardSection,
         swipeRelay: swipeRelay,
+        requestedDateTimeSection: requestedDateTimeSection,
         selectPane: { pane in
+          requestedDateTimeSection = nil
           withAnimation(PopoverMotion.navigation) { selectedPane = pane }
+        },
+        selectDateTimeSection: { section in
+          requestedDateTimeSection = section
+          withAnimation(PopoverMotion.navigation) { selectedPane = .dateAndTime }
         }
       )
     }
@@ -621,6 +629,16 @@ struct SettingsWindowView: View {
     )
   }
 
+  private var selectedPaneBinding: Binding<SettingsPane> {
+    Binding(
+      get: { selectedPane },
+      set: { pane in
+        requestedDateTimeSection = nil
+        selectedPane = pane
+      }
+    )
+  }
+
   private var availablePanes: [SettingsPane] {
     SettingsPane.allCases.filter { pane in
       pane != .iCloud || model.preferenceSyncService.isEntitled
@@ -628,17 +646,21 @@ struct SettingsWindowView: View {
   }
 }
 
+enum DateTimeSettingsSection: Hashable {
+  case menuBar
+  case calendar
+  case systemTimeZone
+}
+
 enum SettingsPane: String, CaseIterable, Identifiable {
   case dashboard
   case overview
-  case dateAndEvents
+  case dateAndTime
   case quickActions
   case notifications
-  case menuBarTimeZones
   case appearance
-  case calendars
   case iCloud
-  case languageAndRegion
+  case language
   case about
 
   var id: String { rawValue }
@@ -647,14 +669,12 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     switch self {
     case .dashboard: return L10n.string("Dashboard")
     case .overview: return L10n.string("Overview")
-    case .dateAndEvents: return L10n.string("Date & Events")
+    case .dateAndTime: return L10n.string("Date & Time")
     case .quickActions: return L10n.string("Quick Actions")
     case .notifications: return L10n.string("Notifications")
-    case .menuBarTimeZones: return L10n.string("Menu Bar")
     case .appearance: return L10n.string("Appearance")
-    case .calendars: return L10n.string("Calendars")
     case .iCloud: return L10n.string("iCloud Sync")
-    case .languageAndRegion: return L10n.string("Language & Region")
+    case .language: return L10n.string("Language")
     case .about: return L10n.string("About")
     }
   }
@@ -666,22 +686,18 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .overview:
       return L10n.string(
         "This Mac at a glance, sampling behavior, and anything needing attention.")
-    case .dateAndEvents:
-      return L10n.string("Calendar display, overview time zone, and week layout.")
+    case .dateAndTime:
+      return L10n.string("Menu-bar clocks, calendar events, and time-zone controls.")
     case .quickActions:
       return L10n.string("Run any action, pin your favorites, and manage Apple Shortcuts.")
     case .notifications:
       return L10n.string("External channels, system alert rules, and message templates.")
-    case .menuBarTimeZones:
-      return L10n.string("Status item clocks and rotation behavior.")
     case .appearance:
       return L10n.string("App appearance and optional macOS Light/Dark automation.")
-    case .calendars:
-      return L10n.string("Calendar permissions and event sources.")
     case .iCloud:
       return L10n.string("Portable preferences, conflict choices, and synchronization status.")
-    case .languageAndRegion:
-      return L10n.string("MenuCue language and macOS system region controls.")
+    case .language:
+      return L10n.string("MenuCue language and macOS language settings.")
     case .about:
       return L10n.string("Version, GitHub releases, and project links.")
     }
@@ -691,14 +707,12 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     switch self {
     case .dashboard: return "chart.line.uptrend.xyaxis"
     case .overview: return "gauge.with.dots.needle.33percent"
-    case .dateAndEvents: return "calendar"
+    case .dateAndTime: return "calendar.badge.clock"
     case .quickActions: return "square.grid.2x2"
     case .notifications: return "bell.badge"
-    case .menuBarTimeZones: return "menubar.rectangle"
     case .appearance: return "circle.lefthalf.filled"
-    case .calendars: return "calendar.badge.clock"
     case .iCloud: return "icloud"
-    case .languageAndRegion: return "globe"
+    case .language: return "globe"
     case .about: return "info.circle"
     }
   }
@@ -1034,7 +1048,9 @@ private struct SettingsContentView: View {
   let pane: SettingsPane
   var initialDashboardSection: DashboardSection = .cpu
   @ObservedObject var swipeRelay: SwipeRelay
+  let requestedDateTimeSection: DateTimeSettingsSection?
   let selectPane: (SettingsPane) -> Void
+  let selectDateTimeSection: (DateTimeSettingsSection) -> Void
   @State private var pendingTimeZoneID = TimeZone.autoupdatingCurrent.identifier
 
   var body: some View {
@@ -1046,16 +1062,29 @@ private struct SettingsContentView: View {
       )
       .background(Color(nsColor: .windowBackgroundColor))
     } else {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 22) {
-          SettingsPaneHeader(pane: pane)
-          selectedPaneContent
+      ScrollViewReader { proxy in
+        ScrollView {
+          VStack(alignment: .leading, spacing: 22) {
+            SettingsPaneHeader(pane: pane)
+            selectedPaneContent
+          }
+          .padding(28)
+          .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(28)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .task(id: activeDateTimeSection) {
+          guard let section = activeDateTimeSection else { return }
+          await Task.yield()
+          withAnimation(PopoverMotion.navigation) {
+            proxy.scrollTo(section, anchor: .top)
+          }
+        }
       }
-      .background(Color(nsColor: .windowBackgroundColor))
     }
+  }
+
+  private var activeDateTimeSection: DateTimeSettingsSection? {
+    pane == .dateAndTime ? requestedDateTimeSection : nil
   }
 
   @ViewBuilder
@@ -1066,51 +1095,67 @@ private struct SettingsContentView: View {
       EmptyView()
     case .overview:
       OverviewSettingsView(
-        model: model, updateService: updateService, selectPane: selectPane)
-    case .dateAndEvents:
-      overviewSettingsSection
+        model: model,
+        updateService: updateService,
+        selectPane: selectPane,
+        selectDateTimeSection: selectDateTimeSection
+      )
+    case .dateAndTime:
+      dateAndTimeSection
     case .quickActions:
       QuickActionSettingsView(model: model)
     case .notifications:
       NotificationSettingsView(model: model)
-    case .menuBarTimeZones:
-      VStack(alignment: .leading, spacing: 24) {
-        MenuBarFormatSettingsView(model: model)
-        Divider()
-        timeZoneSettingsSection
-      }
     case .appearance:
       appearanceSection
-    case .calendars:
-      calendarSection
     case .iCloud:
       PreferenceSyncSettingsView(model: model)
-    case .languageAndRegion:
-      LanguageRegionSettingsView(
-        languageService: languageService,
-        powerHelper: model.quickActionService.powerHelperManager
-      )
+    case .language:
+      LanguageSettingsView(languageService: languageService)
     case .about:
       aboutSection
     }
   }
 
+  private var dateAndTimeSection: some View {
+    VStack(alignment: .leading, spacing: 24) {
+      SettingsGroup(spacing: 4) {
+        Text("Menu Bar & Display")
+          .font(.headline)
+        Text("Configure the menu-bar clock and the date shown in MenuCue.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+      .id(DateTimeSettingsSection.menuBar)
+
+      MenuBarFormatSettingsView(model: model)
+      timeZoneSettingsSection
+      overviewSettingsSection
+
+      Divider()
+      calendarSection
+        .id(DateTimeSettingsSection.calendar)
+
+      Divider()
+      SystemTimeZoneSettingsView(
+        powerHelper: model.quickActionService.powerHelperManager
+      )
+      .id(DateTimeSettingsSection.systemTimeZone)
+    }
+  }
+
   private var overviewSettingsSection: some View {
-    SettingsGroup {
+    SettingsGroup(spacing: 12) {
+      Text("Overview Display")
+        .font(.subheadline.weight(.medium))
+
       TimeZonePicker(
         title: L10n.string("Display time zone"),
         selection: binding(\.overviewTimeZoneID)
       )
       .frame(maxWidth: 460)
 
-      Picker("Week starts", selection: binding(\.calendarWeekStartDay)) {
-        ForEach(WeekStartDay.allCases) { day in
-          Text(day.title).tag(day)
-        }
-      }
-      .frame(maxWidth: 250)
-
-      Text("Month view and week numbers use this start day.")
+      Text("This changes dates and times shown inside MenuCue without changing macOS.")
         .font(.caption)
         .foregroundStyle(.secondary)
     }
@@ -1235,6 +1280,25 @@ private struct SettingsContentView: View {
 
   private var calendarSection: some View {
     SettingsGroup(spacing: 12) {
+      Text("Calendar & Events")
+        .font(.headline)
+      Text("Choose the event sources and date layout used in the popover.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Picker("Week starts", selection: binding(\.calendarWeekStartDay)) {
+        ForEach(WeekStartDay.allCases) { day in
+          Text(day.title).tag(day)
+        }
+      }
+      .frame(maxWidth: 250)
+
+      Text("Month view and week numbers use this start day.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Divider()
+
       HStack {
         Button("Refresh") {
           model.refreshCalendarData()

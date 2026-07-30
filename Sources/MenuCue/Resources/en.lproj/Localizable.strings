@@ -774,3 +774,17 @@
 "storage.volume.usedPercent" = "Volume usage";
 "swap.used" = "Swap used";
 "swap.used.percent" = "Swap usage";
+
+/* Consolidated date and time settings */
+"Calendar & Events" = "Calendar & Events";
+"Changes the time zone for all apps and system services on this Mac." = "Changes the time zone for all apps and system services on this Mac.";
+"Choose the event sources and date layout used in the popover." = "Choose the event sources and date layout used in the popover.";
+"Configure the menu-bar clock and the date shown in MenuCue." = "Configure the menu-bar clock and the date shown in MenuCue.";
+"Date & Time" = "Date & Time";
+"Language" = "Language";
+"Menu Bar & Display" = "Menu Bar & Display";
+"Menu-bar clocks, calendar events, and time-zone controls." = "Menu-bar clocks, calendar events, and time-zone controls.";
+"MenuCue language and macOS language settings." = "MenuCue language and macOS language settings.";
+"macOS System Time Zone" = "macOS System Time Zone";
+"Overview Display" = "Overview Display";
+"This changes dates and times shown inside MenuCue without changing macOS." = "This changes dates and times shown inside MenuCue without changing macOS.";
