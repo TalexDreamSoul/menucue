@@ -150,6 +150,9 @@ Legacy power-state, time-zone, and removal selectors remain part of the same ver
 ### 3. Contracts
 
 - Registration: `SMAppService.daemon(plistName: "com.tagzxia.app.menucue.helper.plist")`.
+- Bundle layout: both `MenuCue` and `MenuCueHelper` live under `Contents/MacOS`; the LaunchDaemon stays under `Contents/Library/LaunchDaemons`, and its `BundleProgram` must resolve exactly to `Contents/MacOS/MenuCueHelper`.
+- Association: the LaunchDaemon `AssociatedBundleIdentifiers` contains `com.tagzxia.app.menucue`. A raw nested Helper must not carry a restricted entitlement such as `managed-by-main-app` unless a matching Helper provisioning profile is actually embedded and verified; otherwise AMFI can reject launch after codesign and notarization succeed.
+- Executable discovery: the Helper uses `_NSGetExecutablePath`, not `argv[0]`, because launchd may supply a relative `Contents/MacOS/MenuCueHelper` argument.
 - Mach service and Helper signing identifier: `com.tagzxia.app.menucue.helper`.
 - Main app bundle identifier: `com.tagzxia.app.menucue`.
 - Fixed executables only: `/usr/bin/pmset` and `/usr/sbin/systemsetup`; no executable or arguments cross XPC.
@@ -183,7 +186,9 @@ Legacy power-state, time-zone, and removal selectors remain part of the same ver
 
 ### 6. Tests Required
 
-- Build and strictly verify the signed app, embedded Helper entitlement, LaunchDaemon plist, identifiers, and Team IDs where available.
+- Parse the packaged LaunchDaemon plist and require its `BundleProgram` to resolve to the exact Helper binary that is signed and verified.
+- Build and strictly verify the signed app, Helper, LaunchDaemon identifiers, and Team IDs where available; reject unprovisioned restricted Helper entitlements.
+- Before release, register the installed App's daemon, require launchd to report the Helper running as root, and complete `queryProtocolInfo`; `SMAppService.status != .notFound` alone is insufficient.
 - Assert every managed setting/source mapping and reject unknown raw values.
 - Assert All-source read-back fails when any present profile omits or differs on the key.
 - Assert microsecond start-time encoding, each stable-identity mismatch, stale PID behavior, allowed deltas, nice boundaries, and observed-value mismatch.

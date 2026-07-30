@@ -23,8 +23,10 @@ GENERATE_APPCAST="$SPARKLE_TOOLS_DIR/generate_appcast"
 GENERATE_KEYS="$SPARKLE_TOOLS_DIR/generate_keys"
 SIGN_UPDATE="$SPARKLE_TOOLS_DIR/sign_update"
 INFO_PLIST="$APP_DIR/Contents/Info.plist"
+DAEMON_PLIST="$APP_DIR/Contents/Library/LaunchDaemons/$HELPER_BUNDLE_IDENTIFIER.plist"
 EMBEDDED_PROFILE="$APP_DIR/Contents/embedded.provisionprofile"
 APP_ENTITLEMENTS_PLIST="$ROOT_DIR/.build/MenuCue.release.entitlements.plist"
+HELPER_ENTITLEMENTS_PLIST="$ROOT_DIR/.build/MenuCueHelper.release.entitlements.plist"
 PROFILE_PLIST="$ROOT_DIR/.build/MenuCue.release.profile.plist"
 
 for executable in "$GENERATE_APPCAST" "$GENERATE_KEYS" "$SIGN_UPDATE"; do
@@ -76,14 +78,58 @@ verify_stable_signature() {
     fi
 }
 
+if [[ ! -f "$DAEMON_PLIST" ]]; then
+    echo "Missing packaged LaunchDaemon plist: $DAEMON_PLIST" >&2
+    exit 1
+fi
+DAEMON_JSON="$(plutil -convert json -o - "$DAEMON_PLIST")"
+DAEMON_LABEL="$(jq -r '.Label // empty' <<<"$DAEMON_JSON")"
+if [[ "$DAEMON_LABEL" != "$HELPER_BUNDLE_IDENTIFIER" ]]; then
+    echo "Unexpected LaunchDaemon Label: $DAEMON_LABEL" >&2
+    exit 1
+fi
+if ! jq -e --arg identifier "$HELPER_BUNDLE_IDENTIFIER" \
+    '.MachServices == {($identifier): true}' <<<"$DAEMON_JSON" >/dev/null; then
+    echo "Unexpected LaunchDaemon MachServices." >&2
+    exit 1
+fi
+if ! jq -e --arg identifier "$BUNDLE_IDENTIFIER" \
+    '.AssociatedBundleIdentifiers == [$identifier]' <<<"$DAEMON_JSON" >/dev/null; then
+    echo "Unexpected LaunchDaemon AssociatedBundleIdentifiers." >&2
+    exit 1
+fi
+BUNDLE_PROGRAM="$(/usr/libexec/PlistBuddy -c 'Print :BundleProgram' "$DAEMON_PLIST")"
+EXPECTED_BUNDLE_PROGRAM="Contents/MacOS/$HELPER_NAME"
+if [[ "$BUNDLE_PROGRAM" != "$EXPECTED_BUNDLE_PROGRAM" ]]; then
+    echo "Unexpected Helper BundleProgram: $BUNDLE_PROGRAM" >&2
+    exit 1
+fi
+HELPER_PATH="$APP_DIR/$BUNDLE_PROGRAM"
+
 SPARKLE_VERSION_DIR="$APP_DIR/Contents/Frameworks/Sparkle.framework/Versions/B"
 verify_stable_signature "$SPARKLE_VERSION_DIR/XPCServices/Installer.xpc"
 verify_stable_signature "$SPARKLE_VERSION_DIR/XPCServices/Downloader.xpc"
 verify_stable_signature "$SPARKLE_VERSION_DIR/Autoupdate"
 verify_stable_signature "$SPARKLE_VERSION_DIR/Updater.app"
 verify_stable_signature "$APP_DIR/Contents/Frameworks/Sparkle.framework"
-HELPER_PATH="$APP_DIR/Contents/Library/HelperTools/$HELPER_NAME"
 verify_stable_signature "$HELPER_PATH"
+HELPER_SIGNING_IDENTIFIER="$(
+    codesign -d --verbose=4 "$HELPER_PATH" 2>&1 | sed -n 's/^Identifier=//p'
+)"
+if [[ "$HELPER_SIGNING_IDENTIFIER" != "$HELPER_BUNDLE_IDENTIFIER" ]]; then
+    echo "Unexpected Helper signing identifier: $HELPER_SIGNING_IDENTIFIER" >&2
+    exit 1
+fi
+if ! codesign -d --entitlements :- "$HELPER_PATH" > "$HELPER_ENTITLEMENTS_PLIST" 2>/dev/null; then
+    echo "Could not read release Helper entitlements." >&2
+    exit 1
+fi
+if /usr/libexec/PlistBuddy \
+    -c 'Print :com.apple.developer.service-management.managed-by-main-app' \
+    "$HELPER_ENTITLEMENTS_PLIST" >/dev/null 2>&1; then
+    echo "Helper carries a provisioning-profile entitlement that prevents daemon launch." >&2
+    exit 1
+fi
 verify_stable_signature "$APP_DIR"
 codesign --verify --deep --strict "$APP_DIR"
 

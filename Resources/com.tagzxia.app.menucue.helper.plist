@@ -5,7 +5,7 @@
   <key>Label</key>
   <string>com.tagzxia.app.menucue.helper</string>
   <key>BundleProgram</key>
-  <string>Contents/Library/HelperTools/MenuCueHelper</string>
+  <string>Contents/MacOS/MenuCueHelper</string>
   <key>MachServices</key>
   <dict>
     <key>com.tagzxia.app.menucue.helper</key>

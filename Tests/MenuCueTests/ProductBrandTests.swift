@@ -7,6 +7,69 @@ struct ProductBrandTests {
     #expect(ProductBrand.displayName == "MenuCue")
   }
 
+  @Test func packagedHelperUsesManagedDaemonLayout() throws {
+    let repositoryRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let buildScript = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("scripts/build-app.sh"),
+      encoding: .utf8
+    )
+    let updateScript = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("scripts/build-update.sh"),
+      encoding: .utf8
+    )
+    let daemonPlistURL = repositoryRoot.appendingPathComponent(
+      "Resources/com.tagzxia.app.menucue.helper.plist")
+    let daemonPlistData = try Data(contentsOf: daemonPlistURL)
+    let daemonPlist = try #require(
+      PropertyListSerialization.propertyList(from: daemonPlistData, format: nil)
+        as? [String: Any]
+    )
+    let helperEntitlementsURL = repositoryRoot.appendingPathComponent(
+      "Resources/MenuCueHelper.entitlements")
+    let helperManager = try String(
+      contentsOf: repositoryRoot.appendingPathComponent(
+        "Sources/MenuCue/PowerHelperManager.swift"),
+      encoding: .utf8
+    )
+    let helperMain = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("Sources/MenuCueHelper/main.swift"),
+      encoding: .utf8
+    )
+
+    #expect(daemonPlist["Label"] as? String == "com.tagzxia.app.menucue.helper")
+    #expect(daemonPlist["BundleProgram"] as? String == "Contents/MacOS/MenuCueHelper")
+    #expect(
+      (daemonPlist["MachServices"] as? [String: Bool])?["com.tagzxia.app.menucue.helper"]
+        == true
+    )
+    #expect(
+      daemonPlist["AssociatedBundleIdentifiers"] as? [String]
+        == ["com.tagzxia.app.menucue"]
+    )
+    #expect(!FileManager.default.fileExists(atPath: helperEntitlementsURL.path))
+    #expect(
+      buildScript.contains(
+        #"cp "$ROOT_DIR/.build/$BUILD_CONFIG/$HELPER_NAME" "$MACOS_DIR/$HELPER_NAME""#
+      )
+    )
+    #expect(!buildScript.contains("MenuCueHelper.entitlements"))
+    #expect(updateScript.contains(#"BUNDLE_PROGRAM="$(/usr/libexec/PlistBuddy"#))
+    #expect(updateScript.contains("Unexpected LaunchDaemon Label"))
+    #expect(updateScript.contains("Unexpected LaunchDaemon MachServices"))
+    #expect(updateScript.contains("Unexpected LaunchDaemon AssociatedBundleIdentifiers"))
+    #expect(updateScript.contains("Unexpected Helper signing identifier"))
+    #expect(updateScript.contains("Helper carries a provisioning-profile entitlement"))
+    #expect(updateScript.contains(#"HELPER_PATH="$APP_DIR/$BUNDLE_PROGRAM""#))
+    #expect(helperManager.contains(#".appendingPathComponent("Contents/MacOS", isDirectory: true)"#))
+    #expect(!buildScript.contains("HELPER_TOOLS_DIR"))
+    #expect(!helperManager.contains("Contents/Library/HelperTools"))
+    #expect(helperMain.contains("PowerHelperExecutableLocation.currentExecutableURL()"))
+    #expect(!helperMain.contains("CommandLine.arguments[0]"))
+  }
+
   @Test func deploymentTargetSupportsMacOSVentura() throws {
     let repositoryRoot = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()

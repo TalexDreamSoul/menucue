@@ -3,6 +3,63 @@ import XCTest
 import MenuCueHelperProtocol
 
 final class PowerHelperTimeZoneTests: XCTestCase {
+    func testCurrentExecutableLocationIgnoresRelativeArgvZero() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let helperURL = repositoryRoot.appendingPathComponent(".build/debug/MenuCueHelper")
+        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: helperURL.path))
+
+        let output = Pipe()
+        let process = Process()
+        let finished = DispatchSemaphore(value: 0)
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = [
+            "-c",
+            #"exec -a 'Contents/MacOS/MenuCueHelper' "$1" --print-executable-path"#,
+            "_",
+            helperURL.path,
+        ]
+        process.standardOutput = output
+        process.standardError = Pipe()
+        process.terminationHandler = { _ in finished.signal() }
+
+        try process.run()
+        if finished.wait(timeout: .now() + 2) == .timedOut {
+            process.terminate()
+            XCTFail("Executable path probe did not exit.")
+            return
+        }
+
+        let reportedPath = String(
+            decoding: output.fileHandleForReading.readDataToEndOfFile(),
+            as: UTF8.self
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertEqual(process.terminationStatus, 0)
+        XCTAssertEqual(reportedPath, helperURL.standardizedFileURL.path)
+    }
+
+    func testCurrentExecutableLocationDoesNotDependOnArgvZero() throws {
+        let executableURL = try XCTUnwrap(
+            PowerHelperExecutableLocation.currentExecutableURL()
+        )
+
+        XCTAssertTrue(executableURL.path.hasPrefix("/"))
+        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: executableURL.path))
+    }
+
+    func testPackagedHelperResolvesItsSiblingMainExecutable() {
+        let helperURL = URL(
+            fileURLWithPath: "/Applications/MenuCue.app/Contents/MacOS/MenuCueHelper"
+        )
+
+        XCTAssertEqual(
+            PowerHelperConstants.mainExecutableURL(forHelperExecutable: helperURL).path,
+            "/Applications/MenuCue.app/Contents/MacOS/MenuCue"
+        )
+    }
+
     func testOutdatedHelperStateRequiresExplicitRefreshBeforeUse() {
         let state = PowerHelperRegistrationState.refreshRequired
 

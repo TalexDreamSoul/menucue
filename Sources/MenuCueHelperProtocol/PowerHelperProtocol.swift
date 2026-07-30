@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public struct PowerHelperCapabilities: OptionSet, Sendable {
@@ -159,12 +160,31 @@ public enum SystemTimeZoneCommand {
   }
 }
 
+public enum PowerHelperExecutableLocation {
+  public static func currentExecutableURL() -> URL? {
+    var bufferSize: UInt32 = 0
+    _ = _NSGetExecutablePath(nil, &bufferSize)
+    var buffer = [CChar](repeating: 0, count: Int(bufferSize))
+    let result = buffer.withUnsafeMutableBufferPointer { pointer in
+      _NSGetExecutablePath(pointer.baseAddress, &bufferSize)
+    }
+    guard result == 0 else { return nil }
+    return URL(fileURLWithPath: String(cString: buffer)).standardizedFileURL
+  }
+}
+
 public enum PowerHelperConstants {
   public static let daemonLabel = "com.tagzxia.app.menucue.helper"
   public static let daemonPlistName = "com.tagzxia.app.menucue.helper.plist"
   public static let machServiceName = "com.tagzxia.app.menucue.helper"
   public static let mainAppBundleIdentifier = "com.tagzxia.app.menucue"
   public static let mainExecutableName = "MenuCue"
+
+  public static func mainExecutableURL(forHelperExecutable helperURL: URL) -> URL {
+    helperURL
+      .deletingLastPathComponent()
+      .appendingPathComponent(mainExecutableName)
+  }
 }
 
 @objc public protocol PowerHelperProtocol {

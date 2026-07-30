@@ -438,7 +438,7 @@ final class PowerHelperManager: ObservableObject {
     let bundleURL = Bundle.main.bundleURL
     let helperURL =
       bundleURL
-      .appendingPathComponent("Contents/Library/HelperTools", isDirectory: true)
+      .appendingPathComponent("Contents/MacOS", isDirectory: true)
       .appendingPathComponent("MenuCueHelper")
     let plistURL =
       bundleURL

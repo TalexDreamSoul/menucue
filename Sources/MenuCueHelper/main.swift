@@ -465,16 +465,12 @@ private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate
   }
 
   private static func loadExpectedClientRequirement() -> ClientRequirement? {
-    let helperURL = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
-    let contentsURL =
-      helperURL
-      .deletingLastPathComponent()
-      .deletingLastPathComponent()
-      .deletingLastPathComponent()
-    let mainExecutableURL =
-      contentsURL
-      .appendingPathComponent("MacOS", isDirectory: true)
-      .appendingPathComponent(PowerHelperConstants.mainExecutableName)
+    guard
+      let helperURL = PowerHelperExecutableLocation.currentExecutableURL()
+    else { return nil }
+    let mainExecutableURL = PowerHelperConstants.mainExecutableURL(
+      forHelperExecutable: helperURL
+    )
 
     var staticCode: SecStaticCode?
     guard SecStaticCodeCreateWithPath(mainExecutableURL as CFURL, [], &staticCode) == errSecSuccess,
@@ -545,6 +541,14 @@ private final class PowerHelperListenerDelegate: NSObject, NSXPCListenerDelegate
     guard let expectedTeam = expected.teamIdentifier else { return true }
     return info[kSecCodeInfoTeamIdentifier as String] as? String == expectedTeam
   }
+}
+
+if CommandLine.arguments.dropFirst().contains("--print-executable-path") {
+  guard let executableURL = PowerHelperExecutableLocation.currentExecutableURL() else {
+    exit(EXIT_FAILURE)
+  }
+  print(executableURL.path)
+  exit(EXIT_SUCCESS)
 }
 
 private let delegate = PowerHelperListenerDelegate()
