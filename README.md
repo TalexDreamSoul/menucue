@@ -44,14 +44,23 @@ scripts/build-app.sh
 open .build/app/MenuCue.app
 ```
 
-The default command keeps the ad-hoc GitHub build local-only. To embed an iCloud-enabled provisioning profile and sign with an Apple identity, provide `CODESIGN_IDENTITY`, `APPLE_TEAM_ID`, and `PROVISIONING_PROFILE`:
+The default command keeps the ad-hoc build local-only. Public releases must use a `Developer ID Application` identity, a non-device-bound Developer ID provisioning profile, hardened runtime, and Apple notarization:
 
 ```bash
-CODESIGN_IDENTITY="Apple Development: Your Name" \
+BUILD_CONFIG=release \
+REQUIRE_STABLE_SIGNING=true \
+CODESIGN_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)" \
 APPLE_TEAM_ID="YOURTEAMID" \
-PROVISIONING_PROFILE="/path/to/MenuCue.provisionprofile" \
+PROVISIONING_PROFILE="/path/to/MenuCue-DeveloperID.provisionprofile" \
 scripts/build-app.sh
+
+NOTARYTOOL_PROFILE="MenuCue-Notarization" \
+EXPECTED_VERSION="0.6.5" \
+EXPECTED_BUILD="21" \
+scripts/build-update.sh
 ```
+
+`build-update.sh` submits the signed app to Apple, waits for acceptance, staples and validates the notarization ticket, requires a successful Gatekeeper assessment, and only then creates the Sparkle archive.
 
 ## Notes
 

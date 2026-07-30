@@ -7,6 +7,34 @@ struct ProductBrandTests {
     #expect(ProductBrand.displayName == "MenuCue")
   }
 
+  @Test func releasePipelineRequiresDeveloperIDAndNotarization() throws {
+    let repositoryRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let buildScript = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("scripts/build-app.sh"),
+      encoding: .utf8
+    )
+    let updateScript = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("scripts/build-update.sh"),
+      encoding: .utf8
+    )
+
+    #expect(buildScript.contains("Developer ID Application:"))
+    #expect(buildScript.contains("ProvisionsAllDevices"))
+    #expect(buildScript.contains("ProvisionedDevices"))
+    #expect(buildScript.contains("com.apple.security.get-task-allow"))
+    #expect(buildScript.contains("--options runtime"))
+    #expect(buildScript.contains("--timestamp"))
+    #expect(updateScript.contains("Developer ID Application: ZiXian Tang (2L5YC85FQ7)"))
+    #expect(updateScript.contains("NOTARYTOOL_PROFILE"))
+    #expect(updateScript.contains("notarytool submit"))
+    #expect(updateScript.contains("stapler staple"))
+    #expect(updateScript.contains("stapler validate"))
+    #expect(updateScript.contains("spctl --assess"))
+  }
+
   @Test func packagingUsesMenuCueTechnicalIdentity() throws {
     let repositoryRoot = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()

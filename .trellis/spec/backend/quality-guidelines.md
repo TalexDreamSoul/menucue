@@ -52,6 +52,29 @@ Questions to answer:
 
 ---
 
+## Scenario: Public macOS release signing
+
+### 1. Scope / Trigger
+
+- Trigger: any artifact uploaded to a GitHub Release or referenced by the Sparkle appcast.
+- Local ad-hoc and Apple Development builds are never public release artifacts.
+
+### 2. Contracts
+
+- Sign every executable component with `Developer ID Application`, hardened runtime, and a trusted timestamp.
+- Restricted iCloud entitlements require a Developer ID provisioning profile with `ProvisionsAllDevices=true`, no `ProvisionedDevices`, and `get-task-allow=false`.
+- Submit the assembled app to Apple notarization, wait for `Accepted`, staple the ticket, validate it, and require `spctl --assess` to report `Notarized Developer ID`.
+- Create the Sparkle ZIP only after stapling so the downloadable app contains the ticket.
+- Keep signing keys, provisioning profiles, API keys, and notary credentials outside the repository; use Keychain profiles and environment-provided paths.
+
+### 3. Tests Required
+
+- Contract tests assert Developer ID/profile/runtime/notarization guardrails in both release scripts.
+- Release validation must cover the app extracted from the final ZIP, not only the build directory.
+- An invalid release stays draft and is absent from the public appcast until all checks pass.
+
+---
+
 ## Scenario: Parsing `ioreg -rn AppleSmartBattery` output
 
 ### 1. Scope / Trigger

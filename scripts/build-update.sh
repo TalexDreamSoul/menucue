@@ -11,7 +11,8 @@ UPDATES_DIR="${UPDATES_DIR:-$ROOT_DIR/.build/updates}"
 SPARKLE_TOOLS_DIR="${SPARKLE_TOOLS_DIR:-$ROOT_DIR/.build/artifacts/menucue/Sparkle/bin}"
 SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-com.tagzxia.app.menucue.sparkle}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-2L5YC85FQ7}"
-EXPECTED_CODESIGN_AUTHORITY="${EXPECTED_CODESIGN_AUTHORITY:-Apple Development: talexdreamsoul@gmail.com (GCTF54QXD3)}"
+EXPECTED_CODESIGN_AUTHORITY="${EXPECTED_CODESIGN_AUTHORITY:-Developer ID Application: ZiXian Tang (2L5YC85FQ7)}"
+NOTARYTOOL_PROFILE="${NOTARYTOOL_PROFILE:-}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-}"
 EXPECTED_BUILD="${EXPECTED_BUILD:-}"
 RELEASE_BASE_URL="https://github.com/TalexDreamSoul/menucue/releases/download"
@@ -38,6 +39,10 @@ if [[ -z "$EXPECTED_VERSION" || -z "$EXPECTED_BUILD" ]]; then
     echo "EXPECTED_VERSION and EXPECTED_BUILD are required for release packaging." >&2
     exit 1
 fi
+if [[ -z "$NOTARYTOOL_PROFILE" ]]; then
+    echo "NOTARYTOOL_PROFILE is required for notarized release packaging." >&2
+    exit 1
+fi
 
 verify_stable_signature() {
     local component="$1"
@@ -52,6 +57,10 @@ verify_stable_signature() {
     fi
     if ! grep -Fq "Authority=$EXPECTED_CODESIGN_AUTHORITY" <<<"$details"; then
         echo "Unexpected signing certificate for $component." >&2
+        exit 1
+    fi
+    if ! grep -q 'flags=.*runtime' <<<"$details"; then
+        echo "Hardened runtime is required for $component." >&2
         exit 1
     fi
     if grep -q 'designated => cdhash' <<<"$requirement"; then
@@ -80,6 +89,24 @@ if ! codesign -d --entitlements :- "$APP_DIR" > "$APP_ENTITLEMENTS_PLIST" 2>/dev
     exit 1
 fi
 security cms -D -i "$EMBEDDED_PROFILE" > "$PROFILE_PLIST"
+PROFILE_ALL_DEVICES="$(/usr/libexec/PlistBuddy \
+    -c 'Print :ProvisionsAllDevices' "$PROFILE_PLIST" 2>/dev/null || echo false)"
+PROFILE_GET_TASK_ALLOW="$(/usr/libexec/PlistBuddy \
+    -c 'Print :Entitlements:com.apple.security.get-task-allow' \
+    "$PROFILE_PLIST" 2>/dev/null || echo false)"
+[[ "$PROFILE_ALL_DEVICES" == "true" ]] || {
+    echo "Embedded release profile does not authorize all devices." >&2
+    exit 1
+}
+if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' \
+    "$PROFILE_PLIST" >/dev/null 2>&1; then
+    echo "Embedded release profile is device-bound." >&2
+    exit 1
+fi
+[[ "$PROFILE_GET_TASK_ALLOW" != "true" ]] || {
+    echo "Embedded release profile enables debugging." >&2
+    exit 1
+}
 EXPECTED_APPLICATION_IDENTIFIER="$EXPECTED_TEAM_ID.$BUNDLE_IDENTIFIER"
 APP_APPLICATION_IDENTIFIER="$(/usr/libexec/PlistBuddy \
     -c 'Print :com.apple.application-identifier' "$APP_ENTITLEMENTS_PLIST")"
@@ -107,19 +134,17 @@ PROFILE_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
     exit 1
 }
 
-CERTIFICATE_REQUIREMENT="anchor apple generic and certificate leaf[subject.CN] = \"$EXPECTED_CODESIGN_AUTHORITY\" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */"
-EXPECTED_APP_REQUIREMENT="designated => identifier \"$BUNDLE_IDENTIFIER\" and $CERTIFICATE_REQUIREMENT"
-EXPECTED_HELPER_REQUIREMENT="designated => identifier \"$HELPER_BUNDLE_IDENTIFIER\" and $CERTIFICATE_REQUIREMENT"
 APP_REQUIREMENT="$(codesign -d -r- "$APP_DIR" 2>&1 | tail -1)"
 HELPER_REQUIREMENT="$(codesign -d -r- "$HELPER_PATH" 2>&1 | tail -1)"
-[[ "$APP_REQUIREMENT" == "$EXPECTED_APP_REQUIREMENT" ]] || {
-    echo "$APP_NAME designated requirement changed unexpectedly." >&2
-    exit 1
-}
-[[ "$HELPER_REQUIREMENT" == "$EXPECTED_HELPER_REQUIREMENT" ]] || {
-    echo "$HELPER_NAME designated requirement changed unexpectedly." >&2
-    exit 1
-}
+for requirement in "$APP_REQUIREMENT" "$HELPER_REQUIREMENT"; do
+    if [[ "$requirement" != *"anchor apple generic"* \
+        || "$requirement" != *"certificate 1[field.1.2.840.113635.100.6.2.6]"* \
+        || "$requirement" != *"certificate leaf[field.1.2.840.113635.100.6.1.13]"* \
+        || "$requirement" != *"certificate leaf[subject.OU] = \"$EXPECTED_TEAM_ID\""* ]]; then
+        echo "Developer ID designated requirement changed unexpectedly." >&2
+        exit 1
+    fi
+done
 
 EXPECTED_FEED_URL="$RELEASE_BASE_URL/appcast-feed/appcast.xml"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUEnableAutomaticChecks' "$INFO_PLIST")" == "true" ]]
@@ -162,12 +187,41 @@ ARCHIVE_PATH="$UPDATES_DIR/$ARCHIVE_NAME"
 APPCAST_PATH="$UPDATES_DIR/appcast.xml"
 DOWNLOAD_URL_PREFIX="$RELEASE_BASE_URL/v$VERSION/"
 
+NOTARIZATION_DIR="$(mktemp -d -t menucue-notarization)"
+GENERATION_DIR=""
+cleanup() {
+    rm -rf "$NOTARIZATION_DIR"
+    if [[ -n "$GENERATION_DIR" ]]; then
+        rm -rf "$GENERATION_DIR"
+    fi
+}
+trap cleanup EXIT
+NOTARIZATION_ARCHIVE="$NOTARIZATION_DIR/$APP_NAME-notarization.zip"
+NOTARIZATION_RESULT="$NOTARIZATION_DIR/notarization.json"
+ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$NOTARIZATION_ARCHIVE"
+if ! xcrun notarytool submit "$NOTARIZATION_ARCHIVE" \
+    --keychain-profile "$NOTARYTOOL_PROFILE" \
+    --wait \
+    --output-format json > "$NOTARIZATION_RESULT"; then
+    echo "Apple notarization submission failed." >&2
+    exit 1
+fi
+NOTARIZATION_STATUS="$(jq -r '.status // empty' "$NOTARIZATION_RESULT")"
+NOTARIZATION_ID="$(jq -r '.id // empty' "$NOTARIZATION_RESULT")"
+if [[ "$NOTARIZATION_STATUS" != "Accepted" || -z "$NOTARIZATION_ID" ]]; then
+    echo "Apple notarization was not accepted (status: ${NOTARIZATION_STATUS:-unknown})." >&2
+    exit 1
+fi
+xcrun stapler staple "$APP_DIR"
+xcrun stapler validate "$APP_DIR"
+codesign --verify --deep --strict "$APP_DIR"
+spctl --assess --type execute --verbose=4 "$APP_DIR"
+
 mkdir -p "$UPDATES_DIR"
 rm -f "$ARCHIVE_PATH"
 ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ARCHIVE_PATH"
 
 GENERATION_DIR="$(mktemp -d -t menucue-appcast)"
-trap 'rm -rf "$GENERATION_DIR"' EXIT
 cp "$ARCHIVE_PATH" "$GENERATION_DIR/$ARCHIVE_NAME"
 if [[ -f "$APPCAST_PATH" ]]; then
     cp "$APPCAST_PATH" "$GENERATION_DIR/appcast.xml"
@@ -200,9 +254,10 @@ fi
 
 ARCHIVE_SHA256="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
 ARCHIVE_SIZE="$(stat -f '%z' "$ARCHIVE_PATH")"
-printf 'version=%s\nbuild=%s\narchive=%s\nsize=%s\nsha256=%s\nappcast=%s\n' \
+printf 'version=%s\nbuild=%s\nnotarization_id=%s\narchive=%s\nsize=%s\nsha256=%s\nappcast=%s\n' \
     "$VERSION" \
     "$BUILD_NUMBER" \
+    "$NOTARIZATION_ID" \
     "$ARCHIVE_PATH" \
     "$ARCHIVE_SIZE" \
     "$ARCHIVE_SHA256" \

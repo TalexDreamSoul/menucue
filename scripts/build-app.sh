@@ -9,8 +9,8 @@ BUNDLE_IDENTIFIER="com.tagzxia.app.menucue"
 HELPER_BUNDLE_IDENTIFIER="com.tagzxia.app.menucue.helper"
 HELPER_PLIST_NAME="$HELPER_BUNDLE_IDENTIFIER.plist"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.6.4"
-BUILD_NUMBER="20"
+APP_VERSION="0.6.5"
+BUILD_NUMBER="21"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
 SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
@@ -34,9 +34,24 @@ SPARKLE_FRAMEWORK_DESTINATION="$FRAMEWORKS_DIR/Sparkle.framework"
 LOCALIZATION_BUNDLE_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/MenuCue_MenuCue.bundle"
 
 cd "$ROOT_DIR"
-if [[ "$REQUIRE_STABLE_SIGNING" == "true" && "$CODESIGN_IDENTITY" == "-" ]]; then
-    echo "A stable CODESIGN_IDENTITY is required for OTA release builds." >&2
-    exit 1
+if [[ "$REQUIRE_STABLE_SIGNING" == "true" ]]; then
+    if [[ "$CODESIGN_IDENTITY" != "Developer ID Application:"* ]]; then
+        echo "Stable release builds require a Developer ID Application identity." >&2
+        exit 1
+    fi
+    if ! security find-identity -v -p codesigning \
+        | grep -Fq "\"$CODESIGN_IDENTITY\""; then
+        echo "Developer ID signing identity is unavailable: $CODESIGN_IDENTITY" >&2
+        exit 1
+    fi
+    if [[ -z "$APPLE_TEAM_ID" ]]; then
+        echo "APPLE_TEAM_ID is required for stable release builds." >&2
+        exit 1
+    fi
+fi
+CODESIGN_ARGS=(--force --sign "$CODESIGN_IDENTITY")
+if [[ "$REQUIRE_STABLE_SIGNING" == "true" ]]; then
+    CODESIGN_ARGS+=(--options runtime --timestamp)
 fi
 swift build -c "$BUILD_CONFIG"
 
@@ -145,8 +160,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 PLIST
 
 sign_sparkle_component() {
-    codesign --force --sign "$CODESIGN_IDENTITY" \
-        --preserve-metadata=identifier,entitlements,flags \
+    codesign "${CODESIGN_ARGS[@]}" \
+        --preserve-metadata=identifier,entitlements \
         "$1"
 }
 
@@ -157,7 +172,7 @@ sign_sparkle_component "$SPARKLE_VERSION_DIR/Autoupdate"
 sign_sparkle_component "$SPARKLE_VERSION_DIR/Updater.app"
 sign_sparkle_component "$SPARKLE_FRAMEWORK_DESTINATION"
 
-codesign --force --sign "$CODESIGN_IDENTITY" \
+codesign "${CODESIGN_ARGS[@]}" \
     --identifier "$HELPER_BUNDLE_IDENTIFIER" \
     --entitlements "$ROOT_DIR/Resources/$HELPER_NAME.entitlements" \
     "$HELPER_TOOLS_DIR/$HELPER_NAME"
@@ -173,6 +188,26 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
     fi
 
     security cms -D -i "$PROVISIONING_PROFILE" > "$PROFILE_PLIST"
+    if [[ "$REQUIRE_STABLE_SIGNING" == "true" ]]; then
+        PROFILE_ALL_DEVICES="$(/usr/libexec/PlistBuddy \
+            -c 'Print :ProvisionsAllDevices' "$PROFILE_PLIST" 2>/dev/null || echo false)"
+        PROFILE_GET_TASK_ALLOW="$(/usr/libexec/PlistBuddy \
+            -c 'Print :Entitlements:com.apple.security.get-task-allow' \
+            "$PROFILE_PLIST" 2>/dev/null || echo false)"
+        if [[ "$PROFILE_ALL_DEVICES" != "true" ]]; then
+            echo "Stable release profile must authorize all devices." >&2
+            exit 1
+        fi
+        if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' \
+            "$PROFILE_PLIST" >/dev/null 2>&1; then
+            echo "Device-bound provisioning profiles are forbidden for stable releases." >&2
+            exit 1
+        fi
+        if [[ "$PROFILE_GET_TASK_ALLOW" == "true" ]]; then
+            echo "Debug-enabled provisioning profiles are forbidden for stable releases." >&2
+            exit 1
+        fi
+    fi
     PROFILE_TEAM_ID="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")"
     PROFILE_APP_IDENTIFIER_PREFIX="$(/usr/libexec/PlistBuddy -c 'Print :ApplicationIdentifierPrefix:0' "$PROFILE_PLIST")"
     if ! PROFILE_APPLICATION_IDENTIFIER="$(/usr/libexec/PlistBuddy \
@@ -221,12 +256,12 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
 </dict>
 </plist>
 PLIST
-    codesign --force --sign "$CODESIGN_IDENTITY" \
+    codesign "${CODESIGN_ARGS[@]}" \
         --entitlements "$RESOLVED_APP_ENTITLEMENTS" \
         "$APP_DIR"
     echo "Built iCloud-enabled $APP_DIR"
 else
-    codesign --force --sign "$CODESIGN_IDENTITY" "$APP_DIR"
+    codesign "${CODESIGN_ARGS[@]}" "$APP_DIR"
     echo "Built local-only $APP_DIR"
 fi
 
