@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-07-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~292 | Active |
+| `journal-1.md` | ~325 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-07-29 | Notarized Developer ID release pipeline | `7f9b5ec` | `master` |
 | 7 | 2026-07-29 | Date settings, AirPlay overlays, and quick access | `de205c3`, `c191d18`, `053a814` | `master` |
 | 6 | 2026-07-29 | Configure popover tabs and swipe navigation | `9223256`, `e287ff6` | `master` |
 | 5 | 2026-07-29 | Clean Screen multi-display support and v0.6.2 release prep | `0731dc4`, `7e845fb` | `master` |

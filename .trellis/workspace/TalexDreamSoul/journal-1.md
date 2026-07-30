@@ -290,3 +290,36 @@ Consolidated date and time settings, fixed Sidecar overlay placement, and added 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Notarized Developer ID release pipeline
+
+**Date**: 2026-07-29
+**Task**: Notarized Developer ID release pipeline
+**Branch**: `master`
+
+### Summary
+
+Replaced device-bound development release signing with Developer ID, hardened runtime, notarization, stapling, Gatekeeper checks, and a verified v0.6.5 package.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7f9b5ec` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
