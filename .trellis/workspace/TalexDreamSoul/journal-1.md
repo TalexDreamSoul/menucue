@@ -221,3 +221,37 @@ Made cleaning overlays track every connected display across topology changes, ad
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Configure popover tabs and swipe navigation
+
+**Date**: 2026-07-29
+**Task**: Configure popover tabs and swipe navigation
+**Branch**: `master`
+
+### Summary
+
+Added local drag ordering for popover tabs, unified configured-order navigation, fixed disconnected swipe relay wiring with real-trackpad verification, and prepared MenuCue 0.6.3 build 19.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9223256` | (see git log) |
+| `e287ff6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
