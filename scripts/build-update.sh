@@ -13,6 +13,8 @@ SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-com.tagzxia.app.menucue.sparkle}"
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-2L5YC85FQ7}"
 EXPECTED_CODESIGN_AUTHORITY="${EXPECTED_CODESIGN_AUTHORITY:-Developer ID Application: ZiXian Tang (2L5YC85FQ7)}"
 NOTARYTOOL_PROFILE="${NOTARYTOOL_PROFILE:-}"
+NOTARIZATION_MAX_ATTEMPTS="${NOTARIZATION_MAX_ATTEMPTS:-3}"
+NOTARIZATION_RETRY_DELAY="${NOTARIZATION_RETRY_DELAY:-30}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-}"
 EXPECTED_BUILD="${EXPECTED_BUILD:-}"
 RELEASE_BASE_URL="https://github.com/TalexDreamSoul/menucue/releases/download"
@@ -41,6 +43,11 @@ if [[ -z "$EXPECTED_VERSION" || -z "$EXPECTED_BUILD" ]]; then
 fi
 if [[ -z "$NOTARYTOOL_PROFILE" ]]; then
     echo "NOTARYTOOL_PROFILE is required for notarized release packaging." >&2
+    exit 1
+fi
+if [[ ! "$NOTARIZATION_MAX_ATTEMPTS" =~ ^[1-9][0-9]*$ \
+    || ! "$NOTARIZATION_RETRY_DELAY" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Notarization retry settings must be positive integers." >&2
     exit 1
 fi
 
@@ -199,13 +206,24 @@ trap cleanup EXIT
 NOTARIZATION_ARCHIVE="$NOTARIZATION_DIR/$APP_NAME-notarization.zip"
 NOTARIZATION_RESULT="$NOTARIZATION_DIR/notarization.json"
 ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$NOTARIZATION_ARCHIVE"
-if ! xcrun notarytool submit "$NOTARIZATION_ARCHIVE" \
-    --keychain-profile "$NOTARYTOOL_PROFILE" \
-    --wait \
-    --output-format json > "$NOTARIZATION_RESULT"; then
-    echo "Apple notarization submission failed." >&2
-    exit 1
-fi
+NOTARIZATION_ATTEMPT=1
+while true; do
+    rm -f "$NOTARIZATION_RESULT"
+    if xcrun notarytool submit "$NOTARIZATION_ARCHIVE" \
+        --keychain-profile "$NOTARYTOOL_PROFILE" \
+        --wait \
+        --output-format json > "$NOTARIZATION_RESULT"; then
+        break
+    fi
+    if (( NOTARIZATION_ATTEMPT >= NOTARIZATION_MAX_ATTEMPTS )); then
+        echo "Apple notarization submission failed after $NOTARIZATION_ATTEMPT attempts." >&2
+        exit 1
+    fi
+    RETRY_WAIT_SECONDS=$((NOTARIZATION_RETRY_DELAY * NOTARIZATION_ATTEMPT))
+    echo "Apple notarization is temporarily unavailable; retrying in ${RETRY_WAIT_SECONDS}s." >&2
+    sleep "$RETRY_WAIT_SECONDS"
+    ((NOTARIZATION_ATTEMPT += 1))
+done
 NOTARIZATION_STATUS="$(jq -r '.status // empty' "$NOTARIZATION_RESULT")"
 NOTARIZATION_ID="$(jq -r '.id // empty' "$NOTARIZATION_RESULT")"
 if [[ "$NOTARIZATION_STATUS" != "Accepted" || -z "$NOTARIZATION_ID" ]]; then

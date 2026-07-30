@@ -51,6 +51,7 @@ final class WakeHistoryStore {
     self.maxRecords = max(1, maxRecords)
     self.encoder = JSONEncoder()
     self.decoder = JSONDecoder()
+    encoder.outputFormatting = [.sortedKeys]
     encoder.dateEncodingStrategy = .millisecondsSince1970
     decoder.dateDecodingStrategy = .millisecondsSince1970
   }

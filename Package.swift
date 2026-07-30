@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
   name: "MenuCue",
   defaultLocalization: "en",
-  platforms: [.macOS(.v14)],
+  platforms: [.macOS(.v13)],
   products: [
     .executable(name: "MenuCue", targets: ["MenuCue"]),
     .executable(name: "MenuCueHelper", targets: ["MenuCueHelper"]),

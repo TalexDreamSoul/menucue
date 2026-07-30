@@ -34,7 +34,7 @@ struct StatusTabView: View {
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
     }
-    .scrollBounceBehavior(.basedOnSize)
+    .menuCueScrollBounceBehavior()
     .overlayPreferenceValue(MetricDetailAnchorKey.self) { anchors in
       GeometryReader { proxy in
         if let target = detail.target, let anchor = anchors[target] {
@@ -56,7 +56,7 @@ struct StatusTabView: View {
       metrics.release()
       detail.hover(nil)
     }
-    .onChange(of: model.settings.metricsSampling) { _, sampling in
+    .onChange(of: model.settings.metricsSampling) { sampling in
       metrics.applySamplingSettings(sampling)
     }
   }

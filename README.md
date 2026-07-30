@@ -26,7 +26,7 @@ MenuCue is a lightweight native macOS menu-bar dashboard built with AppKit, Swif
 brew install --cask talexdreamsoul/tap/menucue
 ```
 
-The current release is development-signed but not notarized. If macOS blocks the first launch, open **System Settings → Privacy & Security** and choose **Open Anyway** for MenuCue.
+MenuCue requires macOS 13 Ventura or newer. Release builds are signed with Developer ID and notarized by Apple.
 
 ## Build
 
@@ -55,8 +55,8 @@ PROVISIONING_PROFILE="/path/to/MenuCue-DeveloperID.provisionprofile" \
 scripts/build-app.sh
 
 NOTARYTOOL_PROFILE="MenuCue-Notarization" \
-EXPECTED_VERSION="0.6.5" \
-EXPECTED_BUILD="21" \
+EXPECTED_VERSION="0.6.6" \
+EXPECTED_BUILD="22" \
 scripts/build-update.sh
 ```
 

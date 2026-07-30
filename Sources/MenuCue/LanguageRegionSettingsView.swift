@@ -205,7 +205,7 @@ struct SystemTimeZoneSettingsView: View {
       .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
         refreshSystemTimeZone()
       }
-      .onChange(of: powerHelper.systemTimeZoneIdentifier) { _, identifier in
+      .onChange(of: powerHelper.systemTimeZoneIdentifier) { identifier in
         guard let identifier else { return }
         timeZoneSelection.observe(identifier)
       }

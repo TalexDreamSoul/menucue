@@ -498,7 +498,7 @@ private struct QuickActionTile: View {
             Image(systemName: item.systemImage)
               .font(.system(size: style.iconSize, weight: .semibold))
               .foregroundStyle(iconForeground)
-              .symbolEffect(.bounce, value: isOn)
+              .menuCueSymbolBounce(value: isOn)
           }
         }
         .frame(height: style.iconSize + 4)

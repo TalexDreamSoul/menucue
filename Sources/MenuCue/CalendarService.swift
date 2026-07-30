@@ -20,9 +20,14 @@ final class CalendarService {
     }
 
     func requestAccess(completion: @escaping (CalendarAuthorizationState, Error?) -> Void) {
-        eventStore.requestFullAccessToEvents { [weak self] _, error in
+        let finish: (Bool, Error?) -> Void = { [weak self] _, error in
             guard let self else { return }
             completion(self.authorizationState, error)
+        }
+        if #available(macOS 14.0, *) {
+            eventStore.requestFullAccessToEvents(completion: finish)
+        } else {
+            eventStore.requestAccess(to: .event, completion: finish)
         }
     }
 

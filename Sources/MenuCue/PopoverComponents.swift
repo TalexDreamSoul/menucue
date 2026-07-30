@@ -200,7 +200,7 @@ struct PopoverTabBar: View {
             Image(systemName: tab.systemImage)
               .font(.system(size: 11, weight: .semibold))
               // Nudges the glyph when its tab becomes active.
-              .symbolEffect(.bounce, value: selection == tab)
+              .menuCueSymbolBounce(value: selection == tab)
             Text(tab.title)
               .font(.system(size: 12, weight: .semibold))
           }
@@ -237,7 +237,7 @@ struct PopoverTabBar: View {
     )
     // SwiftUI parks initial focus on the first button, and its ring reads as a
     // second selected tab. Selection is already shown by the filled pill.
-    .focusEffectDisabled()
+    .menuCueFocusEffectDisabled()
   }
 
   private func tabForeground(for tab: PopoverTab) -> Color {

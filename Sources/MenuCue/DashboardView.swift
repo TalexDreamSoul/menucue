@@ -87,21 +87,18 @@ struct DashboardView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .transition(tabTransition)
       }
-      .scrollBounceBehavior(.basedOnSize)
+      .menuCueScrollBounceBehavior()
       // The outgoing and incoming tabs overlap while sliding.
       .clipped()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     .focusable()
     .focused($isFocused)
-    .focusEffectDisabled()
-    .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .down) { press in
-      // Same rule as the popover: a modifier means the user wants a real shortcut.
-      guard PopoverTab.allowsNavigation(modifiers: press.modifiers) else { return .ignored }
-      move(by: press.key == .leftArrow ? -1 : 1)
-      return .handled
+    .menuCueFocusEffectDisabled()
+    .menuCueHorizontalArrowNavigation { offset in
+      move(by: offset)
     }
-    .onChange(of: swipeRelay.command) { _, command in
+    .onChange(of: swipeRelay.command) { command in
       guard let command else { return }
       move(by: command.direction)
     }
@@ -118,10 +115,10 @@ struct DashboardView: View {
       dashboard.deactivate()
       metrics.release()
     }
-    .onChange(of: section) { _, next in
+    .onChange(of: section) { next in
       dashboard.activate(next)
     }
-    .onChange(of: model.settings.metricsSampling) { _, sampling in
+    .onChange(of: model.settings.metricsSampling) { sampling in
       metrics.applySamplingSettings(sampling)
     }
   }

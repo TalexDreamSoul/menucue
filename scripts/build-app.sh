@@ -9,8 +9,8 @@ BUNDLE_IDENTIFIER="com.tagzxia.app.menucue"
 HELPER_BUNDLE_IDENTIFIER="com.tagzxia.app.menucue.helper"
 HELPER_PLIST_NAME="$HELPER_BUNDLE_IDENTIFIER.plist"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.6.5"
-BUILD_NUMBER="21"
+APP_VERSION="0.6.6"
+BUILD_NUMBER="22"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
 SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
@@ -132,7 +132,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundleVersion</key>
     <string>$BUILD_NUMBER</string>
     <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
+    <string>13.0</string>
     <key>SUFeedURL</key>
     <string>$SPARKLE_FEED_URL</string>
     <key>SUPublicEDKey</key>

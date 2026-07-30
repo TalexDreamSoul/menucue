@@ -75,12 +75,17 @@ struct NotificationSettingsView: View {
       }
 
       if model.settings.notificationSettings.rules.isEmpty {
-        ContentUnavailableView(
-          "No Alert Rules",
-          systemImage: "bell.slash",
-          description: Text("Add a rule to monitor system metrics or dark wakes.")
-        )
-        .frame(minHeight: 150)
+        VStack(spacing: 8) {
+          Image(systemName: "bell.slash")
+            .font(.title2)
+            .foregroundStyle(.secondary)
+          Text("No Alert Rules")
+            .font(.headline)
+          Text("Add a rule to monitor system metrics or dark wakes.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 150)
       } else {
         HStack(alignment: .top, spacing: 20) {
           ruleList

@@ -38,13 +38,8 @@ extension View {
       .contentShape(Rectangle())
       .modifier(MetricCardLink(open: open))
       .focusable()
-      .onKeyPress(.return) {
+      .menuCueActivationKeys {
         service.toggle(target)
-        return .handled
-      }
-      .onKeyPress(.space) {
-        service.toggle(target)
-        return .handled
       }
       .accessibilityLabel(target.title)
       .accessibilityHint(L10n.string("Show metric details"))

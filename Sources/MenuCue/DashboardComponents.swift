@@ -185,7 +185,7 @@ struct DashboardTabBar: View {
         } label: {
           HStack(spacing: 6) {
             Image(systemName: section.systemImage)
-              .symbolEffect(.bounce, value: selection == section)
+              .menuCueSymbolBounce(value: selection == section)
             Text(section.title)
           }
           .font(.callout.weight(.medium))

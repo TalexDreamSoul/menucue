@@ -117,17 +117,14 @@ struct StatusPopoverView: View {
     .background(Color(nsColor: .windowBackgroundColor))
     .focusable()
     .focused($isPopoverFocused)
-    .focusEffectDisabled()
+    .menuCueFocusEffectDisabled()
     .onAppear {
       isPopoverFocused = true
     }
-    .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .down) { press in
-      guard PopoverTab.allowsNavigation(modifiers: press.modifiers) else { return .ignored }
-      let offset = press.key == .leftArrow ? -1 : 1
+    .menuCueHorizontalArrowNavigation { offset in
       select(selectedTab.moving(by: offset, in: tabs), direction: offset)
-      return .handled
     }
-    .onChange(of: swipeRelay.command) { _, command in
+    .onChange(of: swipeRelay.command) { command in
       guard let command else { return }
       let destination = selectedTab.moving(by: command.direction, in: tabs)
       if ProcessInfo.processInfo.environment["MENUCUE_SWIPE_LOG"] == "1" {
@@ -231,7 +228,7 @@ struct StatusPopoverView: View {
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
     }
-    .scrollBounceBehavior(.basedOnSize)
+    .menuCueScrollBounceBehavior()
   }
 
   private func clockCard(date: Date) -> some View {
@@ -597,7 +594,7 @@ struct SettingsWindowView: View {
       .navigationSplitViewColumnWidth(min: 190, ideal: 215, max: 260)
       // System Settings never offers to hide its sidebar; without this the split
       // view puts a lone toggle in an otherwise empty toolbar band.
-      .toolbar(removing: .sidebarToggle)
+      .menuCueHideSidebarToggle()
     } detail: {
       SettingsContentView(
         model: model,
@@ -735,10 +732,10 @@ private struct ClockLabelEditor: View {
       .textFieldStyle(.roundedBorder)
       .focused($isFocused)
       .onSubmit(commit)
-      .onChange(of: isFocused) { _, focused in
+      .onChange(of: isFocused) { focused in
         if !focused { commit() }
       }
-      .onChange(of: label) { _, value in
+      .onChange(of: label) { value in
         if !isFocused { draft = value ?? "" }
       }
   }
@@ -807,10 +804,10 @@ private struct MenuBarFormatSettingsView: View {
           .foregroundStyle(.orange)
       }
     }
-    .onChange(of: model.settings.menuBarFormat.advancedDatePattern) { _, value in
+    .onChange(of: model.settings.menuBarFormat.advancedDatePattern) { value in
       if value != advancedDateDraft { advancedDateDraft = value }
     }
-    .onChange(of: model.settings.menuBarFormat.advancedTimePattern) { _, value in
+    .onChange(of: model.settings.menuBarFormat.advancedTimePattern) { value in
       if value != advancedTimeDraft { advancedTimeDraft = value }
     }
   }
@@ -845,11 +842,11 @@ private struct MenuBarFormatSettingsView: View {
   private var advancedControls: some View {
     TextField("Date pattern (empty hides date)", text: $advancedDateDraft)
       .textFieldStyle(.roundedBorder)
-      .onChange(of: advancedDateDraft) { _, _ in commitAdvancedDraftIfValid() }
+      .onChange(of: advancedDateDraft) { _ in commitAdvancedDraftIfValid() }
 
     TextField("Time pattern", text: $advancedTimeDraft)
       .textFieldStyle(.roundedBorder)
-      .onChange(of: advancedTimeDraft) { _, _ in commitAdvancedDraftIfValid() }
+      .onChange(of: advancedTimeDraft) { _ in commitAdvancedDraftIfValid() }
 
     Text("Uses Unicode date-field patterns, for example EEE MMM d and HH:mm:ss.")
       .font(.caption)

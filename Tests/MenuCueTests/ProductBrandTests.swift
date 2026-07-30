@@ -7,6 +7,26 @@ struct ProductBrandTests {
     #expect(ProductBrand.displayName == "MenuCue")
   }
 
+  @Test func deploymentTargetSupportsMacOSVentura() throws {
+    let repositoryRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let packageManifest = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("Package.swift"),
+      encoding: .utf8
+    )
+    let buildScript = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("scripts/build-app.sh"),
+      encoding: .utf8
+    )
+
+    #expect(packageManifest.contains("platforms: [.macOS(.v13)]"))
+    #expect(buildScript.contains("<string>13.0</string>"))
+    #expect(!packageManifest.contains(".macOS(.v14)"))
+    #expect(!buildScript.contains("<string>14.0</string>"))
+  }
+
   @Test func releasePipelineRequiresDeveloperIDAndNotarization() throws {
     let repositoryRoot = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()
@@ -29,6 +49,7 @@ struct ProductBrandTests {
     #expect(buildScript.contains("--timestamp"))
     #expect(updateScript.contains("Developer ID Application: ZiXian Tang (2L5YC85FQ7)"))
     #expect(updateScript.contains("NOTARYTOOL_PROFILE"))
+    #expect(updateScript.contains("NOTARIZATION_MAX_ATTEMPTS"))
     #expect(updateScript.contains("notarytool submit"))
     #expect(updateScript.contains("stapler staple"))
     #expect(updateScript.contains("stapler validate"))

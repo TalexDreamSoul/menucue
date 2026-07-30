@@ -28,7 +28,7 @@ struct PowerTabView: View {
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
     }
-    .scrollBounceBehavior(.basedOnSize)
+    .menuCueScrollBounceBehavior()
     .onAppear {
       if let onAC = diagnostics.battery?.isOnAC {
         selectedSource = onAC ? .ac : .battery
@@ -43,10 +43,10 @@ struct PowerTabView: View {
     .onDisappear {
       updateSampling(isVisible: false)
     }
-    .onChange(of: popoverPresentation.isVisible) { _, isVisible in
+    .onChange(of: popoverPresentation.isVisible) { isVisible in
       updateSampling(isVisible: isVisible)
     }
-    .onChange(of: diagnostics.battery?.isOnAC) { _, onAC in
+    .onChange(of: diagnostics.battery?.isOnAC) { onAC in
       guard let onAC else { return }
       selectedSource = onAC ? .ac : .battery
     }

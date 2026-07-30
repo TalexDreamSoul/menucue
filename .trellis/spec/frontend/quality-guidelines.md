@@ -49,6 +49,24 @@ window.title = "\(ProductBrand.displayName) Settings"
 
 Packaging must set `CFBundleDisplayName`, `CFBundleName`, and `CFBundleExecutable` to `MenuCue`. The identity contract is covered by `ProductBrandTests`; update that test together with any intentional future rename.
 
+## macOS deployment compatibility
+
+### Contract
+
+- MenuCue supports macOS 13 Ventura and newer. Keep `Package.swift`, `LSMinimumSystemVersion`, the main executable, the Helper, Sparkle appcast metadata, and Homebrew Cask requirements aligned.
+- macOS 13 is the architectural floor while the app depends on `SMAppService`, `NavigationSplitView`, and SwiftUI `Layout`.
+- Put optional newer presentation behavior behind small shared availability-gated View modifiers. Do not duplicate complete macOS-version-specific screens.
+- Use the pre-macOS-14 single-parameter `onChange` overload when the old value and initial delivery are not required.
+- System APIs with changed authorization contracts, such as EventKit in macOS 14, must keep a version-appropriate fallback that publishes the same app-level state.
+- A compatibility release must be compiled with the actual lower deployment target. Source-level availability checks alone are insufficient.
+
+### Validation
+
+- Contract tests assert both SwiftPM and app-bundle minimum versions.
+- A clean build at the declared minimum must report no unavailable-API errors.
+- Inspect Mach-O `LC_BUILD_VERSION` for both MenuCue and MenuCueHelper.
+- Verify the app extracted from the final notarized ZIP and check the Sparkle item's `minimumSystemVersion`.
+
 ## Settings navigation and section deep links
 
 ### Convention: Route status actions to the owning section
