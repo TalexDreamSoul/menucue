@@ -19,13 +19,8 @@ extension View {
     }
   }
 
-  @ViewBuilder
   func menuCueSymbolBounce<Value: Equatable>(value: Value) -> some View {
-    if #available(macOS 14.0, *) {
-      symbolEffect(.bounce, value: value)
-    } else {
-      self
-    }
+    modifier(SymbolBounceModifier(value: value))
   }
 
   @ViewBuilder
@@ -52,6 +47,20 @@ extension View {
       modifier(ActivationKeyModifier(action: action))
     } else {
       self
+    }
+  }
+}
+
+private struct SymbolBounceModifier<Value: Equatable>: ViewModifier {
+  @Environment(\.menuCueMotion) private var motion
+  let value: Value
+
+  @ViewBuilder
+  func body(content: Content) -> some View {
+    if #available(macOS 14.0, *), motion.usesSymbolBounce {
+      content.symbolEffect(.bounce, value: value)
+    } else {
+      content
     }
   }
 }

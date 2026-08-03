@@ -3,11 +3,13 @@ import Combine
 import QuartzCore
 import SwiftUI
 
+@MainActor
 final class PopoverPresentationState: ObservableObject {
   static let shared = PopoverPresentationState()
   @Published private(set) var isVisible = false
 
   func setVisible(_ visible: Bool) {
+    guard visible != isVisible else { return }
     isVisible = visible
   }
 }
@@ -313,17 +315,30 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     transitionOrigin: ClockTransitionOrigin
   ) {
     guard let button = statusItem.button else { return }
-    guard animated, let layer = button.layer else {
+    let motion = MotionProfile(
+      quality: model.settings.animationQuality,
+      reducesMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    )
+    guard animated, motion.statusClockMotion != .none, let layer = button.layer else {
       button.attributedTitle = attributedTitle
       currentStatusClockID = clockID
       return
     }
 
     let transition = CATransition()
-    transition.type = .push
-    transition.subtype = transitionOrigin == .bottom ? .fromBottom : .fromTop
-    transition.duration = 0.34
-    transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+    switch motion.statusClockMotion {
+    case .push:
+      transition.type = .push
+      transition.subtype = transitionOrigin == .bottom ? .fromBottom : .fromTop
+      transition.duration = 0.34
+      transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+    case .fade:
+      transition.type = .fade
+      transition.duration = 0.18
+      transition.timingFunction = CAMediaTimingFunction(name: .easeOut)
+    case .none:
+      break
+    }
     layer.add(transition, forKey: "statusClockSwitch")
     button.attributedTitle = attributedTitle
     currentStatusClockID = clockID

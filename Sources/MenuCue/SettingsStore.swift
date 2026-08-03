@@ -17,6 +17,7 @@ final class SettingsStore {
         static let pinnedQuickActions = "pinnedQuickActions"
         static let popoverTabOrder = "popoverTabOrder.v1"
         static let metricsSampling = "metricsSampling.v1"
+        static let animationQuality = "animationQuality.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
         static let notificationSettings = "notificationSettings.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
@@ -86,6 +87,7 @@ final class SettingsStore {
             pinnedQuickActions: loadPinnedQuickActions(),
             popoverTabOrder: loadPopoverTabOrder(),
             metricsSampling: loadMetricsSampling(),
+            animationQuality: loadAnimationQuality(),
             powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
             notificationSettings: loadNotificationSettings(),
             preferenceSyncEnabled: defaults.bool(forKey: Key.preferenceSyncEnabled),
@@ -124,6 +126,7 @@ final class SettingsStore {
         if let data = try? encoder.encode(settings.metricsSampling) {
             defaults.set(data, forKey: Key.metricsSampling)
         }
+        defaults.set(settings.animationQuality.rawValue, forKey: Key.animationQuality)
         defaults.set(settings.preferenceSyncEnabled, forKey: Key.preferenceSyncEnabled)
         defaults.set(
             settings.preferenceSyncOnboardingCompleted,
@@ -155,6 +158,13 @@ final class SettingsStore {
             return .default
         }
         return settings.normalized
+    }
+
+    private func loadAnimationQuality() -> AnimationQuality {
+        guard let rawValue = defaults.string(forKey: Key.animationQuality) else {
+            return .elegant
+        }
+        return AnimationQuality(rawValue: rawValue) ?? .elegant
     }
 
     private func loadMenuBarFormat() -> MenuBarFormatSettings {

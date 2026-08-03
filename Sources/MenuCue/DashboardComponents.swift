@@ -79,8 +79,7 @@ struct StatTile: View {
         .foregroundStyle(tint)
         .lineLimit(1)
         .minimumScaleFactor(0.6)
-        .contentTransition(.numericText())
-        .animation(PopoverMotion.value, value: value)
+        .menuCueNumericTransition(value: value, importance: .primary)
       if let detail {
         Text(detail)
           .font(.caption)
@@ -155,7 +154,7 @@ struct ChartLegend: View {
           Text(format(band.values.last ?? 0))
             .font(.callout.weight(.medium))
             .monospacedDigit()
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: format(band.values.last ?? 0))
         }
       }
       Spacer(minLength: 0)
@@ -172,6 +171,7 @@ struct ChartLegend: View {
 /// icon-plus-label pairing, matches the popover's bar, and carries the selection
 /// semantics a segmented control would have supplied.
 struct DashboardTabBar: View {
+  @Environment(\.menuCueMotion) private var motion
   @Binding var selection: DashboardSection
   @Namespace private var highlight
   @State private var hovered: DashboardSection?
@@ -181,7 +181,7 @@ struct DashboardTabBar: View {
       ForEach(DashboardSection.allCases) { section in
         Button {
           guard selection != section else { return }
-          withAnimation(PopoverMotion.navigation) { selection = section }
+          withAnimation(motion.navigationAnimation) { selection = section }
         } label: {
           HStack(spacing: 6) {
             Image(systemName: section.systemImage)
@@ -196,7 +196,7 @@ struct DashboardTabBar: View {
               RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(Color(nsColor: .controlBackgroundColor))
                 .shadow(color: .black.opacity(0.10), radius: 2, y: 1)
-                .matchedGeometryEffect(id: "selected-dashboard-tab", in: highlight)
+                .menuCueMatchedGeometryEffect(id: "selected-dashboard-tab", in: highlight)
             } else if hovered == section {
               RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(.quaternary)
@@ -207,7 +207,7 @@ struct DashboardTabBar: View {
         .buttonStyle(.plain)
         .foregroundStyle(selection == section ? .primary : .secondary)
         .onHover { isHovering in
-          withAnimation(PopoverMotion.hover) {
+          withAnimation(motion.hoverAnimation) {
             hovered = isHovering ? section : (hovered == section ? nil : hovered)
           }
         }

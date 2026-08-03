@@ -240,7 +240,7 @@ struct DashboardSensorsSection: View {
                   Text(L10n.format("%d RPM", Int(fan.currentRPM)))
                     .font(.title3.weight(.semibold))
                     .monospacedDigit()
-                    .contentTransition(.numericText())
+                    .menuCueNumericTransition(value: fan.currentRPM)
                 }
                 if fan.maxRPM > fan.minRPM {
                   MetricBar(fraction: fan.loadFraction, tint: .cyan, height: 7)

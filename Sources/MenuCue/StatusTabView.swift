@@ -1,16 +1,67 @@
+import Combine
 import SwiftUI
+
+@MainActor
+final class StatusSamplingController: ObservableObject {
+  private var visibilityCancellable: AnyCancellable?
+  private var stopAction: (() -> Void)?
+  private(set) var isActive = false
+
+  func connect(
+    to presentation: PopoverPresentationState,
+    onStart: @escaping () -> Void,
+    onStop: @escaping () -> Void
+  ) {
+    guard visibilityCancellable == nil else { return }
+    stopAction = onStop
+    visibilityCancellable = presentation.$isVisible
+      .removeDuplicates()
+      .sink { [weak self] isVisible in
+        self?.update(isVisible: isVisible, onStart: onStart, onStop: onStop)
+      }
+  }
+
+  func disconnect() {
+    visibilityCancellable = nil
+    guard isActive else {
+      stopAction = nil
+      return
+    }
+    isActive = false
+    let stop = stopAction
+    stopAction = nil
+    stop?()
+  }
+
+  private func update(
+    isVisible: Bool,
+    onStart: () -> Void,
+    onStop: () -> Void
+  ) {
+    guard isVisible != isActive else { return }
+    isActive = isVisible
+    if isVisible {
+      onStart()
+    } else {
+      onStop()
+    }
+  }
+}
 
 /// Live system monitor tab. Sampling is tied to this view's lifetime so a closed
 /// popover costs nothing.
 struct StatusTabView: View {
+  @Environment(\.menuCueMotion) private var motion
   @ObservedObject var model: AppModel
   @ObservedObject var metrics: SystemMetricsService
+  @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
   let openAllActions: () -> Void
   /// Opens the Settings window on the Dashboard tab that expands a card.
   let openDashboard: (DashboardSection) -> Void
   /// Owned here rather than by the popover: hover detail is only meaningful while
   /// this tab is on screen, and tearing it down on exit stops every extra probe.
   @StateObject private var detail = SystemDetailService()
+  @StateObject private var samplingController = StatusSamplingController()
   /// Measured, because the panel can only be kept inside the popover if its height
   /// is known — a naive above/below flip pushed tall panels off the top edge.
   @State private var detailPanelHeight: CGFloat = 0
@@ -44,17 +95,24 @@ struct StatusTabView: View {
       // The panel must never take hover away from the card that opened it.
       .allowsHitTesting(false)
     }
-    .animation(PopoverMotion.hover, value: detail.target)
+    .animation(motion.hoverAnimation, value: detail.target)
     .onAppear {
-      // Applied before retain() so the first timer is already scheduled at the
-      // battery-appropriate rate rather than being rebuilt one tick later.
-      metrics.applySamplingSettings(model.settings.metricsSampling)
-      metrics.retain()
+      samplingController.connect(
+        to: popoverPresentation,
+        onStart: {
+          // Apply before retain() so the first timer uses the latest configured rate.
+          metrics.applySamplingSettings(model.settings.metricsSampling)
+          metrics.retain()
+        },
+        onStop: {
+          metrics.release()
+          detail.hover(nil)
+        }
+      )
       model.quickActionService.refreshAll()
     }
     .onDisappear {
-      metrics.release()
-      detail.hover(nil)
+      samplingController.disconnect()
     }
     .onChange(of: model.settings.metricsSampling) { sampling in
       metrics.applySamplingSettings(sampling)
@@ -185,8 +243,7 @@ struct SystemMetricsCards: View {
           .font(.system(size: 13, weight: .bold, design: .rounded))
           .monospacedDigit()
           .foregroundStyle(temperatureColor(temperature))
-          .contentTransition(.numericText())
-          .animation(PopoverMotion.value, value: temperature)
+          .menuCueNumericTransition(value: temperature)
       }
     } content: {
       HStack(alignment: .firstTextBaseline) {
@@ -205,8 +262,7 @@ struct SystemMetricsCards: View {
         Text(SystemMetricsFormatter.percent(snapshot.cpu.busy))
           .font(.system(size: 20, weight: .semibold, design: .rounded))
           .monospacedDigit()
-          .contentTransition(.numericText())
-          .animation(PopoverMotion.value, value: snapshot.cpu.busy)
+          .menuCueNumericTransition(value: snapshot.cpu.busy, importance: .primary)
       }
 
       CPUUsageChart(
@@ -340,8 +396,7 @@ struct SystemMetricsCards: View {
             Text(L10n.format("%d RPM", Int(fan.currentRPM)))
               .font(.system(size: 12, weight: .semibold, design: .rounded))
               .monospacedDigit()
-              .contentTransition(.numericText())
-              .animation(PopoverMotion.value, value: fan.currentRPM)
+              .menuCueNumericTransition(value: fan.currentRPM)
           }
           if fan.maxRPM > fan.minRPM {
             MetricBar(fraction: fan.loadFraction, tint: .cyan, height: 4)

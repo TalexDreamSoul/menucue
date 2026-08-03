@@ -110,8 +110,7 @@ struct PowerTabView: View {
                 .font(.system(size: 9, weight: .medium))
                 .monospacedDigit()
                 .foregroundStyle(.tertiary)
-                .contentTransition(.numericText())
-                .animation(PopoverMotion.value, value: minutes)
+                .menuCueNumericTransition(value: minutes)
             }
           }
         }

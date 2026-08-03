@@ -6,6 +6,7 @@ import SwiftUI
 /// goes away. Opening Settings on any other pane never constructs this view, and so
 /// never starts a timer — the Overview pane keeps rendering the cached snapshot.
 struct DashboardView: View {
+  @Environment(\.menuCueMotion) private var motion
   @ObservedObject var model: AppModel
   let initialSection: DashboardSection
   /// Sideways flicks recognized by the AppKit container hosting the window.
@@ -31,7 +32,7 @@ struct DashboardView: View {
   private func select(_ next: DashboardSection, direction: Int) {
     guard next != section else { return }
     navigationDirection = direction
-    withAnimation(PopoverMotion.navigation) { section = next }
+    withAnimation(motion.navigationAnimation) { section = next }
   }
 
   private func move(by offset: Int) {
@@ -54,11 +55,7 @@ struct DashboardView: View {
   }
 
   private var tabTransition: AnyTransition {
-    let forward = navigationDirection >= 0
-    return .asymmetric(
-      insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
-      removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity)
-    )
+    motion.navigationTransition(forward: navigationDirection >= 0)
   }
 
   var body: some View {

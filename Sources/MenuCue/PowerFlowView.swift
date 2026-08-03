@@ -8,7 +8,7 @@ import SwiftUI
 struct PowerFlowView: View {
   let state: PowerFlowState
 
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.menuCueMotion) private var motion
   @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
 
   private static let diagramHeight: CGFloat = 96
@@ -54,20 +54,20 @@ struct PowerFlowView: View {
 
   var body: some View {
     Group {
-      if reduceMotion {
-        diagram(shimmerPhase: nil)
-      } else {
+      if let frameInterval = motion.continuousFrameInterval {
         // Paused while the popover is hidden: NSPopover keeps its content view
-        // controller alive after close, so "no 20 fps tick in the background" is a
-        // property of this schedule rather than of AppKit teardown — the same
-        // visibility gate PowerTabView uses for its sampling.
+        // controller alive after close.
         TimelineView(
-          .animation(minimumInterval: 1 / 20, paused: !popoverPresentation.isVisible)
+          .animation(
+            minimumInterval: frameInterval,
+            paused: !popoverPresentation.isVisible)
         ) { context in
           diagram(
             shimmerPhase: context.date.timeIntervalSinceReferenceDate
               .truncatingRemainder(dividingBy: Self.shimmerPeriod) / Self.shimmerPeriod)
         }
+      } else {
+        diagram(shimmerPhase: nil)
       }
     }
     .frame(height: Self.diagramHeight)
@@ -103,7 +103,7 @@ struct PowerFlowView: View {
               y: (ribbon.start.y + ribbon.end.y) / 2)
         }
       }
-      .animation(PopoverMotion.value, value: state)
+      .animation(motion.barAnimation, value: state)
     }
   }
 
@@ -134,8 +134,7 @@ struct PowerFlowView: View {
       .font(.system(size: 12, weight: .semibold, design: .rounded))
       .monospacedDigit()
       .shadow(color: .black.opacity(0.25), radius: 2)
-      .contentTransition(.numericText())
-      .animation(PopoverMotion.value, value: watts)
+      .menuCueNumericTransition(value: watts, importance: .primary)
   }
 
   // MARK: - Layout

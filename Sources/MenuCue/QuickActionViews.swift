@@ -42,6 +42,7 @@ struct PinnedQuickActionGrid: View {
 
 /// Popover tab listing every quick action: pinned ones first, then the rest of the catalog.
 struct ActionsTabView: View {
+  @Environment(\.menuCueMotion) private var motion
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
   let openSettings: () -> Void
@@ -65,14 +66,14 @@ struct ActionsTabView: View {
               Color.accentColor.opacity(0.10),
               in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .transition(motion.revealTransition(edge: .top))
         }
 
         PopoverCard(title: "Pinned", systemImage: "pin.fill", tint: .accentColor) {
           Text("\(model.settings.pinnedQuickActions.count)/7")
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.tertiary)
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: model.settings.pinnedQuickActions.count)
         } content: {
           if pinnedItems.isEmpty {
             CardPlaceholder(message: "Nothing pinned yet. Pin actions in Settings.")
@@ -117,8 +118,8 @@ struct ActionsTabView: View {
       }
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 2)
-      .animation(PopoverMotion.state, value: model.settings.pinnedQuickActions)
-      .animation(PopoverMotion.state, value: service.feedbackMessage)
+      .animation(motion.stateAnimation, value: model.settings.pinnedQuickActions)
+      .animation(motion.stateAnimation, value: service.feedbackMessage)
     }
     .onAppear {
       service.refreshAll()
@@ -138,6 +139,7 @@ struct ActionsTabView: View {
 /// Quick Actions settings pane. This is also where the full catalog is run from —
 /// there is no separate Quick Actions window, so managing and running live together.
 struct QuickActionSettingsView: View {
+  @Environment(\.menuCueMotion) private var motion
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
   @ObservedObject private var powerHelper: PowerHelperManager
@@ -171,7 +173,7 @@ struct QuickActionSettingsView: View {
           Spacer()
           Text(L10n.format("%d / 7", model.settings.pinnedQuickActions.count))
             .font(.subheadline.weight(.semibold))
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: model.settings.pinnedQuickActions.count)
             .foregroundStyle(
               model.settings.pinnedQuickActions.count == 7 ? Color.orange : Color.secondary)
         }
@@ -227,11 +229,11 @@ struct QuickActionSettingsView: View {
               .help("Remove")
             }
             .padding(.vertical, 4)
-            .transition(.opacity.combined(with: .move(edge: .top)))
+            .transition(motion.revealTransition(edge: .top))
           }
         }
       }
-      .animation(PopoverMotion.state, value: model.settings.pinnedQuickActions)
+      .animation(motion.stateAnimation, value: model.settings.pinnedQuickActions)
 
       SettingsGroup(spacing: 12) {
         VStack(alignment: .leading, spacing: 2) {
@@ -256,7 +258,7 @@ struct QuickActionSettingsView: View {
               Color.accentColor.opacity(0.10),
               in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .transition(motion.revealTransition(edge: .top))
         }
 
         LazyVGrid(columns: catalogColumns, alignment: .leading, spacing: 10) {
@@ -270,7 +272,7 @@ struct QuickActionSettingsView: View {
             }
           }
         }
-        .animation(PopoverMotion.state, value: service.feedbackMessage)
+        .animation(motion.stateAnimation, value: service.feedbackMessage)
       }
 
       if !powerHelper.registrationState.needsProminentRemediation {
@@ -319,7 +321,7 @@ struct QuickActionSettingsView: View {
         Text(helperFeedback)
           .font(.caption2)
           .foregroundStyle(.secondary)
-          .transition(.opacity)
+          .transition(motion.revealTransition(edge: .top))
       }
 
       HStack {
@@ -336,7 +338,7 @@ struct QuickActionSettingsView: View {
       RoundedRectangle(cornerRadius: 8, style: .continuous)
         .stroke(isProminent ? Color.orange.opacity(0.45) : Color.clear, lineWidth: 1)
     }
-    .animation(PopoverMotion.state, value: powerHelper.registrationState)
+    .animation(motion.stateAnimation, value: powerHelper.registrationState)
   }
 
   /// Pin/unpin control layered on a catalog tile. Kept outside the tile's own
@@ -470,6 +472,7 @@ private enum QuickActionTileStyle {
 /// A Control Center style tile: the whole rounded rect is the control surface,
 /// and an active toggle fills it with the accent color rather than tinting a puck.
 private struct QuickActionTile: View {
+  @Environment(\.menuCueMotion) private var motion
   let item: QuickActionItem
   let style: QuickActionTileStyle
   let action: () -> Void
@@ -491,9 +494,7 @@ private struct QuickActionTile: View {
       VStack(spacing: style == .compact ? 5 : 6) {
         ZStack {
           if item.state.isRunning {
-            ProgressView()
-              .controlSize(.small)
-              .scaleEffect(0.7)
+            MotionAwareProgressIndicator(scale: 0.7)
           } else {
             Image(systemName: item.systemImage)
               .font(.system(size: style.iconSize, weight: .semibold))
@@ -529,9 +530,9 @@ private struct QuickActionTile: View {
     .opacity(isAvailable ? 1 : 0.55)
     .onHover { hovering in
       guard isAvailable else { return }
-      withAnimation(PopoverMotion.hover) { isHovering = hovering }
+      withAnimation(motion.hoverAnimation) { isHovering = hovering }
     }
-    .animation(PopoverMotion.state, value: item.state)
+    .animation(motion.stateAnimation, value: item.state)
     .help(item.state.availability.reason ?? item.title)
     .accessibilityLabel(item.title)
     .accessibilityValue(accessibilityValue)

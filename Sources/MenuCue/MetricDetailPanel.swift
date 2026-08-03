@@ -51,6 +51,7 @@ extension View {
 /// Adds the click affordance only when the card has a destination, so a card without
 /// one keeps its plain behaviour.
 private struct MetricCardLink: ViewModifier {
+  @Environment(\.menuCueMotion) private var motion
   let open: (() -> Void)?
   @State private var isPressed = false
 
@@ -58,7 +59,7 @@ private struct MetricCardLink: ViewModifier {
     if let open {
       content
         .scaleEffect(isPressed ? 0.98 : 1)
-        .animation(.spring(response: 0.26, dampingFraction: 0.62), value: isPressed)
+        .animation(motion.pressAnimation, value: isPressed)
         .onTapGesture(perform: open)
         // Press feedback without a Button, which would swallow the Return and Space
         // keys the detail panel depends on.
@@ -78,6 +79,7 @@ private struct MetricCardLink: ViewModifier {
 /// coordinate space rather than as a nested popover, which a transient NSPopover
 /// does not host reliably.
 struct MetricDetailPanel: View {
+  @Environment(\.menuCueMotion) private var motion
   let target: MetricDetailTarget
   @ObservedObject var detail: SystemDetailService
   let snapshot: SystemMetricsSnapshot
@@ -100,7 +102,7 @@ struct MetricDetailPanel: View {
         .stroke(Color.primary.opacity(0.10), lineWidth: 1)
     )
     .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
-    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+    .transition(motion.detailTransition(anchor: .top))
   }
 
   @ViewBuilder

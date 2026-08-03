@@ -18,25 +18,33 @@ struct CPUUsageChart: View {
       context.clip(to: baseline)
 
       // Drawn back to front: the combined band first, then user on top of it.
-      let combined = areaPath(in: size) { $0.userBand + $0.systemBand }
-      context.fill(combined, with: .color(systemColor.opacity(0.55)))
-
-      let user = areaPath(in: size) { $0.userBand }
-      context.fill(user, with: .color(userColor.opacity(0.55)))
+      let combinedPoints = Self.points(
+        samples: samples, capacity: capacity, in: size
+      ) { $0.userBand + $0.systemBand }
+      let userPoints = Self.points(
+        samples: samples, capacity: capacity, in: size
+      ) { $0.userBand }
+      context.fill(Self.areaPath(points: combinedPoints, in: size), with: .color(systemColor.opacity(0.55)))
+      context.fill(Self.areaPath(points: userPoints, in: size), with: .color(userColor.opacity(0.55)))
 
       context.stroke(
-        linePath(in: size) { $0.userBand + $0.systemBand },
+        Self.linePath(points: combinedPoints),
         with: .color(systemColor),
         lineWidth: 1.2)
       context.stroke(
-        linePath(in: size) { $0.userBand },
+        Self.linePath(points: userPoints),
         with: .color(userColor),
         lineWidth: 1.2)
     }
     .accessibilityHidden(true)
   }
 
-  private func points(in size: CGSize, value: (CPULoadSample) -> Double) -> [CGPoint] {
+  static func points(
+    samples: [CPULoadSample],
+    capacity: Int,
+    in size: CGSize,
+    value: (CPULoadSample) -> Double
+  ) -> [CGPoint] {
     func y(_ sample: CPULoadSample) -> CGFloat {
       size.height * (1 - min(1, max(0, value(sample))))
     }
@@ -48,17 +56,15 @@ struct CPUUsageChart: View {
     }
 
     // Spread whatever history exists across the full width. Once the buffer is
-    // saturated this is a fixed window, so the series scrolls instead of rescaling —
-    // and a freshly opened popover never shows a mostly empty chart.
+    // saturated this is a fixed window, so the series scrolls instead of rescaling.
     let slot = size.width / CGFloat(min(samples.count, capacity) - 1)
     return samples.enumerated().map { index, sample in
       CGPoint(x: CGFloat(index) * slot, y: y(sample))
     }
   }
 
-  private func linePath(in size: CGSize, value: (CPULoadSample) -> Double) -> Path {
+  private static func linePath(points: [CGPoint]) -> Path {
     var path = Path()
-    let points = points(in: size, value: value)
     guard let first = points.first else { return path }
     path.move(to: first)
     for point in points.dropFirst() {
@@ -67,9 +73,8 @@ struct CPUUsageChart: View {
     return path
   }
 
-  private func areaPath(in size: CGSize, value: (CPULoadSample) -> Double) -> Path {
-    var path = linePath(in: size, value: value)
-    let points = points(in: size, value: value)
+  private static func areaPath(points: [CGPoint], in size: CGSize) -> Path {
+    var path = linePath(points: points)
     guard let first = points.first, let last = points.last else { return path }
     path.addLine(to: CGPoint(x: last.x, y: size.height))
     path.addLine(to: CGPoint(x: first.x, y: size.height))
@@ -111,9 +116,13 @@ struct SeriesChart: View {
 
       let scale = resolvedUpperBound
       for band in series {
-        context.fill(areaPath(band.values, in: size, scale: scale), with: .color(band.color.opacity(0.28)))
+        let points = Self.points(
+          band.values, capacity: capacity, in: size, scale: scale)
+        context.fill(
+          Self.areaPath(points: points, in: size),
+          with: .color(band.color.opacity(0.28)))
         context.stroke(
-          linePath(band.values, in: size, scale: scale), with: .color(band.color), lineWidth: 1.4)
+          Self.linePath(points: points), with: .color(band.color), lineWidth: 1.4)
       }
     }
     .accessibilityHidden(true)
@@ -127,7 +136,9 @@ struct SeriesChart: View {
     return peak > 0 ? peak : 1
   }
 
-  private func points(_ values: [Double], in size: CGSize, scale: Double) -> [CGPoint] {
+  static func points(
+    _ values: [Double], capacity: Int, in size: CGSize, scale: Double
+  ) -> [CGPoint] {
     func y(_ value: Double) -> CGFloat {
       size.height * (1 - CGFloat(min(1, max(0, value / scale))))
     }
@@ -138,18 +149,16 @@ struct SeriesChart: View {
     return values.enumerated().map { CGPoint(x: CGFloat($0.offset) * slot, y: y($0.element)) }
   }
 
-  private func linePath(_ values: [Double], in size: CGSize, scale: Double) -> Path {
+  private static func linePath(points: [CGPoint]) -> Path {
     var path = Path()
-    let points = points(values, in: size, scale: scale)
     guard let first = points.first else { return path }
     path.move(to: first)
     for point in points.dropFirst() { path.addLine(to: point) }
     return path
   }
 
-  private func areaPath(_ values: [Double], in size: CGSize, scale: Double) -> Path {
-    var path = linePath(values, in: size, scale: scale)
-    let points = points(values, in: size, scale: scale)
+  private static func areaPath(points: [CGPoint], in size: CGSize) -> Path {
+    var path = linePath(points: points)
     guard let first = points.first, let last = points.last else { return path }
     path.addLine(to: CGPoint(x: last.x, y: size.height))
     path.addLine(to: CGPoint(x: first.x, y: size.height))

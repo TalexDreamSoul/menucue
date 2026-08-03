@@ -255,8 +255,7 @@ struct SystemTimeZoneSettingsView: View {
           .disabled(timeZoneAction == .disabled)
 
         if powerHelper.isWorking {
-          ProgressView()
-            .controlSize(.small)
+          MotionAwareProgressIndicator()
         }
       }
 

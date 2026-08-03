@@ -9,22 +9,10 @@ enum PopoverMetrics {
   static let cardCornerRadius: CGFloat = 13
 }
 
-/// Shared motion curves. Every animated surface picks one of these so the popover
-/// reads as a single system instead of a pile of independently tuned timings.
-enum PopoverMotion {
-  /// Hover and press feedback. Short enough to still feel attached to the cursor.
-  static let hover = Animation.easeOut(duration: 0.14)
-  /// Toggles and selection changes, where a hint of bounce reads as responsive.
-  static let state = Animation.snappy(duration: 0.22, extraBounce: 0.05)
-  /// Tab and month changes — a little travel reads as navigation.
-  static let navigation = Animation.snappy(duration: 0.26)
-  /// Timer-sampled values. Slow enough that a busy CPU chart isn't distracting.
-  static let value = Animation.easeOut(duration: 0.3)
-}
-
 /// Plain button that dips slightly while held. Used for every tappable tile so
 /// press feedback is consistent and doesn't rely on a background color change.
 struct PressableButtonStyle: ButtonStyle {
+  @Environment(\.menuCueMotion) private var motion
   var pressedScale: CGFloat = 0.95
   var pressedOpacity: Double = 0.9
 
@@ -32,12 +20,13 @@ struct PressableButtonStyle: ButtonStyle {
     configuration.label
       .scaleEffect(configuration.isPressed ? pressedScale : 1)
       .opacity(configuration.isPressed ? pressedOpacity : 1)
-      .animation(.spring(response: 0.26, dampingFraction: 0.62), value: configuration.isPressed)
+      .animation(motion.pressAnimation, value: configuration.isPressed)
   }
 }
 
 /// A titled panel. `accessory` sits opposite the title and is usually a value or a control.
 struct PopoverCard<Content: View, Accessory: View>: View {
+  @Environment(\.menuCueMotion) private var motion
   let title: String
   let systemImage: String
   let tint: Color
@@ -95,13 +84,14 @@ struct PopoverCard<Content: View, Accessory: View>: View {
         .stroke(Color.primary.opacity(isHovering ? 0 : 0.06), lineWidth: 1)
     )
     .onHover { hovering in
-      withAnimation(PopoverMotion.hover) { isHovering = hovering }
+      withAnimation(motion.hoverAnimation) { isHovering = hovering }
     }
   }
 }
 
 /// A horizontal capacity bar. `fraction` is clamped, so callers can pass raw ratios.
 struct MetricBar: View {
+  @Environment(\.menuCueMotion) private var motion
   let fraction: Double
   var tint: Color = .accentColor
   var height: CGFloat = 6
@@ -117,7 +107,7 @@ struct MetricBar: View {
       }
     }
     .frame(height: height)
-    .animation(PopoverMotion.value, value: fraction)
+    .animation(motion.barAnimation, value: fraction)
   }
 }
 
@@ -139,9 +129,7 @@ struct MetricReadout: View {
         .foregroundStyle(valueColor)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
-        // Digits roll instead of hard-cutting as samples land.
-        .contentTransition(.numericText())
-        .animation(PopoverMotion.value, value: value)
+        .menuCueNumericTransition(value: value)
     }
     .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
   }
@@ -164,8 +152,7 @@ struct LegendItem: View {
       Text(value)
         .font(.system(size: 10, weight: .semibold, design: .rounded))
         .monospacedDigit()
-        .contentTransition(.numericText())
-        .animation(PopoverMotion.value, value: value)
+        .menuCueNumericTransition(value: value)
     }
   }
 }
@@ -184,6 +171,7 @@ struct CardPlaceholder: View {
 
 /// Segmented switcher across the top of the popover.
 struct PopoverTabBar: View {
+  @Environment(\.menuCueMotion) private var motion
   let tabs: [PopoverTab]
   @Binding var selection: PopoverTab
   @Namespace private var highlight
@@ -194,7 +182,7 @@ struct PopoverTabBar: View {
       ForEach(tabs) { tab in
         Button {
           guard selection != tab else { return }
-          withAnimation(PopoverMotion.navigation) { selection = tab }
+          withAnimation(motion.navigationAnimation) { selection = tab }
         } label: {
           HStack(spacing: 5) {
             Image(systemName: tab.systemImage)
@@ -211,7 +199,7 @@ struct PopoverTabBar: View {
               RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color(nsColor: .controlBackgroundColor))
                 .shadow(color: .black.opacity(0.10), radius: 2, y: 1)
-                .matchedGeometryEffect(id: "selected-tab", in: highlight)
+                .menuCueMatchedGeometryEffect(id: "selected-tab", in: highlight)
             } else if hoveredTab == tab {
               RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color.primary.opacity(0.05))
@@ -222,7 +210,7 @@ struct PopoverTabBar: View {
         .buttonStyle(.plain)
         .foregroundStyle(tabForeground(for: tab))
         .onHover { isHovering in
-          withAnimation(PopoverMotion.hover) {
+          withAnimation(motion.hoverAnimation) {
             hoveredTab = isHovering ? tab : (hoveredTab == tab ? nil : hoveredTab)
           }
         }
@@ -269,8 +257,7 @@ struct PopoverFooter: View {
           .font(.system(size: 11, weight: .semibold, design: .rounded))
           .monospacedDigit()
           .foregroundStyle(.secondary)
-          .contentTransition(.numericText())
-          .animation(PopoverMotion.value, value: uptimeText(at: context.date))
+          .menuCueNumericTransition(value: uptimeText(at: context.date))
       }
 
       Spacer(minLength: 8)

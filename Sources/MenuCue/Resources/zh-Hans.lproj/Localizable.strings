@@ -90,6 +90,13 @@
 "App appearance and optional macOS Light/Dark automation." = "应用外观及可选的 macOS 浅色/深色自动切换。";
 "App memory" = "应用内存";
 "Appearance" = "外观";
+"Animation effects" = "动画效果";
+"Complete motion and live visual effects." = "完整动态效果与实时视觉反馈。";
+"Elegant" = "优雅";
+"Essential motion with lower rendering cost." = "保留关键动效，同时降低渲染开销。";
+"Full motion" = "极致";
+"Minimal" = "简约";
+"No continuous or spatial motion." = "不使用连续动画或空间位移动效。";
 "Apply Off" = "全部关闭";
 "Apply On" = "全部开启";
 "Apply Time Zone" = "应用时区";

@@ -78,7 +78,8 @@ final class DashboardMetricsService: ObservableObject {
   /// Storage or Network shows a populated chart instead of an empty box. Appending to
   /// a ring buffer is free — the gating exists for probes, not for arithmetic.
   func attach(to metrics: SystemMetricsService) {
-    cancellable = metrics.$snapshot
+    cancellable = metrics.$frame
+      .map(\.snapshot)
       .receive(on: DispatchQueue.main)
       .sink { [weak self] snapshot in
         self?.record(snapshot)

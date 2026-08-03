@@ -53,6 +53,7 @@ struct StatusPopoverView: View {
   let quitApp: () -> Void
   /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
   @ObservedObject var swipeRelay: SwipeRelay
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @StateObject private var metrics = SystemMetricsService()
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
@@ -82,6 +83,10 @@ struct StatusPopoverView: View {
 
   private var tabs: [PopoverTab] {
     model.settings.popoverTabOrder
+  }
+
+  private var motion: MotionProfile {
+    MotionProfile(quality: model.settings.animationQuality, reducesMotion: reduceMotion)
   }
 
   var body: some View {
@@ -137,6 +142,7 @@ struct StatusPopoverView: View {
     .sheet(isPresented: quickEventSheetBinding) {
       quickEventSheet
     }
+    .environment(\.menuCueMotion, motion)
   }
 
   /// Routes every tab-bar tap through `select` so a click animates the same way a
@@ -161,7 +167,7 @@ struct StatusPopoverView: View {
   private func select(_ tab: PopoverTab, direction: Int) {
     guard tab != selectedTab else { return }
     navigationDirection = direction
-    withAnimation(PopoverMotion.navigation) {
+    withAnimation(motion.navigationAnimation) {
       selectedTab = tab
     }
   }
@@ -169,11 +175,7 @@ struct StatusPopoverView: View {
   /// Tabs slide in from the side they came from, so the motion matches the gesture
   /// that caused it — the outgoing tab leaves the way the incoming one arrives.
   private var tabTransition: AnyTransition {
-    let forward = navigationDirection >= 0
-    return .asymmetric(
-      insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
-      removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity)
-    )
+    motion.navigationTransition(forward: navigationDirection >= 0)
   }
 
   @ViewBuilder
@@ -619,6 +621,7 @@ struct SettingsWindowView: View {
   private let initialDashboardSection: DashboardSection
   /// Sideways flicks recognized by the AppKit container hosting this window.
   @ObservedObject var swipeRelay: SwipeRelay
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   init(
     model: AppModel,
@@ -660,11 +663,11 @@ struct SettingsWindowView: View {
         requestedDateTimeSection: requestedDateTimeSection,
         selectPane: { pane in
           requestedDateTimeSection = nil
-          withAnimation(PopoverMotion.navigation) { selectedPane = pane }
+          withAnimation(motion.navigationAnimation) { selectedPane = pane }
         },
         selectDateTimeSection: { section in
           requestedDateTimeSection = section
-          withAnimation(PopoverMotion.navigation) { selectedPane = .dateAndTime }
+          withAnimation(motion.navigationAnimation) { selectedPane = .dateAndTime }
         }
       )
     }
@@ -678,6 +681,11 @@ struct SettingsWindowView: View {
       minWidth: 720, idealWidth: 900, maxWidth: .infinity,
       minHeight: 540, idealHeight: 680, maxHeight: .infinity
     )
+    .environment(\.menuCueMotion, motion)
+  }
+
+  private var motion: MotionProfile {
+    MotionProfile(quality: model.settings.animationQuality, reducesMotion: reduceMotion)
   }
 
   private var selectedPaneBinding: Binding<SettingsPane> {
@@ -1096,6 +1104,7 @@ private struct SettingsContentView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
+  @Environment(\.menuCueMotion) private var motion
   let pane: SettingsPane
   var initialDashboardSection: DashboardSection = .cpu
   @ObservedObject var swipeRelay: SwipeRelay
@@ -1126,7 +1135,7 @@ private struct SettingsContentView: View {
         .task(id: activeDateTimeSection) {
           guard let section = activeDateTimeSection else { return }
           await Task.yield()
-          withAnimation(PopoverMotion.navigation) {
+          withAnimation(motion.navigationAnimation) {
             proxy.scrollTo(section, anchor: .top)
           }
         }
@@ -1300,32 +1309,36 @@ private struct SettingsContentView: View {
   }
 
   private var appearanceSection: some View {
-    SettingsGroup(spacing: 14) {
-      Picker("Appearance", selection: binding(\.appearanceMode)) {
-        ForEach(AppearanceMode.allCases) { mode in
-          Text(mode.title).tag(mode)
+    VStack(alignment: .leading, spacing: 24) {
+      SettingsGroup(spacing: 14) {
+        Picker("Appearance", selection: binding(\.appearanceMode)) {
+          ForEach(AppearanceMode.allCases) { mode in
+            Text(mode.title).tag(mode)
+          }
         }
-      }
-      .frame(maxWidth: 320)
+        .frame(maxWidth: 320)
 
-      if model.settings.appearanceMode == .automaticByTimeZone {
-        TimeZonePicker(
-          title: L10n.string("Auto reference"),
-          selection: binding(\.appearanceTimeZoneID)
+        if model.settings.appearanceMode == .automaticByTimeZone {
+          TimeZonePicker(
+            title: L10n.string("Auto reference"),
+            selection: binding(\.appearanceTimeZoneID)
+          )
+          .frame(maxWidth: 460)
+          Text("Auto uses light from 07:00-19:00 in the selected time zone.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Toggle("Apply to macOS system appearance", isOn: binding(\.appliesSystemAppearance))
+
+        Text(
+          "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
         )
-        .frame(maxWidth: 460)
-        Text("Auto uses light from 07:00-19:00 in the selected time zone.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        .font(.caption)
+        .foregroundStyle(.secondary)
       }
 
-      Toggle("Apply to macOS system appearance", isOn: binding(\.appliesSystemAppearance))
-
-      Text(
-        "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
+      AnimationQualitySettingsView(model: model)
     }
   }
 
@@ -1728,6 +1741,7 @@ private struct ClockCard: View {
 }
 
 private struct MonthCalendarView: View {
+  @Environment(\.menuCueMotion) private var motion
   @Binding var monthDate: Date
   @Binding var selectedDate: Date
   let events: [CalendarEventInfo]
@@ -1763,7 +1777,7 @@ private struct MonthCalendarView: View {
         Menu {
           ForEach(yearRange, id: \.self) { year in
             Button {
-              withAnimation(PopoverMotion.navigation) { setYear(year) }
+              withAnimation(motion.navigationAnimation) { setYear(year) }
             } label: {
               Text(verbatim: String(year))
             }
@@ -1772,7 +1786,7 @@ private struct MonthCalendarView: View {
           Text(yearTitle)
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(.secondary)
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: yearTitle)
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
@@ -1780,19 +1794,19 @@ private struct MonthCalendarView: View {
         Spacer(minLength: 4)
 
         CalendarNavButton(systemImage: "chevron.left", help: "Previous month") {
-          withAnimation(PopoverMotion.navigation) { changeMonth(by: -1) }
+          withAnimation(motion.navigationAnimation) { changeMonth(by: -1) }
         }
         CalendarNavButton(title: "Today", help: "Jump to today") {
-          withAnimation(PopoverMotion.navigation) {
+          withAnimation(motion.navigationAnimation) {
             monthDate = Date()
             selectedDate = Date()
           }
         }
         CalendarNavButton(systemImage: "chevron.right", help: "Next month") {
-          withAnimation(PopoverMotion.navigation) { changeMonth(by: 1) }
+          withAnimation(motion.navigationAnimation) { changeMonth(by: 1) }
         }
       }
-      .animation(PopoverMotion.navigation, value: monthName)
+      .animation(motion.navigationAnimation, value: monthName)
 
       LazyVGrid(columns: columns, alignment: .center, spacing: 0) {
         Text("")
@@ -1813,7 +1827,7 @@ private struct MonthCalendarView: View {
 
           ForEach(week.days) { day in
             Button {
-              withAnimation(PopoverMotion.state) {
+              withAnimation(motion.stateAnimation) {
                 selectedDate = day.date
                 monthDate = day.date
               }
@@ -1860,7 +1874,7 @@ private struct MonthCalendarView: View {
             .accessibilityLabel(dayAccessibilityLabel(for: day))
             .help(dayHelpText(for: day))
             .onHover { isHovering in
-              withAnimation(PopoverMotion.hover) {
+              withAnimation(motion.hoverAnimation) {
                 // Only the cell that owns the current hover may clear it, otherwise
                 // the exit event of the previous cell wipes the new one.
                 hoveredDate = isHovering ? day.date : (isHovered(day) ? nil : hoveredDate)
@@ -1870,7 +1884,7 @@ private struct MonthCalendarView: View {
         }
       }
       .overlay(monthOutline)
-      .animation(PopoverMotion.navigation, value: monthStart)
+      .animation(motion.navigationAnimation, value: monthStart)
 
     }
     .padding(10)
@@ -2178,6 +2192,7 @@ private struct MonthCalendarView: View {
 /// Month navigation control. Uses the popover's own hover language rather than the
 /// stock bordered button, which reads far too heavy inside a card.
 private struct CalendarNavButton: View {
+  @Environment(\.menuCueMotion) private var motion
   var systemImage: String?
   var title: String?
   let help: String
@@ -2207,9 +2222,86 @@ private struct CalendarNavButton: View {
     }
     .buttonStyle(PressableButtonStyle(pressedScale: 0.92))
     .onHover { hovering in
-      withAnimation(PopoverMotion.hover) { isHovering = hovering }
+      withAnimation(motion.hoverAnimation) { isHovering = hovering }
     }
     .help(L10n.string(help))
+  }
+}
+
+struct AnimationQualitySettingsView: View {
+  @ObservedObject var model: AppModel
+
+  var body: some View {
+    SettingsGroup(spacing: 10) {
+      HStack(spacing: 12) {
+        Text("Animation effects")
+        Spacer(minLength: 12)
+        AnimationQualitySegmentedControl(
+          selection: Binding(
+            get: { model.settings.animationQuality },
+            set: { quality in
+              model.updateSettings { $0.animationQuality = quality }
+            }
+          ),
+          accessibilityHelp: model.settings.animationQuality.detail
+        )
+        .frame(width: 360)
+      }
+
+      Text(model.settings.animationQuality.detail)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+  }
+}
+
+struct AnimationQualitySegmentedControl: NSViewRepresentable {
+  @Binding var selection: AnimationQuality
+  let accessibilityHelp: String
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(parent: self)
+  }
+
+  func makeNSView(context: Context) -> NSSegmentedControl {
+    let control = NSSegmentedControl(
+      labels: AnimationQuality.allCases.map(\.title),
+      trackingMode: .selectOne,
+      target: context.coordinator,
+      action: #selector(Coordinator.selectionChanged(_:))
+    )
+    control.segmentStyle = .automatic
+    configure(control, coordinator: context.coordinator)
+    return control
+  }
+
+  func updateNSView(_ control: NSSegmentedControl, context: Context) {
+    context.coordinator.parent = self
+    configure(control, coordinator: context.coordinator)
+  }
+
+  private func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
+    let qualities = AnimationQuality.allCases
+    for index in qualities.indices {
+      control.setLabel(qualities[index].title, forSegment: index)
+    }
+    control.selectedSegment = qualities.firstIndex(of: selection) ?? 1
+    control.setAccessibilityLabel(L10n.string("Animation effects"))
+    control.setAccessibilityHelp(accessibilityHelp)
+  }
+
+  final class Coordinator: NSObject {
+    var parent: AnimationQualitySegmentedControl
+
+    init(parent: AnimationQualitySegmentedControl) {
+      self.parent = parent
+    }
+
+    @objc func selectionChanged(_ sender: NSSegmentedControl) {
+      let qualities = AnimationQuality.allCases
+      guard qualities.indices.contains(sender.selectedSegment) else { return }
+      parent.selection = qualities[sender.selectedSegment]
+    }
   }
 }
 

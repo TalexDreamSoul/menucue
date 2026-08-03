@@ -1,5 +1,11 @@
 import Combine
 import Foundation
+import OSLog
+
+struct SystemMetricsDisplayFrame: Equatable {
+  var snapshot = SystemMetricsSnapshot()
+  var cpuHistory: [CPULoadSample] = []
+}
 
 private final class MetricsSamplingSession {
   private let lock = NSLock()
@@ -20,10 +26,12 @@ private final class MetricsSamplingSession {
 
 /// Polls system metrics only while the Status tab is visible.
 final class SystemMetricsService: ObservableObject {
-  @Published private(set) var snapshot = SystemMetricsSnapshot()
-  @Published private(set) var cpuHistory: [CPULoadSample] = []
+  @Published private(set) var frame = SystemMetricsDisplayFrame()
   @Published private(set) var powerSource: PowerSourceState = .unknown
   @Published private(set) var currentInterval: TimeInterval
+
+  var snapshot: SystemMetricsSnapshot { frame.snapshot }
+  var cpuHistory: [CPULoadSample] { frame.cpuHistory }
 
   let hardware: SystemHardwareInfo
   let bootDate: Date?
@@ -38,9 +46,15 @@ final class SystemMetricsService: ObservableObject {
 
   private static let primingDelay: TimeInterval = 0.3
   private static let powerTickInterval = 4
+  private static let signposter = OSSignposter(
+    subsystem: "com.tagzxia.app.menucue",
+    category: "SystemMetrics"
+  )
 
   private var samplingSettings: MetricsSamplingSettings
-  private let sensorTickInterval: Int
+  private let sensorRefreshInterval: TimeInterval
+  private let diskCapacityRefreshInterval: TimeInterval
+  private let monotonicNow: () -> TimeInterval
   private let queue = DispatchQueue(
     label: "com.tagzxia.app.menucue.system-metrics",
     qos: .utility
@@ -61,21 +75,25 @@ final class SystemMetricsService: ObservableObject {
   private var sessionToken = MetricsSamplingSession()
   private var isSampleInFlight = false
   private var needsFollowUpSample = false
-  private var followUpNeedsSensors = false
   private var lastSuccessfulSampleDate: Date?
 
-  // Accessed only from queue. Keeping the baseline here serializes samples and
-  // prevents multiple jobs from calculating against the same counters.
+  // Accessed only from queue. Keeping baselines and slow-changing caches here
+  // serializes samples without adding locks to the hot path.
   private var workerGeneration: UInt64 = 0
   private var workerPreviousCounters: CumulativeCounters?
   private var workerLastFans: [FanReading] = []
   private var workerLastTemperature: Double?
+  private var workerLastSensorRefresh: TimeInterval?
+  private var workerDiskCapacity: (name: String, used: UInt64, total: UInt64)?
+  private var workerLastDiskCapacityRefresh: TimeInterval?
 
   init(
     sampleInterval: TimeInterval? = nil,
     samplingSettings: MetricsSamplingSettings = .default,
     historyCapacity: Int = SystemMetricsService.historyCapacity,
-    sensorTickInterval: Int = 2,
+    sensorRefreshInterval: TimeInterval = 10,
+    diskCapacityRefreshInterval: TimeInterval = 60,
+    monotonicNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
     defaults: UserDefaults = .standard,
     now: Date = Date(),
     sensorReader: SystemSensorReading = SystemSensorReader(),
@@ -96,7 +114,9 @@ final class SystemMetricsService: ObservableObject {
 
     self.samplingSettings = resolvedSettings
     self.historyCapacity = max(1, historyCapacity)
-    self.sensorTickInterval = max(1, sensorTickInterval)
+    self.sensorRefreshInterval = max(0, sensorRefreshInterval)
+    self.diskCapacityRefreshInterval = max(0, diskCapacityRefreshInterval)
+    self.monotonicNow = monotonicNow
     self.defaults = defaults
     self.sensorReader = sensorReader
     self.countersProvider = countersProvider
@@ -109,8 +129,10 @@ final class SystemMetricsService: ObservableObject {
     self.currentInterval = resolvedSettings.fastestIntervalSeconds
 
     if let cache = Self.loadCache(from: defaults, now: now) {
-      self.snapshot = cache.snapshot
-      self.cpuHistory = Array(cache.cpuHistory.suffix(self.historyCapacity))
+      self.frame = SystemMetricsDisplayFrame(
+        snapshot: cache.snapshot,
+        cpuHistory: Array(cache.cpuHistory.suffix(self.historyCapacity))
+      )
       self.lastSuccessfulSampleDate = cache.savedAt
     }
   }
@@ -160,7 +182,7 @@ final class SystemMetricsService: ObservableObject {
     sessionToken = MetricsSamplingSession()
     generation &+= 1
     tickCount = 0
-    sample(includeSensors: true)
+    sample()
     timer = makeTimer(
       interval: currentInterval,
       firstFire: Date().addingTimeInterval(Self.primingDelay)
@@ -177,7 +199,6 @@ final class SystemMetricsService: ObservableObject {
     sessionToken.cancel()
     generation &+= 1
     needsFollowUpSample = false
-    followUpNeedsSensors = false
     persistCache()
   }
 
@@ -197,7 +218,10 @@ final class SystemMetricsService: ObservableObject {
   }
 
   private func refreshPowerSource() {
-    powerSource = powerSourceProvider()
+    let next = powerSourceProvider()
+    if next != powerSource {
+      powerSource = next
+    }
   }
 
   private func rescheduleIfIntervalChanged(force: Bool = false) {
@@ -225,14 +249,13 @@ final class SystemMetricsService: ObservableObject {
       refreshPowerSource()
       rescheduleIfIntervalChanged()
     }
-    sample(includeSensors: tickCount % sensorTickInterval == 0)
+    sample()
   }
 
-  private func sample(includeSensors: Bool) {
+  private func sample() {
     guard activationCount > 0 else { return }
     if isSampleInFlight {
       needsFollowUpSample = true
-      followUpNeedsSensors = followUpNeedsSensors || includeSensors
       return
     }
 
@@ -251,23 +274,27 @@ final class SystemMetricsService: ObservableObject {
       if self.workerGeneration != session {
         self.workerGeneration = session
         self.workerPreviousCounters = nil
+        self.workerLastSensorRefresh = nil
       }
-      let output = self.performSample(includeSensors: includeSensors)
+      let interval = Self.signposter.beginInterval("Utility sample")
+      let output = self.performSample()
+      Self.signposter.endInterval("Utility sample", interval)
       DispatchQueue.main.async { [weak self] in
         self?.finishSample(output, generation: session, token: token)
       }
     }
   }
 
-  private func performSample(includeSensors: Bool) -> SampleOutput {
+  private func performSample() -> SampleOutput {
     let previous = workerPreviousCounters
     let counters = countersProvider()
     let elapsed = previous.map { counters.timestamp - $0.timestamp } ?? 0
+    let monotonicTime = monotonicNow()
 
     var result = SystemMetricsSnapshot()
     result.memory = memoryProvider()
 
-    let capacity = diskCapacityProvider()
+    let capacity = diskCapacity(at: monotonicTime)
     result.disk.volumeName = capacity.name
     result.disk.used = capacity.used
     result.disk.total = capacity.total
@@ -294,7 +321,7 @@ final class SystemMetricsService: ObservableObject {
       result.isPrimed = true
     }
 
-    if includeSensors {
+    if shouldRefreshSensors(at: monotonicTime) {
       let fans = sensorReader.readFans()
       if !fans.isEmpty || workerLastFans.isEmpty {
         workerLastFans = fans
@@ -302,6 +329,7 @@ final class SystemMetricsService: ObservableObject {
       if let temperature = sensorReader.readCPUTemperature() {
         workerLastTemperature = temperature
       }
+      workerLastSensorRefresh = monotonicTime
     }
     result.fans = workerLastFans
     result.cpuTemperature = workerLastTemperature
@@ -309,11 +337,38 @@ final class SystemMetricsService: ObservableObject {
     return SampleOutput(snapshot: result, cpuSample: cpuSample)
   }
 
+  private func diskCapacity(
+    at monotonicTime: TimeInterval
+  ) -> (name: String, used: UInt64, total: UInt64) {
+    if let workerDiskCapacity,
+      let lastRefresh = workerLastDiskCapacityRefresh,
+      monotonicTime - lastRefresh < diskCapacityRefreshInterval
+    {
+      return workerDiskCapacity
+    }
+    let capacity = diskCapacityProvider()
+    guard capacity.total > 0 else {
+      // A transient volume-resource failure must not replace a valid reading or
+      // postpone the next retry for the full cache interval.
+      return workerDiskCapacity ?? capacity
+    }
+    workerDiskCapacity = capacity
+    workerLastDiskCapacityRefresh = monotonicTime
+    return capacity
+  }
+
+  private func shouldRefreshSensors(at monotonicTime: TimeInterval) -> Bool {
+    guard let lastRefresh = workerLastSensorRefresh else { return true }
+    return monotonicTime - lastRefresh >= sensorRefreshInterval
+  }
+
   private func finishSample(
     _ output: SampleOutput?,
     generation session: UInt64,
     token: MetricsSamplingSession
   ) {
+    let interval = Self.signposter.beginInterval("Main-thread commit")
+    defer { Self.signposter.endInterval("Main-thread commit", interval) }
     isSampleInFlight = false
 
     if let output,
@@ -321,36 +376,30 @@ final class SystemMetricsService: ObservableObject {
       generation == session,
       !token.isCancelled
     {
+      var nextSnapshot = output.snapshot
+      var nextHistory = frame.cpuHistory
       if output.snapshot.isPrimed {
-        snapshot = output.snapshot
         if let cpuSample = output.cpuSample {
-          appendHistory(cpuSample)
+          nextHistory.append(cpuSample)
+          if nextHistory.count > historyCapacity {
+            nextHistory.removeFirst(nextHistory.count - historyCapacity)
+          }
         }
       } else {
-        var carried = output.snapshot
-        carried.cpu = snapshot.cpu
-        carried.disk.readBytesPerSecond = snapshot.disk.readBytesPerSecond
-        carried.disk.writeBytesPerSecond = snapshot.disk.writeBytesPerSecond
-        carried.network.downloadBytesPerSecond = snapshot.network.downloadBytesPerSecond
-        carried.network.uploadBytesPerSecond = snapshot.network.uploadBytesPerSecond
-        snapshot = carried
+        nextSnapshot.cpu = frame.snapshot.cpu
+        nextSnapshot.disk.readBytesPerSecond = frame.snapshot.disk.readBytesPerSecond
+        nextSnapshot.disk.writeBytesPerSecond = frame.snapshot.disk.writeBytesPerSecond
+        nextSnapshot.network.downloadBytesPerSecond = frame.snapshot.network.downloadBytesPerSecond
+        nextSnapshot.network.uploadBytesPerSecond = frame.snapshot.network.uploadBytesPerSecond
       }
+      frame = SystemMetricsDisplayFrame(snapshot: nextSnapshot, cpuHistory: nextHistory)
       lastSuccessfulSampleDate = Date()
     }
 
     let shouldFollowUp = needsFollowUpSample && activationCount > 0
-    let includeSensors = followUpNeedsSensors
     needsFollowUpSample = false
-    followUpNeedsSensors = false
     if shouldFollowUp {
-      sample(includeSensors: includeSensors)
-    }
-  }
-
-  private func appendHistory(_ sample: CPULoadSample) {
-    cpuHistory.append(sample)
-    if cpuHistory.count > historyCapacity {
-      cpuHistory.removeFirst(cpuHistory.count - historyCapacity)
+      sample()
     }
   }
 

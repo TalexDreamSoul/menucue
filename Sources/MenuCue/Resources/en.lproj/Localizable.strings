@@ -90,6 +90,13 @@
 "App appearance and optional macOS Light/Dark automation." = "App appearance and optional macOS Light/Dark automation.";
 "App memory" = "App memory";
 "Appearance" = "Appearance";
+"Animation effects" = "Animation effects";
+"Complete motion and live visual effects." = "Complete motion and live visual effects.";
+"Elegant" = "Elegant";
+"Essential motion with lower rendering cost." = "Essential motion with lower rendering cost.";
+"Full motion" = "Full";
+"Minimal" = "Minimal";
+"No continuous or spatial motion." = "No continuous or spatial motion.";
 "Apply Off" = "Apply Off";
 "Apply On" = "Apply On";
 "Apply Time Zone" = "Apply Time Zone";

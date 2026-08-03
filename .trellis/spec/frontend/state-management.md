@@ -1,4 +1,80 @@
-# State Management
+## Scenario: Retained popover sampling and machine-local motion policy
+
+### 1. Scope / Trigger
+
+Use this pattern when a retained `NSPopover` owns live sampling or when a visual-quality preference changes SwiftUI/AppKit animation behavior without changing data freshness.
+
+### 2. Signatures
+
+- Authoritative presentation state: `@MainActor PopoverPresentationState.isPresented`
+- Idempotent sampling gate: `StatusSamplingController.update(isVisible:isStatusSelected:)`
+- Coherent metrics publication: `SystemMetricsService.frame: SystemMetricsDisplayFrame`
+- Local setting: `AppSettings.animationQuality: AnimationQuality`
+- Persistence key: `animationQuality.v1`
+- Effective policy: `MotionProfile.resolve(quality:reduceMotion:)`
+
+### 3. Contracts
+
+- `NSPopover` retains its content after closing, so SwiftUI `onDisappear` is cleanup fallback only. Start and stop popover-scoped work from `PopoverPresentationState` plus the selected-tab state.
+- Retain/release transitions must be idempotent. Closing the popover or leaving Status releases metrics exactly once and clears hover-detail state; reopening reacquires exactly once.
+- A released sampling generation may finish utility work, but it must not publish stale data or schedule a follow-up sample.
+- Publish each successful metrics sample as one coherent frame containing the snapshot and matching CPU history. Derived consumers subscribe to the frame rather than independent snapshot/history publications.
+- Animation quality is machine-local. Persist it through `SettingsStore`, default unknown or corrupt values to `.elegant`, and keep it out of `PortableSettingField`.
+- Resolve animation categories through one `MotionProfile` environment value. macOS Reduce Motion overrides the stored quality, including AppKit `CATransition` and continuous `TimelineView` behavior.
+- Animation quality controls presentation only. It must never change metrics intervals, probe cadence, or value freshness.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Popover closes while Status remains in the retained hierarchy | Release once; clear hover target; start no later sample |
+| Status is selected while the popover is hidden | Keep sampling inactive |
+| Delayed worker result arrives after release | Reject publication and follow-up work |
+| History has reached capacity | Publish one complete frame per successful sample |
+| Stored animation raw value is missing or unknown | Resolve to Elegant; preserve neighboring settings |
+| Reduce Motion turns on while Full is selected | Disable spatial, numeric, symbol, spring/scale, and continuous motion immediately |
+| Minimal profile shows indeterminate work | Use a static status symbol; do not start an indeterminate animation |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `StatusSamplingController` combines authoritative visibility and tab selection, while views consume one injected `MotionProfile`.
+- Base: the default Elegant profile keeps concise primary feedback and the configured sampling interval unchanged.
+- Bad: relying only on `onDisappear`, publishing snapshot and history separately, or globally disabling SwiftUI transactions.
+
+### 6. Tests Required
+
+- Repeated visible/hidden and tab-selection transitions assert balanced retain/release counts.
+- Closing before priming or timer callbacks asserts no new probe begins; delayed results assert no publication.
+- Successful samples, including saturated history, assert exactly one frame publication.
+- Missing, corrupt, and unknown animation values assert Elegant fallback and local-only persistence.
+- Every preset and Reduce Motion assert category decisions, continuous cadence, and status-clock transition behavior.
+- Segmented-control tests assert accessibility label/help and two-way binding updates.
+- Source audit asserts no direct animation, numeric transition, symbol effect, matched geometry, continuous timeline, or `CATransition` bypasses policy.
+
+### 7. Wrong vs Correct
+
+```swift
+// Wrong: retained popover content may never disappear, and two publications
+// invalidate the same observed tree twice.
+.onAppear { metrics.retain() }
+.onDisappear { metrics.release() }
+metrics.snapshot = snapshot
+metrics.cpuHistory = history
+
+// Correct: presentation state drives one guarded lifecycle and one frame commit.
+sampling.update(isVisible: presentation.isPresented, isStatusSelected: isStatusSelected)
+metrics.frame = SystemMetricsDisplayFrame(snapshot: snapshot, cpuHistory: history)
+```
+
+```swift
+// Wrong: visual quality changes the data product or bypasses accessibility.
+metrics.setInterval(quality == .minimal ? 10 : 1.5)
+withAnimation(.spring()) { selection = next }
+
+// Correct: sampling stays independent and motion resolves semantically.
+let motion = MotionProfile.resolve(quality: settings.animationQuality, reduceMotion: reduceMotion)
+withAnimation(motion.navigationAnimation) { selection = next }
+```
 
 ## Scenario: Persisted settings with authoritative macOS runtime state
 

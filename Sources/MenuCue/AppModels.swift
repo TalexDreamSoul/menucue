@@ -136,6 +136,8 @@ struct AppSettings: Equatable {
     private(set) var popoverTabOrder: [PopoverTab]
     /// Machine-local: battery behaviour differs per Mac, so this is not synced.
     var metricsSampling: MetricsSamplingSettings
+    /// Machine-local: motion cost and accessibility preferences differ per Mac.
+    var animationQuality: AnimationQuality
     /// Set once the user has opened the power feature. Until then nothing samples in
     /// the background; afterwards wake history keeps being backfilled with the popover
     /// closed, which is the only way "what woke my Mac overnight" can be answered.
@@ -165,6 +167,7 @@ struct AppSettings: Equatable {
         pinnedQuickActions: [QuickActionReference],
         popoverTabOrder: [PopoverTab] = PopoverTab.allCases,
         metricsSampling: MetricsSamplingSettings = .default,
+        animationQuality: AnimationQuality = .elegant,
         powerMonitoringEnabled: Bool = false,
         notificationSettings: NotificationSettings = .default,
         preferenceSyncEnabled: Bool = false,
@@ -186,6 +189,7 @@ struct AppSettings: Equatable {
         self.calendarSelectionMode = calendarSelectionMode
         self.selectedCalendarIDs = selectedCalendarIDs
         self.metricsSampling = metricsSampling.normalized
+        self.animationQuality = animationQuality
         self.powerMonitoringEnabled = powerMonitoringEnabled
         self.notificationSettings = notificationSettings
         self.pinnedQuickActions = pinnedQuickActions
@@ -515,6 +519,30 @@ enum AppearanceMode: String, CaseIterable, Codable, Identifiable {
         case .light: return L10n.string("Light")
         case .dark: return L10n.string("Dark")
         case .automaticByTimeZone: return L10n.string("Auto by Time Zone")
+        }
+    }
+}
+
+enum AnimationQuality: String, CaseIterable, Codable, Identifiable {
+    case full
+    case elegant
+    case minimal
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .full: return L10n.string("Full motion")
+        case .elegant: return L10n.string("Elegant")
+        case .minimal: return L10n.string("Minimal")
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .full: return L10n.string("Complete motion and live visual effects.")
+        case .elegant: return L10n.string("Essential motion with lower rendering cost.")
+        case .minimal: return L10n.string("No continuous or spatial motion.")
         }
     }
 }

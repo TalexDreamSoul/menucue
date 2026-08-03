@@ -19,7 +19,7 @@ struct DashboardCPUSection: View {
             .font(.title3.weight(.bold))
             .monospacedDigit()
             .foregroundStyle(DashboardPalette.temperature(temperature))
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: temperature)
         }
       } content: {
         HStack(alignment: .firstTextBaseline) {
@@ -36,7 +36,7 @@ struct DashboardCPUSection: View {
           Text(SystemMetricsFormatter.percent(snapshot.cpu.busy))
             .font(.largeTitle.weight(.semibold))
             .monospacedDigit()
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: snapshot.cpu.busy, importance: .primary)
         }
 
         CPUUsageChart(
@@ -187,7 +187,7 @@ struct DashboardGPUSection: View {
             .font(.title3.weight(.bold))
             .monospacedDigit()
             .foregroundStyle(DashboardPalette.temperature(temperature))
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: temperature)
         }
       } content: {
         if gpu.isEmpty {
@@ -203,7 +203,7 @@ struct DashboardGPUSection: View {
               Text(SystemMetricsFormatter.percent(utilization))
                 .font(.largeTitle.weight(.semibold))
                 .monospacedDigit()
-                .contentTransition(.numericText())
+                .menuCueNumericTransition(value: utilization, importance: .primary)
             }
           }
 
@@ -283,7 +283,7 @@ struct DashboardMemorySection: View {
           Text(SystemMetricsFormatter.capacity(memory.used))
             .font(.largeTitle.weight(.semibold))
             .monospacedDigit()
-            .contentTransition(.numericText())
+            .menuCueNumericTransition(value: memory.used, importance: .primary)
           Text(L10n.format("of %@", SystemMetricsFormatter.capacity(memory.total)))
             .font(.callout)
             .foregroundStyle(.secondary)
