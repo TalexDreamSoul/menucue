@@ -405,3 +405,17 @@ preferenceSyncService.publishLocalChanges([envelope])
 - Unavailable persistent and temporary clock IDs are cleared together.
 - An active temporary interval keeps its captured duration; automatic intervals after expiration use the latest configured duration.
 - Clearing persistent selection restores automatic rotation.
+
+## Scenario: Explicit process-health diagnostics
+
+### Contracts
+
+- `ProcessHealthService.analyze()` is the only scan trigger. It runs one bounded `ps -M` probe on a utility queue; no timer, startup hook, persistence, or iCloud field may enumerate processes or threads.
+- `ProcessHealthParser` groups one row per thread by PID, preserving process state and command text. A state starting with `Z` remains a visible zombie; it is never inferred from process age or CPU use.
+- The Power popover exposes separate, explicit actions for analysis and `NSWorkspace` launch of Activity Monitor. Neither action changes a process or escalates privileges.
+- A successful tab transition and a user-driven arrival at the bottom of scrollable popover content issue one alignment haptic. Initial layout and content that does not overflow must not issue feedback.
+
+### Tests Required
+
+- Parser fixtures cover repeated thread rows, commands with spaces, Z-prefixed state, totals, and deterministic CPU/thread ordering.
+- An injected probe proves an explicit `analyze()` request publishes its result without relying on a live process inventory.

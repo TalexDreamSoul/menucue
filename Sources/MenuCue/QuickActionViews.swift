@@ -54,7 +54,7 @@ struct ActionsTabView: View {
   }
 
   var body: some View {
-    ScrollView {
+    PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
         if let feedbackMessage = service.feedbackMessage {
           Label(feedbackMessage, systemImage: "info.circle")
@@ -116,8 +116,6 @@ struct ActionsTabView: View {
           in: RoundedRectangle(cornerRadius: PopoverMetrics.cardCornerRadius, style: .continuous)
         )
       }
-      .padding(.horizontal, PopoverMetrics.contentPadding)
-      .padding(.vertical, 2)
       .animation(motion.stateAnimation, value: model.settings.pinnedQuickActions)
       .animation(motion.stateAnimation, value: service.feedbackMessage)
     }

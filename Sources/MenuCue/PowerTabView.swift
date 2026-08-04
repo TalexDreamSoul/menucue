@@ -5,6 +5,7 @@ struct PowerTabView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var diagnostics: PowerDiagnosticsService
   @ObservedObject var processEnergy: ProcessEnergyService
+  @ObservedObject var processHealth: ProcessHealthService
   @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
 
   @State private var selectedSource: ManagedPowerSource = .ac
@@ -17,18 +18,16 @@ struct PowerTabView: View {
   private var helper: PowerHelperManager { model.quickActionService.powerHelperManager }
 
   var body: some View {
-    ScrollView {
+    PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
         batteryCard
         sleepBlockersCard
         wakeCard
         profilesCard
         processCard
+        processHealthCard
       }
-      .padding(.horizontal, PopoverMetrics.contentPadding)
-      .padding(.vertical, 2)
     }
-    .menuCueScrollBounceBehavior()
     .onAppear {
       if let onAC = diagnostics.battery?.isOnAC {
         selectedSource = onAC ? .ac : .battery
@@ -362,6 +361,60 @@ struct PowerTabView: View {
       }
     }
   }
+  private var processHealthCard: some View {
+    PopoverCard(title: L10n.string("Process Health"), systemImage: "waveform.path.ecg", tint: .purple) {
+      HStack(spacing: 8) {
+        Button(action: processHealth.analyze) {
+          Image(systemName: processHealth.isAnalyzing ? "hourglass" : "stethoscope")
+        }
+        .buttonStyle(.plain)
+        .help(L10n.string("Analyze process health"))
+        .disabled(processHealth.isAnalyzing)
+
+        Button(action: processHealth.openActivityMonitor) {
+          Image(systemName: "rectangle.on.rectangle")
+        }
+        .buttonStyle(.plain)
+        .help(L10n.string("Open Activity Monitor"))
+      }
+    } content: {
+      Text(L10n.string("Manual scan only; nothing runs in the background."))
+        .font(.system(size: 9))
+        .foregroundStyle(.tertiary)
+
+      if let snapshot = processHealth.snapshot {
+        let zombies = snapshot.zombies
+        HStack(spacing: 8) {
+          HealthReadout(
+            label: "Zombies",
+            value: "\(zombies.count)",
+            tint: zombies.isEmpty ? .secondary : .red)
+          HealthReadout(label: "Threads", value: "\(snapshot.totalThreads)", tint: .secondary)
+          HealthReadout(label: "Processes", value: "\(snapshot.processes.count)", tint: .secondary)
+        }
+        if let busiest = snapshot.busiestProcesses.first {
+          Text(L10n.format("CPU: %@ · %@", busiest.command, String(format: "%.1f%%", busiest.cpuPercent)))
+            .lineLimit(1)
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+        }
+        if let mostThreaded = snapshot.mostThreadedProcesses.first {
+          Text(L10n.format("Threads: %@ · %d", mostThreaded.command, mostThreaded.threadCount))
+            .lineLimit(1)
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+        }
+        if let zombie = zombies.first {
+          Text(L10n.format("Zombie: %@ · PID %d", zombie.command, zombie.pid))
+            .lineLimit(1)
+            .font(.system(size: 9))
+            .foregroundStyle(.red)
+        }
+      } else if let error = processHealth.errorMessage {
+        Text(error).font(.system(size: 9)).foregroundStyle(.red).lineLimit(2)
+      }
+    }
+  }
 
   private var displayedProfile: PowerProfile? {
     switch selectedSource {
@@ -531,6 +584,26 @@ private struct WakeCount: View {
         .font(.system(size: 18, weight: .semibold, design: .rounded))
         .monospacedDigit()
         .foregroundStyle(color)
+      Text(L10n.string(label))
+        .font(.system(size: 8, weight: .medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+private struct HealthReadout: View {
+  let label: String
+  let value: String
+  let tint: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(value)
+        .font(.system(size: 14, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .foregroundStyle(tint)
       Text(L10n.string(label))
         .font(.system(size: 8, weight: .medium))
         .foregroundStyle(.secondary)

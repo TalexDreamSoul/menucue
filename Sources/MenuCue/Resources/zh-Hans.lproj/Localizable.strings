@@ -229,6 +229,15 @@
 "Ends:" = "结束：";
 "Energy Impact" = "能耗影响";
 "Energy impact is a relative macOS score, not watts." = "能耗影响是 macOS 相对评分，不是瓦特数。";
+"Analyze process health" = "分析进程健康状况";
+"CPU: %@ · %@" = "CPU：%@ · %@";
+"Manual scan only; nothing runs in the background." = "仅在手动扫描时分析，不在后台运行。";
+"Open Activity Monitor" = "打开活动监视器";
+"Process Health" = "进程健康";
+"Threads: %@ · %d" = "线程：%@ · %d";
+"Zombie: %@ · PID %d" = "僵尸进程：%@ · PID %d";
+"Zombies" = "僵尸进程";
+"Threads" = "线程";
 "English" = "英语";
 "Error" = "错误";
 "Est. %@ left" = "预计续航 %@";

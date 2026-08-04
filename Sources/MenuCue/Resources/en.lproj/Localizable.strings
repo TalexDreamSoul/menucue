@@ -229,6 +229,15 @@
 "Ends:" = "Ends:";
 "Energy Impact" = "Energy Impact";
 "Energy impact is a relative macOS score, not watts." = "Energy impact is a relative macOS score, not watts.";
+"Analyze process health" = "Analyze process health";
+"CPU: %@ · %@" = "CPU: %@ · %@";
+"Manual scan only; nothing runs in the background." = "Manual scan only; nothing runs in the background.";
+"Open Activity Monitor" = "Open Activity Monitor";
+"Process Health" = "Process Health";
+"Threads: %@ · %d" = "Threads: %@ · %d";
+"Zombie: %@ · PID %d" = "Zombie: %@ · PID %d";
+"Zombies" = "Zombies";
+"Threads" = "Threads";
 "English" = "English";
 "Error" = "Error";
 "Est. %@ left" = "Est. %@ left";

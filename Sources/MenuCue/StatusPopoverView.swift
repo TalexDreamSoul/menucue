@@ -170,6 +170,7 @@ struct StatusPopoverView: View {
     withAnimation(motion.navigationAnimation) {
       selectedTab = tab
     }
+    MenuCueHaptics.performAlignment()
   }
 
   /// Tabs slide in from the side they came from, so the motion matches the gesture
@@ -193,7 +194,8 @@ struct StatusPopoverView: View {
       PowerTabView(
         model: model,
         diagnostics: model.powerDiagnosticsService,
-        processEnergy: model.processEnergyService
+        processEnergy: model.processEnergyService,
+        processHealth: model.processHealthService
       )
       .transition(tabTransition)
     case .calendar:
@@ -206,7 +208,7 @@ struct StatusPopoverView: View {
   }
 
   private var calendarTab: some View {
-    ScrollView {
+    PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
         // Scoped to the clock card. Wrapping the whole ScrollView in a 1 Hz
         // TimelineView rebuilt the calendar and agenda every second, which fought
@@ -238,10 +240,7 @@ struct StatusPopoverView: View {
         )
         eventsSection
       }
-      .padding(.horizontal, PopoverMetrics.contentPadding)
-      .padding(.vertical, 2)
     }
-    .menuCueScrollBounceBehavior()
   }
 
   private func clockCard(date: Date) -> some View {

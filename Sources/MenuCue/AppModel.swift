@@ -88,6 +88,8 @@ final class AppModel: ObservableObject {
     /// Shared for the same reason: the popover, the Dashboard and the background
     /// sampler all contribute to and read one history.
     let processEnergyService = ProcessEnergyService()
+    /// Explicit diagnostics only: scans run after a user request and are never persisted.
+    let processHealthService = ProcessHealthService()
     let notificationConfigurationService: NotificationConfigurationService
     let notificationRuntimeStore: NotificationRuntimeStore
     let notificationDeliveryDispatcher: NotificationDeliveryDispatcher

@@ -67,7 +67,7 @@ struct StatusTabView: View {
   @State private var detailPanelHeight: CGFloat = 0
 
   var body: some View {
-    ScrollView {
+    PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
         SystemMetricsCards(metrics: metrics, detail: detail, openDashboard: openDashboard)
 
@@ -82,10 +82,7 @@ struct StatusTabView: View {
           PinnedQuickActionGrid(model: model)
         }
       }
-      .padding(.horizontal, PopoverMetrics.contentPadding)
-      .padding(.vertical, 2)
     }
-    .menuCueScrollBounceBehavior()
     .overlayPreferenceValue(MetricDetailAnchorKey.self) { anchors in
       GeometryReader { proxy in
         if let target = detail.target, let anchor = anchors[target] {
