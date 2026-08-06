@@ -1,0 +1,31 @@
+{
+  "id": "menubar-ux-system-control",
+  "name": "menubar-ux-system-control",
+  "title": "Menu bar UX and system control follow-ups",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "TalexDreamSoul",
+  "assignee": "TalexDreamSoul",
+  "createdAt": "2026-08-05",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-05-status-clock-push-transition",
+    "08-05-calendar-permission-recovery",
+    "08-05-fan-control-spike",
+    "08-05-meeting-join-countdown"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
