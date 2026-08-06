@@ -12,7 +12,6 @@ enum MotionNavigationStyle: Equatable {
 
 enum StatusClockMotion: Equatable {
   case push
-  case fade
   case none
 }
 
@@ -78,13 +77,18 @@ struct MotionProfile {
     }
   }
 
+  /// Switching clocks is a carousel, so the motion carries the scroll direction; a cross-fade
+  /// would drop it. Only Reduce Motion and Minimal opt out, because this is one `CATransition`
+  /// per scroll — nothing here rides on `continuousFrameInterval`.
   var statusClockMotion: StatusClockMotion {
-    guard !reducesMotion else { return .none }
-    switch quality {
-    case .full: return .push
-    case .elegant: return .fade
-    case .minimal: return .none
-    }
+    guard !reducesMotion, quality != .minimal else { return .none }
+    return .push
+  }
+
+  /// Held at or under `StatusBarController.wheelSwitchCooldown`; a faster scroll than this
+  /// would otherwise start the next push before the previous one lands.
+  var statusClockTransitionDuration: TimeInterval {
+    StatusBarController.wheelSwitchCooldown
   }
 
   func navigationTransition(forward: Bool) -> AnyTransition {

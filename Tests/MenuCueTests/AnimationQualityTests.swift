@@ -52,7 +52,7 @@ final class AnimationQualityTests: XCTestCase {
     XCTAssertTrue(elegant.usesMatchedGeometry)
     XCTAssertFalse(elegant.usesSymbolBounce)
     XCTAssertEqual(elegant.continuousFrameInterval ?? 0, 1 / 10, accuracy: 0.0001)
-    XCTAssertEqual(elegant.statusClockMotion, .fade)
+    XCTAssertEqual(elegant.statusClockMotion, .push)
 
     let minimal = MotionProfile(quality: .minimal)
     XCTAssertFalse(minimal.animatesNumeric(.primary))
@@ -61,6 +61,32 @@ final class AnimationQualityTests: XCTestCase {
     XCTAssertEqual(minimal.navigationStyle, .crossfade)
     XCTAssertFalse(minimal.usesMatchedGeometry)
     XCTAssertEqual(minimal.statusClockMotion, .none)
+  }
+
+  /// The clock switch is one transition per scroll, so it must not be priced at the cost of
+  /// the tier that also turns on continuous redraw.
+  func testDirectionalClockMotionDoesNotRequireContinuousRendering() {
+    let elegant = MotionProfile(quality: .elegant)
+
+    XCTAssertEqual(elegant.statusClockMotion, .push)
+    XCTAssertNotEqual(
+      elegant.continuousFrameInterval,
+      MotionProfile(quality: .full).continuousFrameInterval,
+      "the two tiers must stay distinguishable on rendering cost"
+    )
+  }
+
+  /// A push that outlasts the cooldown would let a fast scroll start the next transition
+  /// before the previous one lands.
+  func testClockTransitionFitsInsideTheScrollCooldown() {
+    for quality in AnimationQuality.allCases {
+      let motion = MotionProfile(quality: quality)
+      XCTAssertLessThanOrEqual(
+        motion.statusClockTransitionDuration,
+        StatusBarController.wheelSwitchCooldown,
+        "\(quality) transition outlasts the scroll cooldown"
+      )
+    }
   }
 
   func testReduceMotionOverridesFullQuality() {

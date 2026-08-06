@@ -75,7 +75,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private var didSwitchDuringGesture = false
   private var lastWheelSwitchDate = Date.distantPast
   private let preciseScrollThreshold: CGFloat = 12
-  private let wheelSwitchCooldown: TimeInterval = 0.16
+  static let wheelSwitchCooldown: TimeInterval = 0.16
   private let preciseGestureResetInterval: TimeInterval = 0.35
 
   init(
@@ -105,6 +105,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private func configureStatusItem() {
     guard let button = statusItem.button else { return }
     button.wantsLayer = true
+    // AppKit layers do not clip by default, so an unclipped push would slide the outgoing
+    // title straight over whatever menu bar item sits next to us.
+    button.layer?.masksToBounds = true
     button.imagePosition = .imageLeading
     button.toolTip = L10n.string("MenuCue Clock — scroll to switch clocks")
 
@@ -326,19 +329,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     }
 
     let transition = CATransition()
-    switch motion.statusClockMotion {
-    case .push:
-      transition.type = .push
-      transition.subtype = transitionOrigin == .bottom ? .fromBottom : .fromTop
-      transition.duration = 0.34
-      transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-    case .fade:
-      transition.type = .fade
-      transition.duration = 0.18
-      transition.timingFunction = CAMediaTimingFunction(name: .easeOut)
-    case .none:
-      break
-    }
+    transition.type = .push
+    transition.subtype = transitionOrigin == .bottom ? .fromBottom : .fromTop
+    transition.duration = motion.statusClockTransitionDuration
+    transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
     layer.add(transition, forKey: "statusClockSwitch")
     button.attributedTitle = attributedTitle
     currentStatusClockID = clockID
@@ -477,7 +471,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let threshold = event.hasPreciseScrollingDeltas ? preciseScrollThreshold : 1
     guard abs(accumulatedScrollDelta) >= threshold else { return }
     if !event.hasPreciseScrollingDeltas,
-       eventDate.timeIntervalSince(lastWheelSwitchDate) < wheelSwitchCooldown
+       eventDate.timeIntervalSince(lastWheelSwitchDate) < Self.wheelSwitchCooldown
     {
       return
     }
