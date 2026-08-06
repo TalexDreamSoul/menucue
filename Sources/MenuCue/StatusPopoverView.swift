@@ -269,13 +269,14 @@ struct StatusPopoverView: View {
       .disabled(
         !model.authorizationState.canReadEvents && model.authorizationState != .notDetermined)
     } content: {
-      if !model.authorizationState.canReadEvents {
+      if let guidance = model.calendarPermissionGuidance {
         VStack(alignment: .leading, spacing: 8) {
-          Text("Grant Calendar access to show iCloud and local Calendar events.")
+          Text(guidance.message)
             .font(.caption)
             .foregroundStyle(.secondary)
-          Button("Grant Calendar Access") {
-            model.requestCalendarAccess()
+            .fixedSize(horizontal: false, vertical: true)
+          Button(guidance.action.buttonTitle) {
+            model.performCalendarPermissionAction(guidance.action)
           }
           .controlSize(.small)
         }
@@ -1390,11 +1391,13 @@ private struct SettingsContentView: View {
         .font(.caption)
         .foregroundStyle(model.authorizationState.canReadEvents ? Color.secondary : Color.orange)
 
-      if model.authorizationState == .notDetermined || model.authorizationState == .denied
-        || model.authorizationState == .writeOnly
-      {
-        Button("Grant Calendar Access") {
-          model.requestCalendarAccess()
+      if let guidance = model.calendarPermissionGuidance {
+        Text(guidance.message)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        Button(guidance.action.buttonTitle) {
+          model.performCalendarPermissionAction(guidance.action)
         }
       }
 

@@ -146,6 +146,8 @@
 "Calendar access denied." = "日历访问已拒绝。";
 "Calendar access granted." = "已获得日历访问权限。";
 "Calendar access has not been requested." = "尚未请求日历访问权限。";
+"Calendar access is restricted by a profile or parental controls on this Mac." = "本机的配置描述文件或家长控制限制了日历访问。";
+"Calendar access is turned off. Open System Settings and turn on MenuCue under Privacy & Security → Calendars." = "日历访问已关闭。请打开「系统设置」，在「隐私与安全性 → 日历」中开启 MenuCue。";
 "Calendar access restricted." = "日历访问受限。";
 "Calendar access: %@." = "日历访问状态：%@。";
 "Calendar display, overview time zone, and week layout." = "日历显示、概览时区和周布局。";
@@ -660,6 +662,7 @@
 "last 30 days · %@" = "最近 30 天 · %@";
 "macOS Language" = "macOS 语言";
 "macOS denied the requested Automation action." = "macOS 拒绝了请求的自动化操作。";
+"macOS did not show the permission dialog. Open System Settings and turn on MenuCue under Privacy & Security → Calendars." = "macOS 未弹出授权对话框。请打开「系统设置」，在「隐私与安全性 → 日历」中开启 MenuCue。";
 "macOS requires approval before MenuCue can start at login." = "MenuCue 需要获得 macOS 批准才能在登录时启动。";
 "macOS returned an unknown Helper status." = "macOS 返回了未知的助手状态。";
 "no record for today" = "今天暂无记录";

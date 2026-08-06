@@ -146,6 +146,8 @@
 "Calendar access denied." = "Calendar access denied.";
 "Calendar access granted." = "Calendar access granted.";
 "Calendar access has not been requested." = "Calendar access has not been requested.";
+"Calendar access is restricted by a profile or parental controls on this Mac." = "Calendar access is restricted by a profile or parental controls on this Mac.";
+"Calendar access is turned off. Open System Settings and turn on MenuCue under Privacy & Security → Calendars." = "Calendar access is turned off. Open System Settings and turn on MenuCue under Privacy & Security → Calendars.";
 "Calendar access restricted." = "Calendar access restricted.";
 "Calendar access: %@." = "Calendar access: %@.";
 "Calendar display, overview time zone, and week layout." = "Calendar display, overview time zone, and week layout.";
@@ -660,6 +662,7 @@
 "last 30 days · %@" = "last 30 days · %@";
 "macOS Language" = "macOS Language";
 "macOS denied the requested Automation action." = "macOS denied the requested Automation action.";
+"macOS did not show the permission dialog. Open System Settings and turn on MenuCue under Privacy & Security → Calendars." = "macOS did not show the permission dialog. Open System Settings and turn on MenuCue under Privacy & Security → Calendars.";
 "macOS requires approval before MenuCue can start at login." = "macOS requires approval before MenuCue can start at login.";
 "macOS returned an unknown Helper status." = "macOS returned an unknown Helper status.";
 "no record for today" = "no record for today";

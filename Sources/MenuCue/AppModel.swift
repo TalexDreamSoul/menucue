@@ -10,6 +10,9 @@ final class CalendarRefreshController {
         .NSSystemTimeZoneDidChange,
         .NSSystemClockDidChange,
         NSLocale.currentLocaleDidChangeNotification,
+        // Coming back from System Settings is how a permission change reaches us; EventKit
+        // does not announce one.
+        NSApplication.didBecomeActiveNotification,
     ]
 
     private let notificationCenter: NotificationCenter
@@ -74,6 +77,9 @@ final class CalendarRefreshController {
 final class AppModel: ObservableObject {
     @Published private(set) var settings: AppSettings
     @Published private(set) var authorizationState: CalendarAuthorizationState
+    /// Set when a request came back without moving the state, meaning macOS declined to
+    /// show its prompt and only System Settings can change the answer now.
+    @Published private(set) var calendarPromptSuppressed = false
     @Published private(set) var calendars: [CalendarInfo] = []
     @Published private(set) var events: [CalendarEventInfo] = []
     @Published var errorMessage: String?
@@ -402,6 +408,10 @@ final class AppModel: ObservableObject {
             self.visibleCalendarMonthDate = visibleMonthDate
         }
         authorizationState = calendarService.authorizationState
+        // Once macOS has an answer on record, the suppressed-prompt hint is stale.
+        if authorizationState != .notDetermined {
+            calendarPromptSuppressed = false
+        }
         guard authorizationState.canReadEvents else {
             calendars = []
             events = []
@@ -424,12 +434,32 @@ final class AppModel: ObservableObject {
     func requestCalendarAccess() {
         calendarService.requestAccess { [weak self] state, error in
             DispatchQueue.main.async {
-                self?.authorizationState = state
-                self?.errorMessage = error.map {
+                guard let self else { return }
+                self.authorizationState = state
+                // A request that returns still-undecided means the prompt never reached the
+                // user. Remember it, or the button we show them is one that does nothing.
+                self.calendarPromptSuppressed = state == .notDetermined
+                self.errorMessage = error.map {
                     L10n.format("Could not update Calendar access: %@", $0.localizedDescription)
                 }
-                self?.refreshCalendarData()
+                self.refreshCalendarData()
             }
+        }
+    }
+
+    var calendarPermissionGuidance: CalendarPermissionGuidance? {
+        CalendarPermissionAdvisor.guidance(
+            for: authorizationState,
+            promptSuppressed: calendarPromptSuppressed
+        )
+    }
+
+    func performCalendarPermissionAction(_ action: CalendarPermissionAction) {
+        switch action {
+        case .request:
+            requestCalendarAccess()
+        case .openSettings:
+            NSWorkspace.shared.open(CalendarPermissionLinks.systemCalendarSettings)
         }
     }
 
