@@ -331,3 +331,137 @@ final class PowerHelperRegistrationPolicySafetyTests: XCTestCase {
     )
   }
 }
+
+private enum PowerHelperRegistrationRetryError: Error, Equatable {
+  case transient(Int)
+}
+
+final class PowerHelperRegistrationRetrierTests: XCTestCase {
+  func testImmediateSuccessDoesNotScheduleARetry() {
+    var registrationCount = 0
+    var scheduledDelays: [TimeInterval] = []
+    var completions: [Result<Void, Error>] = []
+
+    PowerHelperRegistrationRetrier.run(
+      retryDelays: [0.25, 0.5],
+      register: { registrationCount += 1 },
+      schedule: { delay, _ in scheduledDelays.append(delay) },
+      completion: { completions.append($0) }
+    )
+
+    XCTAssertEqual(registrationCount, 1)
+    XCTAssertEqual(scheduledDelays, [])
+    XCTAssertEqual(completions.count, 1)
+    guard case .success = completions[0] else {
+      return XCTFail("an immediate successful registration must report success")
+    }
+  }
+
+  func testTransientFailureRetriesAtTheRequestedDelayAndThenSucceeds() {
+    let registrationOutcomes: [Result<Void, PowerHelperRegistrationRetryError>] = [
+      .failure(.transient(1)),
+      .success(())
+    ]
+    var registrationCount = 0
+    var scheduled: [(delay: TimeInterval, action: () -> Void)] = []
+    var completions: [Result<Void, Error>] = []
+
+    PowerHelperRegistrationRetrier.run(
+      retryDelays: [0.25, 0.5],
+      register: {
+        defer { registrationCount += 1 }
+        try registrationOutcomes[registrationCount].get()
+      },
+      schedule: { delay, action in scheduled.append((delay, action)) },
+      completion: { completions.append($0) }
+    )
+
+    XCTAssertEqual(registrationCount, 1)
+    XCTAssertEqual(scheduled.map(\.delay), [0.25])
+    XCTAssertTrue(completions.isEmpty, "a pending retry must not complete early")
+    guard scheduled.count == 1 else {
+      return XCTFail("the transient failure must create exactly one retry action")
+    }
+
+    scheduled[0].action()
+
+    XCTAssertEqual(registrationCount, 2)
+    XCTAssertEqual(scheduled.map(\.delay), [0.25])
+    XCTAssertEqual(completions.count, 1)
+    guard case .success = completions[0] else {
+      return XCTFail("a successful retry must report success")
+    }
+  }
+
+  func testExhaustedRetriesReportTheLastRegistrationErrorOnce() {
+    let registrationOutcomes: [Result<Void, PowerHelperRegistrationRetryError>] = [
+      .failure(.transient(1)),
+      .failure(.transient(2)),
+      .failure(.transient(3))
+    ]
+    var registrationCount = 0
+    var scheduled: [(delay: TimeInterval, action: () -> Void)] = []
+    var completions: [Result<Void, Error>] = []
+
+    PowerHelperRegistrationRetrier.run(
+      retryDelays: [0.25, 0.5],
+      register: {
+        defer { registrationCount += 1 }
+        try registrationOutcomes[registrationCount].get()
+      },
+      schedule: { delay, action in scheduled.append((delay, action)) },
+      completion: { completions.append($0) }
+    )
+
+    XCTAssertEqual(scheduled.map(\.delay), [0.25])
+    guard scheduled.count == 1 else {
+      return XCTFail("the first failure must schedule the first retry")
+    }
+    scheduled[0].action()
+
+    XCTAssertEqual(scheduled.map(\.delay), [0.25, 0.5])
+    guard scheduled.count == 2 else {
+      return XCTFail("the second failure must schedule the second retry")
+    }
+    scheduled[1].action()
+
+    XCTAssertEqual(registrationCount, 3)
+    XCTAssertEqual(scheduled.map(\.delay), [0.25, 0.5])
+    XCTAssertEqual(completions.count, 1)
+    guard case let .failure(error) = completions[0] else {
+      return XCTFail("an exhausted retry sequence must report failure")
+    }
+    XCTAssertEqual(error as? PowerHelperRegistrationRetryError, .transient(3))
+  }
+
+  func testExecutingTheCapturedRetryActionMoreThanOnceCannotCompleteTwice() {
+    var registrationCount = 0
+    var scheduled: [(delay: TimeInterval, action: () -> Void)] = []
+    var completions: [Result<Void, Error>] = []
+
+    PowerHelperRegistrationRetrier.run(
+      retryDelays: [0.25],
+      register: {
+        registrationCount += 1
+        if registrationCount == 1 {
+          throw PowerHelperRegistrationRetryError.transient(1)
+        }
+      },
+      schedule: { delay, action in scheduled.append((delay, action)) },
+      completion: { completions.append($0) }
+    )
+
+    guard scheduled.count == 1 else {
+      return XCTFail("the first failure must expose one retry action")
+    }
+    scheduled[0].action()
+    scheduled[0].action()
+
+    XCTAssertEqual(registrationCount, 2)
+    XCTAssertEqual(scheduled.map(\.delay), [0.25])
+    XCTAssertEqual(completions.count, 1)
+    guard case .success = completions[0] else {
+      return XCTFail("the first successful retry must be the sole completion")
+    }
+  }
+}

@@ -96,6 +96,89 @@ enum PowerHelperRegistrationPolicy {
   }
 }
 
+enum PowerHelperRegistrationRetrier {
+  private final class CompletionGate {
+    private let lock = NSLock()
+    private var isCompleted = false
+
+    var isPending: Bool {
+      lock.lock()
+      defer { lock.unlock() }
+      return !isCompleted
+    }
+
+    func takeCompletion() -> Bool {
+      lock.lock()
+      defer { lock.unlock() }
+      guard !isCompleted else { return false }
+      isCompleted = true
+      return true
+    }
+  }
+
+  private final class RetryActionGate {
+    private let lock = NSLock()
+    private var didRun = false
+
+    func takeAction() -> Bool {
+      lock.lock()
+      defer { lock.unlock() }
+      guard !didRun else { return false }
+      didRun = true
+      return true
+    }
+  }
+
+  static func run(
+    retryDelays: [TimeInterval],
+    register: @escaping () throws -> Void,
+    schedule: @escaping (_ delay: TimeInterval, _ action: @escaping () -> Void) -> Void,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    attempt(
+      remainingDelays: retryDelays[...],
+      completionGate: CompletionGate(),
+      register: register,
+      schedule: schedule,
+      completion: completion
+    )
+  }
+
+  private static func attempt(
+    remainingDelays: ArraySlice<TimeInterval>,
+    completionGate: CompletionGate,
+    register: @escaping () throws -> Void,
+    schedule: @escaping (_ delay: TimeInterval, _ action: @escaping () -> Void) -> Void,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    guard completionGate.isPending else { return }
+    do {
+      try register()
+      if completionGate.takeCompletion() {
+        completion(.success(()))
+      }
+    } catch {
+      guard let delay = remainingDelays.first else {
+        if completionGate.takeCompletion() {
+          completion(.failure(error))
+        }
+        return
+      }
+      let actionGate = RetryActionGate()
+      schedule(delay) {
+        guard actionGate.takeAction(), completionGate.isPending else { return }
+        attempt(
+          remainingDelays: remainingDelays.dropFirst(),
+          completionGate: completionGate,
+          register: register,
+          schedule: schedule,
+          completion: completion
+        )
+      }
+    }
+  }
+}
+
 final class PowerHelperManager: ObservableObject {
   private static let registeredHelperBuildKey = "powerHelper.registeredBuild"
 
@@ -185,6 +268,7 @@ final class PowerHelperManager: ObservableObject {
   }
 
   func requestRegistration() {
+    guard !isWorking else { return }
     guard isHelperRegistrationAvailable else {
       refreshStatus()
       return
@@ -232,6 +316,7 @@ final class PowerHelperManager: ObservableObject {
   }
 
   func refreshHelperRegistration() {
+    guard !isWorking else { return }
     guard isHelperRegistrationAvailable else {
       refreshStatus()
       return
@@ -244,35 +329,54 @@ final class PowerHelperManager: ObservableObject {
     }
 
     isWorking = true
-    var didUnregister = false
+    lastError = nil
     do {
       try service.unregister()
-      didUnregister = true
-      registeredCurrentHelperInSession = false
-      UserDefaults.standard.removeObject(forKey: Self.registeredHelperBuildKey)
-      clearProtocolInfo()
-      invalidateConnection()
-      try service.register()
-      requiresHelperRefresh = false
-      registeredCurrentHelperInSession = true
-      isWorking = false
-      refreshStatus()
-      if service.status == .requiresApproval {
-        openSystemSettings()
-      }
     } catch {
-      if didUnregister {
-        requiresHelperRefresh = false
-        registeredCurrentHelperInSession = false
-        UserDefaults.standard.removeObject(forKey: Self.registeredHelperBuildKey)
-        clearProtocolInfo()
-        invalidateConnection()
-      }
       isWorking = false
       let message = L10n.format("Power Helper refresh failed: %@", error.localizedDescription)
       registrationState = .failed(message)
       lastError = message
+      return
     }
+
+    requiresHelperRefresh = false
+    registeredCurrentHelperInSession = false
+    UserDefaults.standard.removeObject(forKey: Self.registeredHelperBuildKey)
+    clearProtocolInfo()
+    invalidateConnection()
+
+    PowerHelperRegistrationRetrier.run(
+      retryDelays: [0.5, 1.5, 3],
+      register: { [service] in
+        try service.register()
+      },
+      schedule: { delay, action in
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + delay,
+          execute: DispatchWorkItem(block: action)
+        )
+      },
+      completion: { [weak self] result in
+        guard let self else { return }
+        self.isWorking = false
+        switch result {
+        case .success:
+          self.registeredCurrentHelperInSession = true
+          self.refreshStatus()
+          if self.service.status == .requiresApproval {
+            self.openSystemSettings()
+          }
+        case .failure(let error):
+          let message = L10n.format(
+            "Power Helper refresh failed: %@",
+            error.localizedDescription
+          )
+          self.registrationState = .failed(message)
+          self.lastError = message
+        }
+      }
+    )
   }
 
   var supportsSystemTimeZone: Bool {
