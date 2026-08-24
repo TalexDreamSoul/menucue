@@ -86,6 +86,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var launchAtLoginState: LaunchAtLoginState
     @Published var launchAtLoginErrorMessage: String?
     let quickActionService: QuickActionService
+    let trackpadGestureService: TrackpadGestureService
     let preferenceSyncService: PreferenceSyncService
     /// One instance for the whole app. The popover, the Dashboard and the background
     /// backfill all read the same history; three services would mean three concurrent
@@ -115,6 +116,7 @@ final class AppModel: ObservableObject {
         appearanceService: AppearanceService,
         launchAtLoginService: LaunchAtLoginManaging = LaunchAtLoginService(),
         quickActionService: QuickActionService? = nil,
+        trackpadGestureService: TrackpadGestureService? = nil,
         preferenceSyncService: PreferenceSyncService? = nil,
         notificationRuntimeStore: NotificationRuntimeStore? = nil,
         notificationRuntimeErrorMessage: String? = nil,
@@ -142,13 +144,17 @@ final class AppModel: ObservableObject {
         self.calendarService = calendarService
         self.appearanceService = appearanceService
         self.launchAtLoginService = launchAtLoginService
-        self.quickActionService = quickActionService
+        let resolvedQuickActionService = quickActionService
             ?? QuickActionService(appearanceService: appearanceService)
+        self.quickActionService = resolvedQuickActionService
+        self.trackpadGestureService = trackpadGestureService
+            ?? TrackpadGestureService(quickActionService: resolvedQuickActionService)
         self.preferenceSyncService = preferenceSyncService ?? PreferenceSyncService()
         self.launchAtLoginState = launchAtLoginService.state
         self.settings = settingsStore.load()
         self.authorizationState = calendarService.authorizationState
         appearanceService.apply(settings: settings)
+        self.trackpadGestureService.apply(settings: settings.trackpadGestureSettings)
         refreshCalendarData()
 
         self.preferenceSyncService.configure(
@@ -168,6 +174,10 @@ final class AppModel: ObservableObject {
             self?.refreshCalendarData()
         }
         configureNotificationServices(settings.notificationSettings)
+    }
+
+    deinit {
+        trackpadGestureService.stop()
     }
 
     func updateSettings(_ update: (inout AppSettings) -> Void) {
@@ -191,6 +201,18 @@ final class AppModel: ObservableObject {
         preferenceSyncService.publishLocalChanges(
             Array(portableEnvelopes(for: changedPortableFields, settings: nextSettings).values)
         )
+    }
+
+    func updateTrackpadGestureSettings(_ settings: TrackpadGestureSettings) {
+        updateSettings { $0.trackpadGestureSettings = settings.normalized }
+    }
+
+    func updateTrackpadGestureSettings(_ update: (inout TrackpadGestureSettings) -> Void) {
+        updateSettings { settings in
+            var trackpadSettings = settings.trackpadGestureSettings
+            update(&trackpadSettings)
+            settings.trackpadGestureSettings = trackpadSettings.normalized
+        }
     }
 
     func setLaunchAtLoginEnabled(_ enabled: Bool) {
@@ -468,9 +490,13 @@ final class AppModel: ObservableObject {
     }
 
     private func applySettings(_ nextSettings: AppSettings) {
+        let previousTrackpadSettings = settings.trackpadGestureSettings
         settings = nextSettings
         settingsStore.save(nextSettings)
         appearanceService.apply(settings: nextSettings)
+        if previousTrackpadSettings != nextSettings.trackpadGestureSettings {
+            trackpadGestureService.apply(settings: nextSettings.trackpadGestureSettings)
+        }
         configureNotificationServices(nextSettings.notificationSettings)
         refreshEventsIfPossible()
     }

@@ -715,6 +715,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   case dashboard
   case overview
   case dateAndTime
+  case trackpad
   case quickActions
   case notifications
   case appearance
@@ -729,6 +730,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .dashboard: return L10n.string("Dashboard")
     case .overview: return L10n.string("Overview")
     case .dateAndTime: return L10n.string("Date & Time")
+    case .trackpad: return L10n.string("Trackpad")
     case .quickActions: return L10n.string("Quick Actions")
     case .notifications: return L10n.string("Notifications")
     case .appearance: return L10n.string("Appearance")
@@ -747,6 +749,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         "This Mac at a glance, sampling behavior, and anything needing attention.")
     case .dateAndTime:
       return L10n.string("Menu-bar clocks, calendar events, and time-zone controls.")
+    case .trackpad:
+      return L10n.string("Build gesture rules from live touch input and run actions on this Mac.")
     case .quickActions:
       return L10n.string("Run any action, pin your favorites, and manage Apple Shortcuts.")
     case .notifications:
@@ -767,6 +771,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .dashboard: return "chart.line.uptrend.xyaxis"
     case .overview: return "gauge.with.dots.needle.33percent"
     case .dateAndTime: return "calendar.badge.clock"
+    case .trackpad: return "hand.tap"
     case .quickActions: return "square.grid.2x2"
     case .notifications: return "bell.badge"
     case .appearance: return "circle.lefthalf.filled"
@@ -1162,6 +1167,8 @@ private struct SettingsContentView: View {
       )
     case .dateAndTime:
       dateAndTimeSection
+    case .trackpad:
+      TrackpadSettingsView(model: model)
     case .quickActions:
       QuickActionSettingsView(model: model)
     case .notifications:

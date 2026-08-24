@@ -31,15 +31,44 @@ private enum QuickActionExecutionError: LocalizedError {
 }
 
 protocol AccessibilityPermissionRequesting {
+  var status: AccessibilityPermissionStatus { get }
+  var accessibilitySettingsURL: URL { get }
+
   func requestAccess() -> Bool
 }
 
+extension AccessibilityPermissionRequesting {
+  var status: AccessibilityPermissionStatus { .denied }
+
+  var accessibilitySettingsURL: URL {
+    SystemAccessibilityPermissionRequester.privacyAccessibilitySettingsURL
+  }
+}
+
 struct SystemAccessibilityPermissionRequester: AccessibilityPermissionRequesting {
+  static let privacyAccessibilitySettingsURL = URL(
+    string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+  )!
+
+  var status: AccessibilityPermissionStatus {
+    AXIsProcessTrusted() ? .granted : .denied
+  }
+
+  var accessibilitySettingsURL: URL { Self.privacyAccessibilitySettingsURL }
+
   func requestAccess() -> Bool {
     let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
     let options = [promptKey: true] as CFDictionary
     return AXIsProcessTrustedWithOptions(options)
   }
+}
+
+protocol KeyboardEventBlocking: AnyObject {
+  func start(
+    accessibilityPermissionRequester: AccessibilityPermissionRequesting,
+    onEscapeHeld: @escaping () -> Void
+  ) -> KeyboardEventBlockerStartResult
+  func stop()
 }
 
 final class QuickActionService: ObservableObject {
@@ -58,16 +87,21 @@ final class QuickActionService: ObservableObject {
   /// assertion as some unidentified program holding the Mac awake.
   @Published private(set) var keepAwakePID: Int32?
   private var appearanceObserver: NSObjectProtocol?
-  private let cleaningController = CleaningModeController()
+  private let cleaningController: CleaningModeController
   private var cancellables: Set<AnyCancellable> = []
 
   init(
     appearanceService: AppearanceService,
     accessibilityPermissionRequester: AccessibilityPermissionRequesting =
-      SystemAccessibilityPermissionRequester()
+      SystemAccessibilityPermissionRequester(),
+    keyboardEventBlockerFactory: (() -> any KeyboardEventBlocking)? = nil
   ) {
     self.appearanceService = appearanceService
     self.accessibilityPermissionRequester = accessibilityPermissionRequester
+    self.cleaningController = CleaningModeController(
+      accessibilityPermissionRequester: accessibilityPermissionRequester,
+      keyboardEventBlockerFactory: keyboardEventBlockerFactory ?? { KeyboardEventBlocker() }
+    )
     self.powerHelperManager = PowerHelperManager()
     self.states = Dictionary(
       uniqueKeysWithValues: BuiltInQuickActionID.allCases.map { ($0, .available) }
@@ -100,6 +134,14 @@ final class QuickActionService: ObservableObject {
     }
     keepAwakeProcess?.terminate()
     cleaningController.stop()
+  }
+
+  var accessibilityPermissionStatus: AccessibilityPermissionStatus {
+    accessibilityPermissionRequester.status
+  }
+
+  var accessibilitySettingsURL: URL {
+    accessibilityPermissionRequester.accessibilitySettingsURL
   }
 
   var catalogItems: [QuickActionItem] {
@@ -230,10 +272,9 @@ final class QuickActionService: ObservableObject {
           : L10n.string("Dark Mode disabled.")
       )
     case .lockScreen:
-      guard accessibilityPermissionRequester.requestAccess() else {
-        setFeedback(
-          L10n.string("Allow Accessibility access to use Lock Screen, then try again.")
-        )
+      guard accessibilityPermissionRequester.status == .granted else {
+        refreshLockScreenState()
+        setFeedback(lockScreenAccessibilityDeniedMessage)
         return
       }
       performProcessBacked(reference: .builtIn(actionID)) {
@@ -273,11 +314,15 @@ final class QuickActionService: ObservableObject {
     case .cleanScreen:
       cleaningController.start(mode: .screen)
     case .cleanKeyboard:
-      guard cleaningController.start(mode: .keyboard) else {
-        setFeedback(
-          L10n.string("Allow Accessibility access, then try Clean Keyboard again.")
-        )
-        return
+      switch cleaningController.start(mode: .keyboard) {
+      case .started:
+        refreshCleaningStates()
+      case .accessibilityDenied:
+        refreshCleaningStates()
+        setFeedback(cleanKeyboardAccessibilityDeniedMessage)
+      case .eventTapUnavailable:
+        refreshCleaningStates()
+        setFeedback(L10n.string("Clean Keyboard could not start because macOS did not make the keyboard event tap available."))
       }
     case .emptyTrash:
       performProcessBacked(reference: .builtIn(actionID)) {
@@ -396,6 +441,7 @@ final class QuickActionService: ObservableObject {
 
   private func refreshImmediateStates() {
     refreshDarkModeState()
+    refreshLockScreenState()
     setState(.keepScreenOn, isOn: keepAwakeProcess?.isRunning == true, isRunning: false)
     refreshCleaningStates()
 
@@ -483,6 +529,33 @@ final class QuickActionService: ObservableObject {
     )
   }
 
+  private func refreshLockScreenState() {
+    setState(
+      .lockScreen,
+      availability: lockScreenAvailability,
+      isOn: nil,
+      isRunning: false
+    )
+  }
+
+  private var lockScreenAvailability: QuickActionAvailability {
+    switch accessibilityPermissionRequester.status {
+    case .granted:
+      return .available
+    case .denied:
+      return .unavailable(
+        lockScreenAccessibilityDeniedMessage,
+        settingsURL: accessibilityPermissionRequester.accessibilitySettingsURL
+      )
+    }
+  }
+
+  private var lockScreenAccessibilityDeniedMessage: String {
+    L10n.string(
+      "Lock Screen requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
+    )
+  }
+
   private func refreshCleaningStates() {
     setState(
       .cleanScreen,
@@ -491,8 +564,27 @@ final class QuickActionService: ObservableObject {
     )
     setState(
       .cleanKeyboard,
+      availability: cleanKeyboardAvailability,
       isOn: cleaningController.mode == .keyboard,
       isRunning: false
+    )
+  }
+
+  private var cleanKeyboardAvailability: QuickActionAvailability {
+    switch accessibilityPermissionRequester.status {
+    case .denied:
+      return .unavailable(
+        cleanKeyboardAccessibilityDeniedMessage,
+        settingsURL: accessibilityPermissionRequester.accessibilitySettingsURL
+      )
+    case .granted:
+      return .available
+    }
+  }
+
+  private var cleanKeyboardAccessibilityDeniedMessage: String {
+    L10n.string(
+      "Clean Keyboard requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
     )
   }
 
@@ -503,8 +595,16 @@ final class QuickActionService: ObservableObject {
     setState(.autoHideMenuBar, isOn: snapshot.menuBarAutoHidden, isRunning: false)
   }
 
-  private func setState(_ actionID: BuiltInQuickActionID, isOn: Bool?, isRunning: Bool) {
+  private func setState(
+    _ actionID: BuiltInQuickActionID,
+    availability: QuickActionAvailability? = nil,
+    isOn: Bool?,
+    isRunning: Bool
+  ) {
     var state = states[actionID] ?? .available
+    if let availability {
+      state.availability = availability
+    }
     state.isOn = isOn
     state.isRunning = isRunning
     states[actionID] = state
@@ -677,6 +777,17 @@ private final class CleaningModeController: ObservableObject {
   @Published private(set) var secondsRemaining = 0
 
   var onStateChange: (() -> Void)?
+  private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
+  private let keyboardEventBlockerFactory: () -> any KeyboardEventBlocking
+
+  init(
+    accessibilityPermissionRequester: AccessibilityPermissionRequesting,
+    keyboardEventBlockerFactory: @escaping () -> any KeyboardEventBlocking
+  ) {
+    self.accessibilityPermissionRequester = accessibilityPermissionRequester
+    self.keyboardEventBlockerFactory = keyboardEventBlockerFactory
+  }
+
 
   private lazy var displayOverlays = CleaningDisplayOverlayCoordinator<NSWindow>(
     notificationCenter: .default,
@@ -698,17 +809,19 @@ private final class CleaningModeController: ObservableObject {
   private var countdownTimer: Timer?
   private var localKeyMonitor: Any?
   private var escapeHoldTimer: Timer?
-  private var keyboardBlocker: KeyboardEventBlocker?
+  private var keyboardBlocker: (any KeyboardEventBlocking)?
 
   @discardableResult
-  func start(mode: CleaningMode) -> Bool {
+  func start(mode: CleaningMode) -> KeyboardEventBlockerStartResult {
     stop()
 
     if mode == .keyboard {
-      let blocker = KeyboardEventBlocker()
-      guard blocker.start(onEscapeHeld: { [weak self] in self?.stop() }) else {
-        return false
-      }
+      let blocker = keyboardEventBlockerFactory()
+      let result = blocker.start(
+        accessibilityPermissionRequester: accessibilityPermissionRequester,
+        onEscapeHeld: { [weak self] in self?.stop() }
+      )
+      guard result == .started else { return result }
       keyboardBlocker = blocker
     } else {
       installLocalEscapeMonitor()
@@ -733,7 +846,7 @@ private final class CleaningModeController: ObservableObject {
       RunLoop.main.add(countdownTimer, forMode: .common)
     }
     onStateChange?()
-    return true
+    return .started
   }
 
   func stop() {
@@ -817,16 +930,19 @@ private struct CleaningOverlayView: View {
   }
 }
 
-private final class KeyboardEventBlocker {
+private final class KeyboardEventBlocker: KeyboardEventBlocking {
   private var eventTap: CFMachPort?
   private var runLoopSource: CFRunLoopSource?
   private var escapeHoldTimer: Timer?
   private var onEscapeHeld: (() -> Void)?
 
-  func start(onEscapeHeld: @escaping () -> Void) -> Bool {
-    let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-    let options = [promptKey: true] as CFDictionary
-    guard AXIsProcessTrustedWithOptions(options) else { return false }
+  func start(
+    accessibilityPermissionRequester: AccessibilityPermissionRequesting,
+    onEscapeHeld: @escaping () -> Void
+  ) -> KeyboardEventBlockerStartResult {
+    guard accessibilityPermissionRequester.status == .granted else {
+      return .accessibilityDenied
+    }
 
     self.onEscapeHeld = onEscapeHeld
     let mask =
@@ -850,7 +966,8 @@ private final class KeyboardEventBlocker {
         userInfo: userInfo
       )
     else {
-      return false
+      self.onEscapeHeld = nil
+      return .eventTapUnavailable
     }
 
     self.eventTap = eventTap
@@ -858,7 +975,7 @@ private final class KeyboardEventBlocker {
     runLoopSource = source
     CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
     CGEvent.tapEnable(tap: eventTap, enable: true)
-    return true
+    return .started
   }
 
   func stop() {

@@ -1,0 +1,7 @@
+{"file":".trellis/tasks/08-23-touchpad-gesture-automation/prd.md","reason":"Verify every acceptance criterion and explicit exclusion."}
+{"file":".trellis/tasks/08-23-touchpad-gesture-automation/design.md","reason":"Check private API fail-closed behavior, lifecycle, permissions, and action read-back."}
+{"file":".trellis/tasks/08-23-touchpad-gesture-automation/research/betterandbetter-2.7.7/inventory.md","reason":"Verify behavior coverage against the locally observed reference surface."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Check local-only persistence and AppModel/service authority."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Check Settings pane order, accessibility, macOS 13, and localization contracts."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Check release-safe optional runtime resources and privileged-boundary non-regression."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check Quick Action reuse and prevent duplicate settings/action contracts."}

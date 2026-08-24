@@ -419,3 +419,74 @@ preferenceSyncService.publishLocalChanges([envelope])
 
 - Parser fixtures cover repeated thread rows, commands with spaces, Z-prefixed state, totals, and deterministic CPU/thread ordering.
 - An injected probe proves an explicit `analyze()` request publishes its result without relying on a live process inventory.
+
+## Scenario: Machine-local raw trackpad gesture automation
+
+### 1. Scope / Trigger
+
+Use this pattern when a user-enabled feature observes system-wide raw Apple trackpad contacts, recognizes ordered rules, and dispatches local system actions without making Accessibility a prerequisite for passive observation.
+
+### 2. Signatures
+
+- Persisted intent: `AppSettings.trackpadGestureSettings: TrackpadGestureSettings`
+- Persistence key: `trackpadGestureSettings.v1`
+- Mutation boundary: `AppModel.updateTrackpadGestureSettings(_:)`
+- Runtime owner: `TrackpadGestureService.apply(settings:)`, `retry()`, `stop()`
+- Pure recognition: `TrackpadGestureEngine.consume(frame:context:) -> [TrackpadGestureMatch]`
+- Private callback ABI: `(MTDevice?, UnsafeMutableRawPointer?, Int32, Double, Int32) -> Int32`
+- Device ID ABI: `MTDeviceGetDeviceID(MTDevice, UnsafeMutablePointer<UInt64>) -> Int32`
+
+### 3. Contracts
+
+- Trackpad rules are machine-local. They reference hardware, local bundle identifiers, and local permissions, so they never become `PortableSettingField` or iCloud envelopes.
+- Raw capture begins only while `TrackpadGestureSettings.isEnabled` is true. Disable, sleep, device removal, time reversal, and service teardown stop callbacks and clear every recognition session.
+- `MultitouchSupport.framework` is loaded only with `dlopen` / `dlsym`; no build-time private-framework link is allowed. Missing symbols or changed layout degrade only the Trackpad pane.
+- The 64-bit private contact record has stride 96 with identifier at byte 16, state 20, normalized position 32, velocity 40, size 48, major/minor axes 60/64, and density 92. The callback performs only a bounded value copy before dispatching to the serial engine queue.
+- Keep the retained device list alive until every device is stopped and its callback unregistered. Reconciliation never registers a second callback for an unchanged stable device ID.
+- The reverse-engineered ABI is exact: callback registration and device start/stop/unregister return `Void`; `MTDeviceGetDeviceID` writes through a `UInt64*`. Declaring it as `(MTDevice) -> Int32` can call into Objective-C metadata and crash with `EXC_BAD_ACCESS / SIGBUS` before capture starts.
+- Rules are evaluated app-specific before all-app rules, then in persisted order. A discrete recognition emits once; continuous edge rules quantize movement with hysteresis and rate limiting.
+- Passive observation never consumes pointer or scroll events. Optional multi-finger click suppression defaults off and owns a separate active event tap plus Accessibility remediation.
+- CoreAudio volume and supported DisplayServices brightness actions publish only read-back values. Keyboard, mouse, and window actions request Accessibility only when that action runs.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Setting missing or malformed | Load disabled editable presets; preserve neighboring settings |
+| Private framework/symbol/layout unavailable | Publish `unsupported`; app and Settings remain usable |
+| No compatible device | Keep rules; show retryable unavailable state |
+| Device set unchanged during reconcile | Keep existing callbacks; do not restart |
+| Sleep, removal, disable, or timestamp reversal | Stop/reset before accepting later frames |
+| Callback count or floating fields invalid | Drop the bounded frame and reset that device session |
+| Accessibility denied for advanced action | Do not execute; show the specific System Settings remediation |
+| Direct volume/brightness write has no matching read-back | Report failure; never display requested value as observed |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an enabled local setting starts one callback for the built-in trackpad, copies immutable frames to the engine queue, executes one winning rule, and stops cleanly when disabled.
+- Base: an unsupported Mac keeps the module disabled with editable/importable rules and leaves every other MenuCue surface functional.
+- Bad: loading private APIs at launch, treating a device pointer as a returned ID, mutating `UserDefaults` from the view, syncing rules through iCloud, or filtering clicks merely to observe contacts.
+
+### 6. Tests Required
+
+- Synthetic frames cover both hold-tap directions, negative timing/motion/extra-contact cases, edge quantization/inversion, scope precedence, and reset boundaries.
+- Settings tests cover disabled defaults, four presets, malformed/duplicate normalization, local round-trip, and exclusion from portable fields.
+- Runtime tests use injected sources/executors; they never require a physical trackpad or change real volume/brightness.
+- Installed-app smoke enables capture, observes a running device count with no Accessibility prompt, disables capture, and verifies process stability.
+- A direct backend smoke captures original volume/brightness, applies one bounded step, verifies read-back, and restores the original values.
+
+### 7. Wrong vs Correct
+
+```swift
+// Wrong: reverse-engineered symbol declared with the wrong ABI; enabling can SIGBUS.
+typealias MTDeviceGetDeviceID = @convention(c) (MTDevice) -> Int32
+let id = getDeviceID(device)
+
+// Correct: the function writes a 64-bit ID through an out pointer; fall back safely.
+typealias MTDeviceGetDeviceID = @convention(c) (
+  MTDevice, UnsafeMutablePointer<UInt64>
+) -> Int32
+var id: UInt64 = 0
+let status = getDeviceID(device, &id)
+if status != 0 || id == 0 { id = UInt64(UInt(bitPattern: device)) }
+```

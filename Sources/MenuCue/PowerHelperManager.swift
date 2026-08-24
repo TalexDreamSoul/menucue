@@ -61,6 +61,41 @@ private enum PowerHelperManagerError: LocalizedError {
   }
 }
 
+enum PowerHelperInstallLocation {
+  static func isSupported(bundleURL: URL) -> Bool {
+    let resolvedURL = bundleURL.resolvingSymlinksInPath().standardizedFileURL
+    guard resolvedURL.pathExtension.caseInsensitiveCompare("app") == .orderedSame else {
+      return false
+    }
+    return resolvedURL.path.hasPrefix("/Applications/")
+  }
+}
+
+enum PowerHelperRegistrationRequestAction: Equatable {
+  case register
+  case inspectCurrentRegistration
+}
+
+enum PowerHelperRegistrationPolicy {
+  static func requestAction(serviceIsEnabled: Bool) -> PowerHelperRegistrationRequestAction {
+    serviceIsEnabled ? .inspectCurrentRegistration : .register
+  }
+
+  static func refreshRequired(
+    previousValue: Bool,
+    registrationSucceeded: Bool
+  ) -> Bool {
+    registrationSucceeded ? false : previousValue
+  }
+
+  static func canRemoveHelper(
+    bundleURL: URL,
+    packagedHelperAvailable: Bool
+  ) -> Bool {
+    packagedHelperAvailable && PowerHelperInstallLocation.isSupported(bundleURL: bundleURL)
+  }
+}
+
 final class PowerHelperManager: ObservableObject {
   private static let registeredHelperBuildKey = "powerHelper.registeredBuild"
 
@@ -102,6 +137,17 @@ final class PowerHelperManager: ObservableObject {
       return
     }
 
+    guard PowerHelperInstallLocation.isSupported(bundleURL: Bundle.main.bundleURL) else {
+      registrationState = .unavailable(
+        L10n.string(
+          "Move MenuCue to the Applications folder before installing or refreshing the power Helper."
+        )
+      )
+      clearProtocolInfo()
+      invalidateConnection()
+      return
+    }
+
     switch service.status {
     case .notRegistered:
       registrationState = .notRegistered
@@ -114,7 +160,7 @@ final class PowerHelperManager: ObservableObject {
     case .enabled:
       if shouldRefreshPackagedHelper {
         registrationState = .refreshRequired
-        refreshHelperRegistration()
+        invalidateConnection()
         return
       }
       guard !requiresHelperRefresh else {
@@ -139,7 +185,7 @@ final class PowerHelperManager: ObservableObject {
   }
 
   func requestRegistration() {
-    guard isPackagedHelperAvailable else {
+    guard isHelperRegistrationAvailable else {
       refreshStatus()
       return
     }
@@ -149,19 +195,24 @@ final class PowerHelperManager: ObservableObject {
       refreshStatus()
       return
     }
-    if service.status == .enabled {
-      if requiresHelperRefresh {
-        refreshHelperRegistration()
-      } else {
-        refreshStatus()
-      }
+    switch PowerHelperRegistrationPolicy.requestAction(
+      serviceIsEnabled: service.status == .enabled
+    ) {
+    case .inspectCurrentRegistration:
+      refreshStatus()
       return
+    case .register:
+      break
     }
 
     lastError = nil
     isWorking = true
     do {
       try service.register()
+      requiresHelperRefresh = PowerHelperRegistrationPolicy.refreshRequired(
+        previousValue: requiresHelperRefresh,
+        registrationSucceeded: true
+      )
       registeredCurrentHelperInSession = true
       isWorking = false
       refreshStatus()
@@ -181,6 +232,11 @@ final class PowerHelperManager: ObservableObject {
   }
 
   func refreshHelperRegistration() {
+    guard isHelperRegistrationAvailable else {
+      refreshStatus()
+      return
+    }
+
     guard service.status == .enabled else {
       requiresHelperRefresh = false
       requestRegistration()
@@ -188,8 +244,13 @@ final class PowerHelperManager: ObservableObject {
     }
 
     isWorking = true
+    var didUnregister = false
     do {
       try service.unregister()
+      didUnregister = true
+      registeredCurrentHelperInSession = false
+      UserDefaults.standard.removeObject(forKey: Self.registeredHelperBuildKey)
+      clearProtocolInfo()
       invalidateConnection()
       try service.register()
       requiresHelperRefresh = false
@@ -200,6 +261,13 @@ final class PowerHelperManager: ObservableObject {
         openSystemSettings()
       }
     } catch {
+      if didUnregister {
+        requiresHelperRefresh = false
+        registeredCurrentHelperInSession = false
+        UserDefaults.standard.removeObject(forKey: Self.registeredHelperBuildKey)
+        clearProtocolInfo()
+        invalidateConnection()
+      }
       isWorking = false
       let message = L10n.format("Power Helper refresh failed: %@", error.localizedDescription)
       registrationState = .failed(message)
@@ -448,7 +516,20 @@ final class PowerHelperManager: ObservableObject {
       && FileManager.default.fileExists(atPath: plistURL.path)
   }
 
+  private var isHelperRegistrationAvailable: Bool {
+    isPackagedHelperAvailable
+      && PowerHelperInstallLocation.isSupported(bundleURL: Bundle.main.bundleURL)
+  }
+
   private func unregister(completion: @escaping (Result<Void, Error>) -> Void) {
+    guard PowerHelperRegistrationPolicy.canRemoveHelper(
+      bundleURL: Bundle.main.bundleURL,
+      packagedHelperAvailable: isPackagedHelperAvailable
+    ) else {
+      refreshStatus()
+      completion(.failure(PowerHelperManagerError.unavailable(registrationState.detail)))
+      return
+    }
     do {
       try service.unregister()
       requiresHelperRefresh = false

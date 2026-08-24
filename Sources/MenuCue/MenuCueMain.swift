@@ -17,6 +17,7 @@ struct MenuCueMain {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
+    private var appModel: AppModel?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let settingsStore = SettingsStore()
@@ -42,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             notificationRuntimeErrorMessage: runtimeErrorMessage,
             notificationSecretStore: KeychainNotificationSecretStore()
         )
+        appModel = model
         let updateService = UpdateService(engine: SparkleUpdateEngine())
         let languageService = AppLanguageService()
         statusBarController = StatusBarController(
@@ -57,6 +59,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        appModel?.trackpadGestureService.stop()
         statusBarController = nil
+        appModel = nil
     }
 }

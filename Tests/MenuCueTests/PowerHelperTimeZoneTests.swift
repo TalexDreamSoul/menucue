@@ -198,4 +198,24 @@ final class PowerHelperTimeZoneTests: XCTestCase {
             )
         )
     }
+
+    func testPowerHelperInstallLocationAllowsOnlyApplicationsDirectoryAndDescendants() {
+        let cases: [(path: String, isSupported: Bool)] = [
+            ("/Applications/MenuCue.app", true),
+            ("/Applications/Utilities/MenuCue.app", true),
+            ("/Users/developer/MenuCue/.build/app/MenuCue.app", false),
+            ("/Users/developer/Downloads/MenuCue.app", false),
+            ("/ApplicationsBackup/MenuCue.app", false),
+        ]
+
+        for testCase in cases {
+            XCTAssertEqual(
+                PowerHelperInstallLocation.isSupported(
+                    bundleURL: URL(fileURLWithPath: testCase.path)
+                ),
+                testCase.isSupported,
+                "Expected \(testCase.path) support to be \(testCase.isSupported)."
+            )
+        }
+    }
 }

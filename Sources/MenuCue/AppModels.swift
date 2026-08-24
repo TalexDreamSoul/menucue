@@ -138,6 +138,8 @@ struct AppSettings: Equatable {
     var metricsSampling: MetricsSamplingSettings
     /// Machine-local: motion cost and accessibility preferences differ per Mac.
     var animationQuality: AnimationQuality
+    /// Machine-local: rules refer to this Mac's devices, applications, and permissions.
+    var trackpadGestureSettings: TrackpadGestureSettings
     /// Set once the user has opened the power feature. Until then nothing samples in
     /// the background; afterwards wake history keeps being backfilled with the popover
     /// closed, which is the only way "what woke my Mac overnight" can be answered.
@@ -168,6 +170,7 @@ struct AppSettings: Equatable {
         popoverTabOrder: [PopoverTab] = PopoverTab.allCases,
         metricsSampling: MetricsSamplingSettings = .default,
         animationQuality: AnimationQuality = .elegant,
+        trackpadGestureSettings: TrackpadGestureSettings = .default,
         powerMonitoringEnabled: Bool = false,
         notificationSettings: NotificationSettings = .default,
         preferenceSyncEnabled: Bool = false,
@@ -190,6 +193,7 @@ struct AppSettings: Equatable {
         self.selectedCalendarIDs = selectedCalendarIDs
         self.metricsSampling = metricsSampling.normalized
         self.animationQuality = animationQuality
+        self.trackpadGestureSettings = trackpadGestureSettings.normalized
         self.powerMonitoringEnabled = powerMonitoringEnabled
         self.notificationSettings = notificationSettings
         self.pinnedQuickActions = pinnedQuickActions

@@ -18,6 +18,7 @@ final class SettingsStore {
         static let popoverTabOrder = "popoverTabOrder.v1"
         static let metricsSampling = "metricsSampling.v1"
         static let animationQuality = "animationQuality.v1"
+        static let trackpadGestureSettings = "trackpadGestureSettings.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
         static let notificationSettings = "notificationSettings.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
@@ -88,6 +89,7 @@ final class SettingsStore {
             popoverTabOrder: loadPopoverTabOrder(),
             metricsSampling: loadMetricsSampling(),
             animationQuality: loadAnimationQuality(),
+            trackpadGestureSettings: loadTrackpadGestureSettings(),
             powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
             notificationSettings: loadNotificationSettings(),
             preferenceSyncEnabled: defaults.bool(forKey: Key.preferenceSyncEnabled),
@@ -127,6 +129,9 @@ final class SettingsStore {
             defaults.set(data, forKey: Key.metricsSampling)
         }
         defaults.set(settings.animationQuality.rawValue, forKey: Key.animationQuality)
+        if let data = try? encoder.encode(settings.trackpadGestureSettings.normalized) {
+            defaults.set(data, forKey: Key.trackpadGestureSettings)
+        }
         defaults.set(settings.preferenceSyncEnabled, forKey: Key.preferenceSyncEnabled)
         defaults.set(
             settings.preferenceSyncOnboardingCompleted,
@@ -166,6 +171,15 @@ final class SettingsStore {
         }
         return AnimationQuality(rawValue: rawValue) ?? .elegant
     }
+    private func loadTrackpadGestureSettings() -> TrackpadGestureSettings {
+        guard let data = defaults.data(forKey: Key.trackpadGestureSettings),
+              let settings = try? decoder.decode(TrackpadGestureSettings.self, from: data)
+        else {
+            return .default
+        }
+        return settings.normalized
+    }
+
 
     private func loadMenuBarFormat() -> MenuBarFormatSettings {
         guard let data = defaults.data(forKey: Key.menuBarFormat),

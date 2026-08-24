@@ -1,0 +1,6 @@
+{"file":".trellis/tasks/08-23-touchpad-gesture-automation/prd.md","reason":"Source requirements and acceptance criteria for the trackpad module."}
+{"file":".trellis/tasks/08-23-touchpad-gesture-automation/design.md","reason":"Authoritative model, runtime, action, permission, and UI contracts."}
+{"file":".trellis/tasks/08-23-touchpad-gesture-automation/research/betterandbetter-2.7.7/inventory.md","reason":"Local 2.7.7 trigger, action, scope, function-setting, and screenshot inventory."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Machine-local AppSettings, SettingsStore, AppModel mutation, and runtime-state boundaries."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"macOS 13, settings navigation, localization, and product identity requirements."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Typed source-to-engine-to-action-to-UI data-flow discipline."}

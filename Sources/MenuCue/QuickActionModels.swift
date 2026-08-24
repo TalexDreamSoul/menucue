@@ -5,6 +5,17 @@ enum QuickActionKind: Equatable {
   case button
   case mode
 }
+enum AccessibilityPermissionStatus: Equatable {
+  case granted
+  case denied
+}
+
+enum KeyboardEventBlockerStartResult: Equatable {
+  case started
+  case accessibilityDenied
+  case eventTapUnavailable
+}
+
 
 enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
   case turnOffDisplays

@@ -38,6 +38,7 @@ let package = Package(
       linkerSettings: [
         .linkedFramework("AppKit"),
         .linkedFramework("ApplicationServices"),
+        .linkedFramework("CoreAudio"),
         .linkedFramework("EventKit"),
         .linkedFramework("ServiceManagement"),
         .linkedFramework("Security"),

@@ -10,6 +10,7 @@ final class SettingsInformationArchitectureTests: XCTestCase {
         .dashboard,
         .overview,
         .dateAndTime,
+        .trackpad,
         .quickActions,
         .notifications,
         .appearance,

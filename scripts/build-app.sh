@@ -49,8 +49,11 @@ if [[ "$REQUIRE_STABLE_SIGNING" == "true" ]]; then
     fi
 fi
 CODESIGN_ARGS=(--force --sign "$CODESIGN_IDENTITY")
-if [[ "$REQUIRE_STABLE_SIGNING" == "true" ]]; then
-    CODESIGN_ARGS+=(--options runtime --timestamp)
+if [[ "$CODESIGN_IDENTITY" != "-" ]]; then
+    CODESIGN_ARGS+=(--options runtime)
+fi
+if [[ "$CODESIGN_IDENTITY" == "Developer ID Application:"* ]]; then
+    CODESIGN_ARGS+=(--timestamp)
 fi
 swift build -c "$BUILD_CONFIG"
 
