@@ -1,0 +1,31 @@
+{
+  "id": "menucue-architecture-overhaul",
+  "name": "menucue-architecture-overhaul",
+  "title": "MenuCue 架构重构总纲",
+  "description": "四条主线依次推进：性能热修、手势引擎统一抽象、设置 IA 重组、导航层。父任务持有任务地图与跨子任务验收。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "TalexDreamSoul",
+  "assignee": "TalexDreamSoul",
+  "createdAt": "2026-08-27",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-27-perf-hotfix-clock-path",
+    "08-27-gesture-engine-unification",
+    "08-27-settings-ia-reorg",
+    "08-27-navigation-router"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
