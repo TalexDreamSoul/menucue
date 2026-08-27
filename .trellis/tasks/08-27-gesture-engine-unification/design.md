@@ -26,21 +26,35 @@ MultitouchTrackpadSource（不动）
 
 ## 识别器协议（关键契约）
 
+Stage A 已落地的实际契约（`TrackpadGestureRecognizers.swift`）：
+
 ```swift
-protocol TrackpadGestureRecognizing {
+protocol TrackpadGestureRecognizer: AnyObject {
   static var kind: TrackpadGestureKind { get }
-  /// 每帧调用；有状态族（tipTap/edgeContinuous/drawing 轨迹采集）在此消费。
-  /// state 为该族私有状态盒，Engine 按 kind 存取，不再塞进共享 Session。
-  func consume(frame: TrackpadFrame, session: SessionSnapshot, state: inout RecognizerState?, rules: [TrackpadGestureRule]) -> [TrackpadGestureMatch]
-  /// 会话结束（全部手指抬起）调用；完成态族（contact/swipe/pinch/…）在此判定。
-  func sessionEnded(session: SessionSnapshot, state: RecognizerState?, rules: [TrackpadGestureRule]) -> [TrackpadGestureMatch]
   /// 该族启用规则存在时需要的输入抑制（Service 据此装配 CGEventTap）。
-  static var suppression: TrackpadSuppressionNeed { get }  // .none / .scrollWheel / .leftClick(optIn)
+  static var suppression: TrackpadInputSuppressionNeed { get }  // .none / .scrollWheel / .optInLeftClick
+
+  /// 该族的会话状态盒（引用类型，避免每帧装箱）；完成态族返回 nil。
+  func makeSessionState() -> TrackpadRecognizerSessionState?
+  /// 每帧调用；有状态族（tipTap / edgeContinuous）在此消费。state 从 input.state 取。
+  func consume(_ input: TrackpadRecognizerInput) -> [TrackpadRecognizedGesture]
+  /// 会话结束（全部手指抬起）后**按规则**调用；Engine 保持规则主序遍历，
+  /// 所以命中由 specificity 决定，而不是注册顺序。默认实现返回 false —— 这就是
+  /// 原 `case .tipTap, .edgeContinuous: return false` 的替代。
+  func matchesCompletedSession(rule: TrackpadGestureRule, input: TrackpadRecognizerInput) -> Bool
+  func completionDirection(for rule: TrackpadGestureRule) -> TrackpadDirection?
+  /// 跨会话状态（doubleTap 的首次 tap）随 Engine.reset 清理。
+  func reset(deviceID: UInt64?)
 }
 ```
 
+与初版设计的两处偏差（实现时确定）：
+1. 完成态钩子是**按规则**的 `matchesCompletedSession(rule:input:)`，不是按族的 `sessionEnded(...) -> [Match]`。原因：`consumeCompletedSession` 是**规则主序**遍历（specificity 排序后取首个命中）；若改成族主序，跨 kind 竞争时胜者会变（行为漂移）。
+2. `state` 用引用类型状态盒 + `input.state`，不是 `inout RecognizerState?`。原因：`PendingTipTap` 远超 3 字，存进 `Any` 会每帧堆分配。
+
 - Engine.consume 顺序遍历注册表（注册顺序固定为现状评估顺序：tipTap → edgeContinuous → 完成态族），保持首个命中/break 语义与 `didEmitDiscrete`、`emittedRuleIDs` 现有约束。
-- `SessionSnapshot` 暴露现有 Session 的只读几何/时序数据；各族可变状态在 `state` 盒内（`PendingTipTap`、continuous 系列字段迁入各自识别器状态）。
+- `TrackpadSessionSnapshot` 暴露 Session 的只读几何/时序数据（含 `orderedHistories`、`duration`）；各族可变状态在自己的状态盒内（`PendingTipTap`、continuous 系列字段已迁入）。
+- `eligibleRules` 每帧只算一次，供全部族共享（原来一帧算 3 次）。
 - ContactHistory 轨迹采集保持现状（本任务不做按需采集优化，避免与 drawing 行为纠缠）。
 
 ## Service 改造
@@ -85,3 +99,15 @@ Service.handle 不再读 `match.rule.*`（Service:1287 改由字段直取）。
 6. 单测
 
 （对照现状 15 处：Engine 4 处、Service 4 处消失。）
+
+Stage A 后实测（`grep "case \.<kind>\|kind == \.<kind>"` 逐文件计数）：
+
+| 文件 | per-kind 分支数 | 说明 |
+|---|---|---|
+| TrackpadGestureEngine.swift | **0** | 只剩 `recognizersByKind[trigger.kind]` 一次注册表查表 |
+| TrackpadGestureService.swift | 3 | 全在两个 SuppressionPolicy 自己的镜像谓词 + `isConfirmedContactTap` 内；新增 `.none` 抑制的手势族**不需要动** |
+| TrackpadGestureRecognizers.swift | 2 | 各族在自己的识别器里过滤自己的规则 |
+| TrackpadGestureModels.swift | 1 | edgeContinuous 强制 2 指的 `normalized` 钳制（触点 1） |
+| TrackpadSettingsView.swift | 34 | 触点 3/4，子任务 3 的 UI 重排范围 |
+
+新增一族的实际触点 = Models 1 + 识别器/注册表 1 + View familyFields 1 + View summary/title 1 + 双语 1 + 单测 1 = **6**（Engine / Service 均为 0）。

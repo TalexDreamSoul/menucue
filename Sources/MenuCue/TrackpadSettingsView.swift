@@ -133,7 +133,7 @@ struct TrackpadSettingsView: View {
         if settings.suppressesClickAfterMultiFingerTap {
           clickSuppressionStatus
         }
-        if hasEnabledEdgeContinuousRule {
+        if suppressesNativeScrolling {
           edgeScrollSuppressionStatus
         }
       }
@@ -165,7 +165,7 @@ struct TrackpadSettingsView: View {
         .font(.caption)
         .foregroundStyle(.orange)
         .fixedSize(horizontal: false, vertical: true)
-        if !hasEnabledEdgeContinuousRule {
+        if !suppressesNativeScrolling {
           suppressionPermissionButtons
         }
       }
@@ -176,7 +176,7 @@ struct TrackpadSettingsView: View {
           .font(.caption)
           .foregroundStyle(.orange)
           .fixedSize(horizontal: false, vertical: true)
-        if !hasEnabledEdgeContinuousRule {
+        if !suppressesNativeScrolling {
           HStack(spacing: 8) {
             Button("Retry") { service.retry() }
               .disabled(!settings.isEnabled)
@@ -429,10 +429,8 @@ struct TrackpadSettingsView: View {
     settingBinding(\.suppressesClickAfterMultiFingerTap)
   }
 
-  private var hasEnabledEdgeContinuousRule: Bool {
-    settings.rules.contains { rule in
-      rule.isEnabled && rule.trigger.kind == .edgeContinuous
-    }
+  private var suppressesNativeScrolling: Bool {
+    TrackpadRecognizerRegistry.suppressionNeeds(for: settings.rules).contains(.scrollWheel)
   }
 
   private func settingBinding<Value>(

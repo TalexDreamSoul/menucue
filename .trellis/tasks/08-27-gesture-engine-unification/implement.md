@@ -4,14 +4,14 @@
 
 ## Stage A：识别与匹配收敛
 
-1. [ ] 读 research/trackpad-deep.md、design.md、Engine/Service/Models 现状。
-2. [ ] 建 TrackpadRuleMatcher.swift（RuleMatcher + TrackpadGeometry），带单测（specificity 排序、region/edge 几何与现实现逐一对拍）。
-3. [ ] Engine.eligibleRules 改调 RuleMatcher（行为等价，测试全绿）。
-4. [ ] Service 两个 SuppressionPolicy 改调 RuleMatcher/Geometry，删除本地副本；**补 specificity 排序**；新增覆盖抑制路径排序的测试。
-5. [ ] 建识别器协议 + 注册表；平移完成态六族（contact/swipe/edgeEntrySwipe/pinch/fingerSwipe/drawing）到各自识别器；Engine completionMatches 主 switch 删除。
-6. [ ] 平移 tipTap、edgeContinuous 到识别器（各自状态盒承接 Session 裸字段）；Engine.consume 改为遍历注册表；删除 :523-524 排除分支。
-7. [ ] 抑制需求声明化：注册表提供 suppressionNeeds；Service 删除 hasEnabledEdgeContinuousRule；装配逻辑改查询。
-8. [ ] 注册表穷举测试（每个 kind 恰有一个识别器）；全量 build+test。
+1. [x] 读 research/trackpad-deep.md、design.md、Engine/Service/Models 现状。
+2. [x] 建 TrackpadRuleMatcher.swift（RuleMatcher + TrackpadGeometry），带单测（specificity 排序、region/edge 几何与现实现逐一对拍）。
+3. [x] Engine.eligibleRules 改调 RuleMatcher（行为等价，测试全绿）。
+4. [x] Service 两个 SuppressionPolicy 改调 RuleMatcher/Geometry，删除本地副本；**补 specificity 排序**；新增覆盖抑制路径排序的测试。
+5. [x] 建识别器协议 + 注册表；平移完成态六族（contact/swipe/edgeEntrySwipe/pinch/fingerSwipe/drawing）到各自识别器；Engine completionMatches 主 switch 删除。
+6. [x] 平移 tipTap、edgeContinuous 到识别器（各自状态盒承接 Session 裸字段）；Engine.consume 改为遍历注册表；删除 :523-524 排除分支。
+7. [x] 抑制需求声明化：注册表提供 suppressionNeeds；Service 删除 hasEnabledEdgeContinuousRule；装配逻辑改查询。
+8. [x] 注册表穷举测试（每个 kind 恰有一个识别器）；全量 build+test。
 
 ## Stage B：动作层统一与声明修复
 
@@ -31,8 +31,10 @@
 ```bash
 swift build 2>&1 | tail -20
 swift test 2>&1 | tail -40
-swift test --filter TrackpadGestureTests 2>&1 | tail -30
-grep -rn "hasEnabledEdgeContinuousRule\|func regionMatches\|func edgeContains" Sources/ | grep -v RuleMatcher
+# --filter matches suite names, not file names: TrackpadGestureTests.swift holds
+# TrackpadGestureEngineTests, so filtering on the file name silently runs 0 tests.
+swift test --filter Trackpad 2>&1 | tail -30   # 71 tests: 35 engine + 11 matcher + 6 registry + 19 policy
+grep -rn "hasEnabledEdgeContinuousRule\|func regionMatches\|func edgeContains\|func centroid" Sources/ | grep -v TrackpadRuleMatcher.swift
 ```
 
 ## 回滚点

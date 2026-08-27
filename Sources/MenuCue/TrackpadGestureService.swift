@@ -36,7 +36,7 @@ struct TrackpadClickSuppressionPolicy {
 
   private var states: [UInt64: DeviceState] = [:]
 
-  /// This intentionally mirrors only the rule predicates known at raw-frame time. The
+  /// This asks the shared matcher only about the predicates known at raw-frame time. The
   /// engine remains the final authority at completion, before buffered clicks are dropped.
   func shouldArm(
     frame: TrackpadFrame,
@@ -48,23 +48,21 @@ struct TrackpadClickSuppressionPolicy {
     guard (2...5).contains(contacts.count), Set(contacts.map(\.id)).count == contacts.count else {
       return false
     }
-    let point = Self.centroid(contacts.map(\.position))
-    return settings.rules.contains { rule in
+    let point = TrackpadGeometry.centroid(contacts.map(\.position))
+    return !TrackpadRuleMatcher.eligibleRules(
+      settings.rules,
+      context: TrackpadRuleContext(
+        bundleIdentifier: context.bundleIdentifier,
+        modifiers: context.modifiers,
+        isBuiltIn: frame.isBuiltIn
+      )
+    ) { rule in
       let trigger = rule.trigger.normalized
-      guard rule.isEnabled,
-        trigger.kind == .contact,
-        trigger.contactGesture == .tap,
-        trigger.fingerCount == contacts.count,
-        rule.applicationScope.matches(bundleIdentifier: context.bundleIdentifier),
-        rule.requiredModifiers == context.modifiers,
-        Self.regionMatches(trigger.region, point: point)
-      else { return false }
-      switch rule.deviceScope {
-      case .allSupported: return true
-      case .builtInOnly: return frame.isBuiltIn
-      case .externalOnly: return !frame.isBuiltIn
-      }
-    }
+      return trigger.kind == .contact
+        && trigger.contactGesture == .tap
+        && trigger.fingerCount == contacts.count
+        && TrackpadGeometry.regionMatches(trigger.region, point: point)
+    }.isEmpty
   }
 
   mutating func consume(
@@ -166,34 +164,6 @@ struct TrackpadClickSuppressionPolicy {
       }
     }
   }
-
-  private static func centroid(_ points: [TrackpadPoint]) -> TrackpadPoint {
-    guard !points.isEmpty else { return TrackpadPoint(x: 0, y: 0) }
-    let count = Double(points.count)
-    return TrackpadPoint(
-      x: points.map(\.x).reduce(0, +) / count,
-      y: points.map(\.y).reduce(0, +) / count
-    )
-  }
-
-  private static func regionMatches(_ region: TrackpadGestureRegion, point: TrackpadPoint) -> Bool {
-    let low = 0.33
-    let high = 0.67
-    switch region {
-    case .anywhere: return true
-    case .center: return (low...high).contains(point.x) && (low...high).contains(point.y)
-    case .left: return point.x < low
-    case .right: return point.x > high
-    case .topLeft: return point.x < low && point.y > high
-    case .topMiddle: return (low...high).contains(point.x) && point.y > high
-    case .topRight: return point.x > high && point.y > high
-    case .leftMiddle: return point.x < low && (low...high).contains(point.y)
-    case .rightMiddle: return point.x > high && (low...high).contains(point.y)
-    case .bottomLeft: return point.x < low && point.y < low
-    case .bottomMiddle: return (low...high).contains(point.x) && point.y < low
-    case .bottomRight: return point.x > high && point.y < low
-    }
-  }
 }
 
 struct TrackpadEdgeScrollSuppressionDecision: Equatable {
@@ -202,11 +172,14 @@ struct TrackpadEdgeScrollSuppressionDecision: Equatable {
 }
 
 enum TrackpadMatchDispatchPolicy {
+  /// A gesture that only works because native scrolling is being consumed may act only
+  /// while it actually owns that suppression.
   static func shouldDispatch(
     _ match: TrackpadGestureMatch,
     edgeGestureOwned: Bool
   ) -> Bool {
-    match.rule.trigger.kind != .edgeContinuous || edgeGestureOwned
+    TrackpadRecognizerRegistry.suppression(for: match.rule.trigger.kind) != .scrollWheel
+      || edgeGestureOwned
   }
 }
 
@@ -435,35 +408,23 @@ struct TrackpadEdgeScrollSuppressionPolicy {
     useExpandedCorridor: Bool
   ) -> [TrackpadEdge] {
     guard settings.isEnabled, !points.isEmpty else { return [] }
-    let width = min(0.35, settings.edgeWidth + (useExpandedCorridor ? 0.06 : 0))
-    return settings.rules.compactMap { rule in
+    let width = TrackpadGeometry.edgeCorridorWidth(
+      settings.edgeWidth,
+      expanded: useExpandedCorridor
+    )
+    return TrackpadRuleMatcher.eligibleRules(
+      settings.rules,
+      context: TrackpadRuleContext(
+        bundleIdentifier: context.bundleIdentifier,
+        modifiers: context.modifiers,
+        isBuiltIn: frame.isBuiltIn
+      )
+    ) { rule in
       let trigger = rule.trigger.normalized
-      guard rule.isEnabled,
-        trigger.kind == .edgeContinuous,
-        trigger.fingerCount == 2,
-        rule.applicationScope.matches(bundleIdentifier: context.bundleIdentifier),
-        rule.requiredModifiers == context.modifiers,
-        points.allSatisfy({ edgeContains(trigger.edge, point: $0, width: width) })
-      else { return nil }
-      switch rule.deviceScope {
-      case .allSupported: return trigger.edge
-      case .builtInOnly: return frame.isBuiltIn ? trigger.edge : nil
-      case .externalOnly: return frame.isBuiltIn ? nil : trigger.edge
-      }
-    }
-  }
-
-  private static func edgeContains(
-    _ edge: TrackpadEdge,
-    point: TrackpadPoint,
-    width: Double
-  ) -> Bool {
-    switch edge {
-    case .left: return point.x <= width
-    case .right: return point.x >= 1 - width
-    case .top: return point.y >= 1 - width
-    case .bottom: return point.y <= width
-    }
+      return trigger.kind == .edgeContinuous
+        && trigger.fingerCount == 2
+        && points.allSatisfy { TrackpadGeometry.edgeContains(trigger.edge, point: $0, width: width) }
+    }.map(\.trigger.edge)
   }
 }
 
@@ -1132,7 +1093,8 @@ final class TrackpadGestureService: ObservableObject {
     configureLifecycleObservers(enabled: settings.isEnabled)
     configureClickSuppression(enabled: settings.isEnabled && settings.suppressesClickAfterMultiFingerTap)
     configureEdgeScrollSuppression(
-      enabled: settings.isEnabled && Self.hasEnabledEdgeContinuousRule(settings)
+      enabled: settings.isEnabled
+        && TrackpadRecognizerRegistry.suppressionNeeds(for: settings.rules).contains(.scrollWheel)
     )
     engineQueue.async { [weak self] in
       guard let self else { return }
@@ -1486,12 +1448,6 @@ final class TrackpadGestureService: ObservableObject {
   private func publish(edgeScrollSuppressionStatus: TrackpadInputSuppressionStatus) {
     runOnMain { [weak self] in
       self?.edgeScrollSuppressionStatus = edgeScrollSuppressionStatus
-    }
-  }
-
-  private static func hasEnabledEdgeContinuousRule(_ settings: TrackpadGestureSettings) -> Bool {
-    settings.rules.contains { rule in
-      rule.isEnabled && rule.trigger.kind == .edgeContinuous
     }
   }
 

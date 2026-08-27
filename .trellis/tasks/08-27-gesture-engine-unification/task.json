@@ -3,7 +3,7 @@
   "name": "gesture-engine-unification",
   "title": "触控板手势引擎统一抽象",
   "description": "统一 RuleMatcher、识别器协议+注册表、动作层合并 ActionCatalog，消除三份复制与 13 处 kind 分支。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
