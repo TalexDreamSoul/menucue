@@ -37,6 +37,10 @@ struct TrackpadSettingsView: View {
     }
     .onAppear {
       model.quickActionService.refreshAll()
+      service.retainLivePreview()
+    }
+    .onDisappear {
+      service.releaseLivePreview()
     }
     .confirmationDialog(
       "Reset gesture presets?",

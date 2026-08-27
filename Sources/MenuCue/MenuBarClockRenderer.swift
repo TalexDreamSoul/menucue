@@ -49,6 +49,8 @@ final class MenuBarClockRenderer {
     private var locale: Locale
     private let dateFormatter = DateFormatter()
     private let timeFormatter = DateFormatter()
+    private var appliedTimeZoneIdentifier: String?
+    private var appliedTimeZoneIsSystem = false
 
     init(
         format: MenuBarFormatSettings = .compatibilityDefault,
@@ -70,8 +72,15 @@ final class MenuBarClockRenderer {
     }
 
     func render(date: Date, clock: ClockTimeZone) -> MenuBarClockRendering {
-        dateFormatter.timeZone = clock.timeZone
-        timeFormatter.timeZone = clock.timeZone
+        // Assigning `timeZone` rebuilds the underlying ICU formatter, so the per-second
+        // render only pays it on a real change. The system clock carries the autoupdating
+        // zone, which is not interchangeable with a fixed zone of the same identifier.
+        if appliedTimeZoneIdentifier != clock.identifier || appliedTimeZoneIsSystem != clock.isSystem {
+            dateFormatter.timeZone = clock.timeZone
+            timeFormatter.timeZone = clock.timeZone
+            appliedTimeZoneIdentifier = clock.identifier
+            appliedTimeZoneIsSystem = clock.isSystem
+        }
 
         let timeText = timeFormatter.string(from: date).trimmingCharacters(in: .whitespacesAndNewlines)
         let renderedDate = dateFormatter.dateFormat.isEmpty
@@ -125,6 +134,7 @@ final class MenuBarClockRenderer {
     private func rebuildFormatters() {
         dateFormatter.locale = locale
         timeFormatter.locale = locale
+        appliedTimeZoneIdentifier = nil
 
         switch format.mode {
         case .structured:

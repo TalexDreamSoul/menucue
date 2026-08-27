@@ -1060,7 +1060,14 @@ final class TrackpadGestureService: ObservableObject {
   private var wakeObserver: NSObjectProtocol?
   private var sleepObserver: NSObjectProtocol?
   private var activationObserver: NSObjectProtocol?
+  private var frontmostObserver: NSObjectProtocol?
   private var lastLiveContactPublication: TimeInterval = 0
+  private var livePreviewRetainCount = 0
+
+  // Written only on the main thread, read on the engine queue for every frame.
+  private let frontmostLock = NSLock()
+  private var frontmostBundleIdentifier: String?
+  private var hasFrontmostBundleIdentifier = false
 
   private lazy var source = MultitouchTrackpadSource(
     deliveryQueue: engineQueue,
@@ -1207,7 +1214,7 @@ final class TrackpadGestureService: ObservableObject {
   private func receive(_ sourceFrame: TrackpadSourceFrame) {
     guard activeSettings.isEnabled else { return }
     let frame = sourceFrame.trackpadFrame
-    let context = Self.currentContext()
+    let context = currentContext()
     let edgeDecision = edgeScrollSuppressionPolicy.consume(
       frame: frame,
       settings: activeSettings,
@@ -1328,6 +1335,18 @@ final class TrackpadGestureService: ObservableObject {
         ) { [weak self] _ in
           self?.reconcileAfterActivation()
         }
+        self.frontmostObserver = self.workspaceNotificationCenter.addObserver(
+          forName: NSWorkspace.didActivateApplicationNotification,
+          object: nil,
+          queue: .main
+        ) { [weak self] notification in
+          let application =
+            notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+          self?.primeFrontmostApplication(application?.bundleIdentifier)
+        }
+        // The observer is live from here on, so any activation that lands after this read
+        // overwrites it rather than being lost.
+        self.primeFrontmostApplication(NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
       } else {
         self.removeLifecycleObservers()
       }
@@ -1349,7 +1368,26 @@ final class TrackpadGestureService: ObservableObject {
         self.notificationCenter.removeObserver(activationObserver)
         self.activationObserver = nil
       }
+      if let frontmostObserver {
+        self.workspaceNotificationCenter.removeObserver(frontmostObserver)
+        self.frontmostObserver = nil
+      }
+      self.clearFrontmostApplication()
     }
+  }
+
+  private func primeFrontmostApplication(_ bundleIdentifier: String?) {
+    frontmostLock.lock()
+    frontmostBundleIdentifier = bundleIdentifier
+    hasFrontmostBundleIdentifier = true
+    frontmostLock.unlock()
+  }
+
+  private func clearFrontmostApplication() {
+    frontmostLock.lock()
+    frontmostBundleIdentifier = nil
+    hasFrontmostBundleIdentifier = false
+    frontmostLock.unlock()
   }
 
   private func handleWake() {
@@ -1392,7 +1430,25 @@ final class TrackpadGestureService: ObservableObject {
     }
   }
 
+  /// Balanced by the trackpad settings pane while it is on screen. Nothing else observes
+  /// `liveContacts`, so outside that window the publication is pure cost.
+  func retainLivePreview() {
+    engineQueue.async { [weak self] in
+      self?.livePreviewRetainCount += 1
+    }
+  }
+
+  func releaseLivePreview() {
+    engineQueue.async { [weak self] in
+      guard let self else { return }
+      self.livePreviewRetainCount = max(0, self.livePreviewRetainCount - 1)
+      guard self.livePreviewRetainCount == 0 else { return }
+      self.publish(liveContacts: [])
+    }
+  }
+
   private func publishLiveContacts(_ contacts: [TrackpadContact]) {
+    guard livePreviewRetainCount > 0 else { return }
     let now = ProcessInfo.processInfo.systemUptime
     guard now - lastLiveContactPublication >= (1 / 30) else { return }
     lastLiveContactPublication = now
@@ -1458,7 +1514,10 @@ final class TrackpadGestureService: ObservableObject {
 
 
 
-  private static func currentContext() -> TrackpadGestureContext {
+  /// Modifier flags have to be read per frame because a rule can be held down mid-gesture.
+  /// The frontmost application cannot change without an activation notification, so it is
+  /// served from the cache that notification maintains.
+  private func currentContext() -> TrackpadGestureContext {
     let flags = CGEventSource.flagsState(.combinedSessionState)
     var modifiers = Set<TrackpadModifier>()
     if flags.contains(.maskCommand) { modifiers.insert(.command) }
@@ -1467,9 +1526,18 @@ final class TrackpadGestureService: ObservableObject {
     if flags.contains(.maskShift) { modifiers.insert(.shift) }
     if flags.contains(.maskSecondaryFn) { modifiers.insert(.function) }
     return TrackpadGestureContext(
-      bundleIdentifier: NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+      bundleIdentifier: currentFrontmostBundleIdentifier(),
       modifiers: modifiers
     )
+  }
+
+  private func currentFrontmostBundleIdentifier() -> String? {
+    frontmostLock.lock()
+    let isPrimed = hasFrontmostBundleIdentifier
+    let cached = frontmostBundleIdentifier
+    frontmostLock.unlock()
+    guard isPrimed else { return NSWorkspace.shared.frontmostApplication?.bundleIdentifier }
+    return cached
   }
 
   private func runOnMain(_ operation: @escaping () -> Void) {

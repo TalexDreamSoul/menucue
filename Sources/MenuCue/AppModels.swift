@@ -755,21 +755,7 @@ enum TimeZoneCatalog {
 
     static func statusTitle(for identifier: String) -> String {
         let title = shortTitle(for: identifier)
-        let knownCodes = [
-            "Los Angeles": "LA",
-            "New York": "NYC",
-            "London": "LON",
-            "Paris": "PAR",
-            "Berlin": "BER",
-            "Shanghai": "SHA",
-            "Hong Kong": "HKG",
-            "Singapore": "SG",
-            "Tokyo": "TYO",
-            "Seoul": "SEL",
-            "Sydney": "SYD",
-            "Dubai": "DXB"
-        ]
-        if let code = knownCodes[title] {
+        if let code = statusCodesByCity[title] {
             return code
         }
         return title
@@ -779,6 +765,21 @@ enum TimeZoneCatalog {
             .map { String($0).uppercased() }
             .joined()
     }
+
+    private static let statusCodesByCity = [
+        "Los Angeles": "LA",
+        "New York": "NYC",
+        "London": "LON",
+        "Paris": "PAR",
+        "Berlin": "BER",
+        "Shanghai": "SHA",
+        "Hong Kong": "HKG",
+        "Singapore": "SG",
+        "Tokyo": "TYO",
+        "Seoul": "SEL",
+        "Sydney": "SYD",
+        "Dubai": "DXB"
+    ]
 
     static func flag(for identifier: String) -> String {
         guard let countryCode = countryCode(for: identifier) else { return "🌐" }
@@ -790,64 +791,65 @@ enum TimeZoneCatalog {
     private static func countryCode(for identifier: String) -> String? {
         let normalizedIdentifier = identifier.replacingOccurrences(of: "_", with: " ")
         let city = shortTitle(for: identifier)
-        let directMatches = [
-            "America/Los Angeles": "US",
-            "America/New York": "US",
-            "America/Chicago": "US",
-            "America/Denver": "US",
-            "America/Phoenix": "US",
-            "America/Anchorage": "US",
-            "Pacific/Honolulu": "US",
-            "America/Toronto": "CA",
-            "America/Vancouver": "CA",
-            "America/Mexico City": "MX",
-            "America/Sao Paulo": "BR",
-            "America/Buenos Aires": "AR",
-            "Europe/London": "GB",
-            "Europe/Paris": "FR",
-            "Europe/Berlin": "DE",
-            "Europe/Rome": "IT",
-            "Europe/Madrid": "ES",
-            "Europe/Amsterdam": "NL",
-            "Europe/Zurich": "CH",
-            "Europe/Stockholm": "SE",
-            "Europe/Moscow": "RU",
-            "Asia/Shanghai": "CN",
-            "Asia/Hong Kong": "HK",
-            "Asia/Singapore": "SG",
-            "Asia/Tokyo": "JP",
-            "Asia/Seoul": "KR",
-            "Asia/Taipei": "TW",
-            "Asia/Bangkok": "TH",
-            "Asia/Jakarta": "ID",
-            "Asia/Kolkata": "IN",
-            "Asia/Dubai": "AE",
-            "Asia/Jerusalem": "IL",
-            "Australia/Sydney": "AU",
-            "Australia/Melbourne": "AU",
-            "Australia/Perth": "AU",
-            "Pacific/Auckland": "NZ"
-        ]
-        if let countryCode = directMatches[normalizedIdentifier] {
+        if let countryCode = countryCodesByIdentifier[normalizedIdentifier] {
             return countryCode
         }
-
-        let cityMatches = [
-            "Los Angeles": "US",
-            "New York": "US",
-            "London": "GB",
-            "Paris": "FR",
-            "Berlin": "DE",
-            "Shanghai": "CN",
-            "Hong Kong": "HK",
-            "Singapore": "SG",
-            "Tokyo": "JP",
-            "Seoul": "KR",
-            "Sydney": "AU",
-            "Dubai": "AE"
-        ]
-        return cityMatches[city]
+        return countryCodesByCity[city]
     }
+
+    private static let countryCodesByIdentifier = [
+        "America/Los Angeles": "US",
+        "America/New York": "US",
+        "America/Chicago": "US",
+        "America/Denver": "US",
+        "America/Phoenix": "US",
+        "America/Anchorage": "US",
+        "Pacific/Honolulu": "US",
+        "America/Toronto": "CA",
+        "America/Vancouver": "CA",
+        "America/Mexico City": "MX",
+        "America/Sao Paulo": "BR",
+        "America/Buenos Aires": "AR",
+        "Europe/London": "GB",
+        "Europe/Paris": "FR",
+        "Europe/Berlin": "DE",
+        "Europe/Rome": "IT",
+        "Europe/Madrid": "ES",
+        "Europe/Amsterdam": "NL",
+        "Europe/Zurich": "CH",
+        "Europe/Stockholm": "SE",
+        "Europe/Moscow": "RU",
+        "Asia/Shanghai": "CN",
+        "Asia/Hong Kong": "HK",
+        "Asia/Singapore": "SG",
+        "Asia/Tokyo": "JP",
+        "Asia/Seoul": "KR",
+        "Asia/Taipei": "TW",
+        "Asia/Bangkok": "TH",
+        "Asia/Jakarta": "ID",
+        "Asia/Kolkata": "IN",
+        "Asia/Dubai": "AE",
+        "Asia/Jerusalem": "IL",
+        "Australia/Sydney": "AU",
+        "Australia/Melbourne": "AU",
+        "Australia/Perth": "AU",
+        "Pacific/Auckland": "NZ"
+    ]
+
+    private static let countryCodesByCity = [
+        "Los Angeles": "US",
+        "New York": "US",
+        "London": "GB",
+        "Paris": "FR",
+        "Berlin": "DE",
+        "Shanghai": "CN",
+        "Hong Kong": "HK",
+        "Singapore": "SG",
+        "Tokyo": "JP",
+        "Seoul": "KR",
+        "Sydney": "AU",
+        "Dubai": "AE"
+    ]
 
     static func offsetText(for timeZone: TimeZone, date: Date = Date()) -> String {
         let seconds = timeZone.secondsFromGMT(for: date)

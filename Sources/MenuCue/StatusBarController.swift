@@ -54,6 +54,45 @@ struct SettingsWindowDockController {
   }
 }
 
+/// Every input the date capsule is drawn from. `backingScale` is part of it because the
+/// capsule is rasterised at the scale of whichever display carries the menu bar.
+struct DateCapsuleKey: Hashable {
+  let text: String
+  let flag: String?
+  let isDark: Bool
+  let backingScale: CGFloat
+}
+
+/// The capsule shows a date, so its content turns over roughly once a day while the clock
+/// redraws every second. Keeping the rendered capsules removes a bitmap context, two text
+/// measurements and two draws from the per-second path.
+///
+/// A hit must return the *same* `NSAttributedString` instance, not an equal one:
+/// `applyStatusTitle` skips the title assignment by comparing the built title against the
+/// one on the button, and the capsule rides in that title as an `NSTextAttachment`, which
+/// compares by identity. Re-wrapping a cached capsule in a fresh attachment would leave
+/// every title unequal and silently turn that skip off.
+final class DateCapsuleCache {
+  /// The status bar rotates through the configured clocks, so the working set is one entry
+  /// per clock — briefly two, while a date rollover crosses time zones. Sized well past any
+  /// plausible clock count, because overflowing drops the hit rate to zero rather than
+  /// degrading: eviction clears the whole table, and the rotation refills it immediately.
+  static let capacity = 32
+
+  private var entries: [DateCapsuleKey: NSAttributedString] = [:]
+
+  func string(
+    for key: DateCapsuleKey,
+    make: (DateCapsuleKey) -> NSAttributedString
+  ) -> NSAttributedString {
+    if let cached = entries[key] { return cached }
+    let rendered = make(key)
+    if entries.count >= Self.capacity { entries.removeAll(keepingCapacity: true) }
+    entries[key] = rendered
+    return rendered
+  }
+}
+
 final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private let statusItem: NSStatusItem
   private let popover: NSPopover
@@ -68,6 +107,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private var isPresentingSyncPrompt = false
   private var currentStatusClockID: String?
   private var clockSelection = StatusClockSelectionState()
+  private let dateCapsuleCache = DateCapsuleCache()
   private lazy var clockRenderer = MenuBarClockRenderer(format: model.settings.menuBarFormat)
   private let settingsWindowDockController = SettingsWindowDockController()
   private var interactionView: StatusItemInteractionView?
@@ -262,15 +302,16 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   }
 
   private func refreshClockTitle(transitionOrigin: ClockTransitionOrigin = .bottom) {
-    popover.contentViewController?.view.appearance = NSApp.appearance
-    settingsWindow?.contentViewController?.view.appearance = NSApp.appearance
-    quickEventWindow?.contentViewController?.view.appearance = NSApp.appearance
+    let appearance = NSApp.appearance
+    Self.apply(appearance, to: popover.contentViewController?.view)
+    Self.apply(appearance, to: settingsWindow?.contentViewController?.view)
+    Self.apply(appearance, to: quickEventWindow?.contentViewController?.view)
     let now = Date()
     let clocks = model.settings.clockTimeZones
     let clock = currentStatusClock(at: now)
     let attributedTitle = NSMutableAttributedString(string: " ")
     appendClock(clock, at: now, includeLabel: clocks.count > 1, to: attributedTitle)
-    attributedTitle.append(NSAttributedString(string: " ", attributes: baseTitleAttributes))
+    attributedTitle.append(NSAttributedString(string: " ", attributes: Self.baseTitleAttributes))
     let shouldAnimate = currentStatusClockID != nil && currentStatusClockID != clock.id
     applyStatusTitle(
       attributedTitle,
@@ -278,7 +319,17 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
       animated: shouldAnimate,
       transitionOrigin: transitionOrigin
     )
-    interactionView?.frame = statusItem.button?.bounds ?? .zero
+    let buttonBounds = statusItem.button?.bounds ?? .zero
+    if let interactionView, interactionView.frame != buttonBounds {
+      interactionView.frame = buttonBounds
+    }
+  }
+
+  /// Setting `appearance` re-runs the appearance walk over the whole hosted view tree even
+  /// when the value is unchanged, so the per-second refresh must compare first.
+  private static func apply(_ appearance: NSAppearance?, to view: NSView?) {
+    guard let view, view.appearance !== appearance else { return }
+    view.appearance = appearance
   }
 
   private func currentStatusClock(at date: Date) -> ClockTimeZone {
@@ -293,23 +344,25 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     )
   }
 
-  private var baseTitleAttributes: [NSAttributedString.Key: Any] {
-    [
-      .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold),
-      .foregroundColor: NSColor.labelColor,
-      .kern: -0.2,
-      .baselineOffset: -1.5,
-    ]
-  }
+  // `labelColor` is a dynamic colour, so it still resolves against the appearance in effect
+  // when the title is drawn — holding the attributes here only skips the font lookup.
+  private static let baseTitleAttributes: [NSAttributedString.Key: Any] = [
+    .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold),
+    .foregroundColor: NSColor.labelColor,
+    .kern: -0.2,
+    .baselineOffset: -1.5,
+  ]
 
-  private var timeTitleAttributes: [NSAttributedString.Key: Any] {
-    [
-      .font: NSFont.monospacedDigitSystemFont(ofSize: 13.5, weight: .semibold),
-      .foregroundColor: NSColor.labelColor,
-      .kern: -0.2,
-      .baselineOffset: -1.5,
-    ]
-  }
+  private static let timeTitleAttributes: [NSAttributedString.Key: Any] = [
+    .font: NSFont.monospacedDigitSystemFont(ofSize: 13.5, weight: .semibold),
+    .foregroundColor: NSColor.labelColor,
+    .kern: -0.2,
+    .baselineOffset: -1.5,
+  ]
+
+  private static let dateCapsuleFont = NSFont.monospacedDigitSystemFont(
+    ofSize: 11.5, weight: .semibold)
+  private static let dateCapsuleFlagFont = NSFont.systemFont(ofSize: 9.0, weight: .regular)
 
   private func applyStatusTitle(
     _ attributedTitle: NSAttributedString,
@@ -318,6 +371,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     transitionOrigin: ClockTransitionOrigin
   ) {
     guard let button = statusItem.button else { return }
+    // Assigning the title re-measures the cell and lays the button out again, so a refresh
+    // that produced the same title has to stop here. A clock switch always changes it.
+    // This comparison only holds because `DateCapsuleCache` hands back the same attributed
+    // string on a hit — see the note there before changing how capsules are vended.
+    guard animated || button.attributedTitle != attributedTitle else {
+      currentStatusClockID = clockID
+      return
+    }
     let motion = MotionProfile(
       quality: model.settings.animationQuality,
       reducesMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -351,7 +412,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
       appendTimeSegment(rendering.timeText, leadingSpace: true, to: attributedTitle)
     case let (.some(dateText), .timeThenDate):
       appendTimeSegment(rendering.timeText, leadingSpace: false, to: attributedTitle)
-      attributedTitle.append(NSAttributedString(string: " ", attributes: baseTitleAttributes))
+      attributedTitle.append(NSAttributedString(string: " ", attributes: Self.baseTitleAttributes))
       attributedTitle.append(dateCapsuleString(dateText, flag: includeLabel ? clock.flag : nil))
     case (.none, _):
       let prefix = includeLabel ? "\(clock.flag) " : ""
@@ -366,13 +427,25 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   ) {
     let prefix = leadingSpace ? " " : ""
     attributedTitle.append(
-      NSAttributedString(string: "\(prefix)\(text)", attributes: timeTitleAttributes)
+      NSAttributedString(string: "\(prefix)\(text)", attributes: Self.timeTitleAttributes)
     )
   }
 
   private func dateCapsuleString(_ text: String, flag: String?) -> NSAttributedString {
-    let dateFont = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .semibold)
-    let flagFont = NSFont.systemFont(ofSize: 9.0, weight: .regular)
+    let key = DateCapsuleKey(
+      text: text,
+      flag: flag,
+      isDark: isDarkAppearanceActive,
+      backingScale: statusItem.button?.window?.backingScaleFactor
+        ?? NSScreen.main?.backingScaleFactor ?? 1
+    )
+    return dateCapsuleCache.string(for: key, make: Self.drawDateCapsule)
+  }
+
+  private static func drawDateCapsule(_ key: DateCapsuleKey) -> NSAttributedString {
+    let text = key.text
+    let flag = key.flag
+    let dateFont = dateCapsuleFont
     let horizontalPadding: CGFloat = 6
     let verticalPadding: CGFloat = 2.5
     let flagSpacing: CGFloat = flag == nil ? 0 : 3
@@ -382,7 +455,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
       .kern: -0.2,
     ]
     let flagAttributes: [NSAttributedString.Key: Any] = [
-      .font: flagFont
+      .font: dateCapsuleFlagFont
     ]
     let flagSize = flag.map { ($0 as NSString).size(withAttributes: flagAttributes) } ?? .zero
     let textSize = (text as NSString).size(withAttributes: dateAttributes)
@@ -393,7 +466,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let image = NSImage(size: imageSize)
     image.lockFocus()
     let capsuleRect = NSRect(origin: .zero, size: imageSize)
-    NSColor.white.withAlphaComponent(isDarkAppearanceActive ? 0.92 : 0.82).setFill()
+    NSColor.white.withAlphaComponent(key.isDark ? 0.92 : 0.82).setFill()
     NSBezierPath(roundedRect: capsuleRect, xRadius: 5, yRadius: 5).fill()
 
     var drawX = horizontalPadding

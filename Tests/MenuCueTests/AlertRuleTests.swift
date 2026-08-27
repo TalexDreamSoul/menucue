@@ -502,6 +502,51 @@ final class NotificationRuntimeStoreTests: XCTestCase {
     XCTAssertEqual(snapshot.events.count, 1)
   }
 
+  func testEventRetentionDropsOldestAndKeepsTimeOrder() async throws {
+    let store = try NotificationRuntimeStore(fileURL: temporaryURL(), maximumRetainedEvents: 3)
+    for index in 1...5 {
+      try await store.commit(
+        commit(eventID: "event-\(index)", channels: [.bark], occurredAt: date(TimeInterval(index)))
+      )
+    }
+
+    let snapshot = await store.snapshot()
+    XCTAssertEqual(snapshot.events.map(\.message.eventID), ["event-3", "event-4", "event-5"])
+    XCTAssertEqual(snapshot.events.map(\.createdAt), [date(3), date(4), date(5)])
+  }
+
+  func testOutOfOrderEventStillSortsBeforeRetentionTrims() async throws {
+    let store = try NotificationRuntimeStore(fileURL: temporaryURL(), maximumRetainedEvents: 3)
+    for (eventID, seconds) in [("late", 40.0), ("early", 10.0), ("middle", 20.0), ("last", 50.0)] {
+      try await store.commit(
+        commit(eventID: eventID, channels: [.bark], occurredAt: date(seconds))
+      )
+    }
+
+    let snapshot = await store.snapshot()
+    XCTAssertEqual(snapshot.events.map(\.message.eventID), ["middle", "late", "last"])
+    XCTAssertEqual(snapshot.events.map(\.createdAt), [date(20), date(40), date(50)])
+  }
+
+  func testOversizedExistingFileLoadsIntactAndConvergesOnNextCommit() async throws {
+    let url = temporaryURL()
+    try FileManager.default.createDirectory(
+      at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+    var stored = NotificationRuntimeSnapshot()
+    stored.events = (1...5).map { event(eventID: "old-\($0)", occurredAt: date(TimeInterval($0))) }
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .millisecondsSince1970
+    try encoder.encode(stored).write(to: url)
+
+    let store = try NotificationRuntimeStore(fileURL: url, maximumRetainedEvents: 2)
+    var snapshot = await store.snapshot()
+    XCTAssertEqual(snapshot.events.count, 5)
+
+    try await store.commit(commit(eventID: "new", channels: [.bark], occurredAt: date(6)))
+    snapshot = await store.snapshot()
+    XCTAssertEqual(snapshot.events.map(\.message.eventID), ["old-5", "new"])
+  }
+
   private func rule() -> AlertRule {
     AlertRule(
       id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!,
@@ -509,19 +554,33 @@ final class NotificationRuntimeStoreTests: XCTestCase {
       condition: .numeric(operator: .above, threshold: 0.9), channels: [.bark])
   }
 
-  private func commit(eventID: String, channels: Set<NotificationChannelKind>)
-    -> AlertRuntimeCommit
-  {
-    let message = NotificationMessage(
+  private func message(eventID: String, occurredAt: Date) -> NotificationMessage {
+    NotificationMessage(
       eventID: eventID,
       deviceName: "Mac",
       ruleID: rule().id.uuidString,
       state: .alert,
-      occurredAt: date(1),
+      occurredAt: occurredAt,
       title: "Alert",
       body: "Body",
       metric: nil
     )
+  }
+
+  private func event(eventID: String, occurredAt: Date) -> NotificationRuntimeEvent {
+    NotificationRuntimeEvent(
+      message: message(eventID: eventID, occurredAt: occurredAt),
+      createdAt: occurredAt,
+      deliveries: [.bark: NotificationRuntimeDelivery()]
+    )
+  }
+
+  private func commit(
+    eventID: String,
+    channels: Set<NotificationChannelKind>,
+    occurredAt: Date? = nil
+  ) -> AlertRuntimeCommit {
+    let message = message(eventID: eventID, occurredAt: occurredAt ?? date(1))
     return AlertRuntimeCommit(
       ruleID: rule().id, runtime: AlertRuleRuntime(), message: message, channels: channels)
   }

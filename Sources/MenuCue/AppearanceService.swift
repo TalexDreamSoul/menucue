@@ -5,6 +5,8 @@ final class AppearanceService {
     private let systemAppearanceAuditInterval: TimeInterval = 15
     private var lastAppliedSystemDarkMode: Bool?
     private var lastSystemAppearanceAuditDate: Date?
+    private var hasAppliedAppAppearance = false
+    private var lastAppliedAppearanceName: NSAppearance.Name?
 
     func apply(settings: AppSettings, date: Date = Date()) {
         let targetDarkMode = Self.targetDarkMode(settings: settings, date: date)
@@ -25,16 +27,26 @@ final class AppearanceService {
     }
 
     private func applyAppAppearance(settings: AppSettings, targetDarkMode: Bool?) {
+        let name: NSAppearance.Name?
         switch settings.appearanceMode {
         case .system:
-            NSApp.appearance = nil
+            name = nil
         case .light:
-            NSApp.appearance = NSAppearance(named: .aqua)
+            name = .aqua
         case .dark:
-            NSApp.appearance = NSAppearance(named: .darkAqua)
+            name = .darkAqua
         case .automaticByTimeZone:
-            NSApp.appearance = NSAppearance(named: targetDarkMode == true ? .darkAqua : .aqua)
+            name = targetDarkMode == true ? .darkAqua : .aqua
         }
+
+        // Assigning NSApp.appearance is never a no-op: AppKit invalidates every window
+        // appearance and walks the view tree, so the caller's per-second refresh must not
+        // reach it unless the resolved appearance actually changed. `nil` (follow the
+        // system) is a real value here, hence the separate first-apply flag.
+        guard !hasAppliedAppAppearance || lastAppliedAppearanceName != name else { return }
+        hasAppliedAppAppearance = true
+        lastAppliedAppearanceName = name
+        NSApp.appearance = name.flatMap { NSAppearance(named: $0) }
     }
 
     private static func targetDarkMode(settings: AppSettings, date: Date) -> Bool? {

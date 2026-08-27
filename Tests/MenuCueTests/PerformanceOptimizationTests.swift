@@ -76,6 +76,63 @@ final class StatusSamplingControllerTests: XCTestCase {
   }
 }
 
+final class DateCapsuleCacheTests: XCTestCase {
+  private let base = DateCapsuleKey(
+    text: "Thu Jan 15", flag: "🇺🇸", isDark: true, backingScale: 2)
+
+  func testEveryDrawingInputInvalidatesTheCachedCapsule() {
+    let cache = DateCapsuleCache()
+    var renders = 0
+    func capsule(_ key: DateCapsuleKey) -> NSAttributedString {
+      cache.string(for: key) { key in
+        renders += 1
+        return NSAttributedString(string: key.text)
+      }
+    }
+
+    let first = capsule(base)
+    XCTAssertTrue(capsule(base) === first)
+    XCTAssertEqual(renders, 1)
+
+    for variant in [
+      DateCapsuleKey(
+        text: "Fri Jan 16", flag: base.flag, isDark: base.isDark, backingScale: base.backingScale),
+      DateCapsuleKey(
+        text: base.text, flag: nil, isDark: base.isDark, backingScale: base.backingScale),
+      DateCapsuleKey(
+        text: base.text, flag: base.flag, isDark: false, backingScale: base.backingScale),
+      DateCapsuleKey(text: base.text, flag: base.flag, isDark: base.isDark, backingScale: 1),
+    ] {
+      _ = capsule(variant)
+    }
+    XCTAssertEqual(renders, 5)
+
+    // Clock rotation alternates between capsules, so a variant must not evict the original.
+    XCTAssertTrue(capsule(base) === first)
+    XCTAssertEqual(renders, 5)
+  }
+
+  func testCacheStaysBounded() {
+    let cache = DateCapsuleCache()
+    var renders = 0
+    func capsule(_ text: String) {
+      let key = DateCapsuleKey(text: text, flag: nil, isDark: false, backingScale: 2)
+      _ = cache.string(for: key) { _ in
+        renders += 1
+        return NSAttributedString(string: text)
+      }
+    }
+
+    for index in 0...DateCapsuleCache.capacity {
+      capsule("day-\(index)")
+    }
+    XCTAssertEqual(renders, DateCapsuleCache.capacity + 1)
+
+    capsule("day-0")
+    XCTAssertEqual(renders, DateCapsuleCache.capacity + 2)
+  }
+}
+
 final class MetricChartPointTests: XCTestCase {
   private let size = CGSize(width: 100, height: 80)
 

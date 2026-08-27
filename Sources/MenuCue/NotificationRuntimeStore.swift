@@ -74,9 +74,12 @@ struct AlertRuntimeCommit: Sendable {
 actor NotificationRuntimeStore: NotificationOutboxClaiming {
   typealias Writer = @Sendable (Data, URL) throws -> Void
 
+  static let defaultMaximumRetainedEvents = 1_000
+
   private let fileURL: URL
   private let leaseDuration: TimeInterval
   private let maximumClaimCount: Int
+  private let maximumRetainedEvents: Int
   private let leaseID: @Sendable () -> String
   private let writer: Writer
   private let unavailableReason: String?
@@ -87,6 +90,7 @@ actor NotificationRuntimeStore: NotificationOutboxClaiming {
     fileURL: URL,
     leaseDuration: TimeInterval = 60,
     maximumClaimCount: Int = 32,
+    maximumRetainedEvents: Int = defaultMaximumRetainedEvents,
     leaseID: @escaping @Sendable () -> String = { UUID().uuidString },
     writer: @escaping Writer = { data, url in try data.write(to: url, options: .atomic) },
     unavailableReason: String? = nil
@@ -94,6 +98,7 @@ actor NotificationRuntimeStore: NotificationOutboxClaiming {
     self.fileURL = fileURL
     self.leaseDuration = max(1, leaseDuration)
     self.maximumClaimCount = max(1, maximumClaimCount)
+    self.maximumRetainedEvents = max(1, maximumRetainedEvents)
     self.leaseID = leaseID
     self.writer = writer
     self.unavailableReason = unavailableReason
@@ -218,15 +223,24 @@ actor NotificationRuntimeStore: NotificationOutboxClaiming {
         uniqueKeysWithValues: transaction.channels.map {
           ($0, NotificationRuntimeDelivery())
         })
-      next.events.append(
-        NotificationRuntimeEvent(
-          message: message,
-          createdAt: message.occurredAt,
-          deliveries: deliveries
-        ))
-      next.events.sort { lhs, rhs in
-        if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-        return lhs.message.eventID < rhs.message.eventID
+      let event = NotificationRuntimeEvent(
+        message: message,
+        createdAt: message.occurredAt,
+        deliveries: deliveries
+      )
+      // Events are held oldest first, and a rule normally reports in time order, so the
+      // common append keeps the invariant without a sort.
+      let extendsOrder = next.events.last.map { Self.isOrdered($0, before: event) } ?? true
+      next.events.append(event)
+      if !extendsOrder {
+        next.events.sort(by: Self.isOrdered)
+      }
+      // Trimming is by age alone, so an old event whose delivery never succeeded can be
+      // pushed out by newer ones. That is the intended trade: the list is unbounded
+      // otherwise, and a delivery still pending a thousand events later is not worth
+      // holding the whole history for.
+      if next.events.count > maximumRetainedEvents {
+        next.events.removeFirst(next.events.count - maximumRetainedEvents)
       }
     }
 
@@ -315,6 +329,14 @@ actor NotificationRuntimeStore: NotificationOutboxClaiming {
     let directory = fileURL.deletingLastPathComponent()
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     try writer(encoder.encode(snapshot), fileURL)
+  }
+
+  private static func isOrdered(
+    _ lhs: NotificationRuntimeEvent,
+    before rhs: NotificationRuntimeEvent
+  ) -> Bool {
+    if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+    return lhs.message.eventID < rhs.message.eventID
   }
 
   private func resetSignature(_ rule: AlertRule) -> String {

@@ -22,6 +22,10 @@ struct OverviewSettingsView: View {
   private let bootDate = SystemMetricsProbe.bootDate()
   @State private var cache: SystemMetricsService.Cache?
   @State private var powerSource: PowerSourceState = .unknown
+  // Held as state so the five observed objects driving this pane cannot re-create the
+  // publisher — a new one on each body pass tears down and reschedules the run loop timer.
+  @State private var powerSourceTimer = Timer.publish(every: 15, on: .main, in: .common)
+    .autoconnect()
 
   init(
     model: AppModel,
@@ -54,7 +58,7 @@ struct OverviewSettingsView: View {
       powerSource = PowerSourceReader.current()
       quickActionService.refreshAll()
     }
-    .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { _ in
+    .onReceive(powerSourceTimer) { _ in
       powerSource = PowerSourceReader.current()
     }
   }
