@@ -799,10 +799,10 @@
 "Allow Accessibility access to send keyboard shortcuts." = "Allow Accessibility access to send keyboard shortcuts.";
 "Allow Accessibility access to send mouse clicks." = "Allow Accessibility access to send mouse clicks.";
 "Allow Accessibility access to send mouse scrolling." = "Allow Accessibility access to send mouse scrolling.";
-"Brightness %d%%." = "Brightness %d%%.";
+"Brightness %d%%" = "Brightness %d%%";
 "Display brightness control is unavailable on this Mac." = "Display brightness control is unavailable on this Mac.";
 "Mute is not a display brightness action." = "Mute is not a display brightness action.";
-"Muted output." = "Muted output.";
+"Muted output" = "Muted output";
 "No activatable window is under the pointer." = "No activatable window is under the pointer.";
 "No previous window placement is available to restore." = "No previous window placement is available to restore.";
 "No second display is connected." = "No second display is connected.";
@@ -828,7 +828,7 @@
 "The selected folder no longer exists." = "The selected folder no longer exists.";
 "This gesture has no action assigned." = "This gesture has no action assigned.";
 "This Quick Action is unavailable." = "This Quick Action is unavailable.";
-"Volume %d%%." = "Volume %d%%.";
+"Volume %d%%" = "Volume %d%%";
 "macOS could not compile the AppleScript." = "macOS could not compile the AppleScript.";
 "macOS could not create the keyboard shortcut event." = "macOS could not create the keyboard shortcut event.";
 "macOS could not create the mouse click event." = "macOS could not create the mouse click event.";
@@ -1137,6 +1137,12 @@
 "Edge" = "Edge";
 "%d fingers · %@" = "%d fingers · %@";
 "Finger %d · %@" = "Finger %d · %@";
+"Finger %d taps" = "Finger %d taps";
+"Finger %d taps · %@" = "Finger %d taps · %@";
+"Left edge" = "Left edge";
+"Right edge" = "Right edge";
+"Top edge" = "Top edge";
+"Bottom edge" = "Bottom edge";
 
 /* Calendar personalization */
 "Show date distance" = "Show date distance";

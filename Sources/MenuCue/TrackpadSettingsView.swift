@@ -943,13 +943,18 @@ enum TrackpadRuleSummary {
     case .swipe:
       return L10n.format("%d fingers · %@", trigger.fingerCount, trigger.direction.settingsTitle)
     case .edgeEntrySwipe, .edgeContinuous:
-      return L10n.format("%d fingers · %@", trigger.fingerCount, trigger.edge.settingsTitle)
+      return L10n.format("%d fingers · %@", trigger.fingerCount, trigger.edge.badgeTitle)
     case .pinch:
       return L10n.format(
         "%d fingers · %@", trigger.fingerCount, trigger.pinchDirection.settingsTitle)
     case .tipTap:
+      // Spacing is a tolerance, not part of what the user does, so a badge only spends a
+      // word on it once the user has moved it off the default.
+      guard trigger.tapSpacing != .normal else {
+        return L10n.format("Finger %d taps", trigger.selectedFingerIndex + 1)
+      }
       return L10n.format(
-        "Finger %d · %@", trigger.selectedFingerIndex + 1, trigger.tapSpacing.settingsTitle)
+        "Finger %d taps · %@", trigger.selectedFingerIndex + 1, trigger.tapSpacing.settingsTitle)
     case .fingerSwipe:
       return L10n.format(
         "Finger %d · %@", trigger.selectedFingerIndex + 1, trigger.direction.settingsTitle)
@@ -1186,6 +1191,18 @@ extension TrackpadEdge {
     case .right: return L10n.string("Right")
     case .top: return L10n.string("Top")
     case .bottom: return L10n.string("Bottom")
+    }
+  }
+
+  /// Names the corridor the rule watches. `settingsTitle` sits beside an "Edge" label in
+  /// the editor and can be read as a bare side, but a badge stands alone, where "Left"
+  /// reads as the direction the fingers travel.
+  var badgeTitle: String {
+    switch self {
+    case .left: return L10n.string("Left edge")
+    case .right: return L10n.string("Right edge")
+    case .top: return L10n.string("Top edge")
+    case .bottom: return L10n.string("Bottom edge")
     }
   }
 }

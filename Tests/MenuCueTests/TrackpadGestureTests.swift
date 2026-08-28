@@ -24,7 +24,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
     XCTAssertTrue(matches.isEmpty, "disabled touch automation must not execute configured actions")
   }
 
-  func testHeldRightAndCompletedLeftRecontactEmitsVolumeUpExactlyOnce() {
+  func testHeldRightAndCompletedLeftRecontactEmitsVolumeUpOncePerTap() {
     let engine = makeEngine(rules: [tipTapRule(selectedFingerIndex: 0, action: .volumeUp)])
 
     let matches = consume(engine, [
@@ -38,7 +38,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
     XCTAssertEqual(matches.map { $0.action.systemControl }, [.volumeUp])
   }
 
-  func testHeldLeftAndCompletedRightRecontactEmitsVolumeDownExactlyOnce() {
+  func testHeldLeftAndCompletedRightRecontactEmitsVolumeDownOncePerTap() {
     let engine = makeEngine(rules: [tipTapRule(selectedFingerIndex: 1, action: .volumeDown)])
 
     let matches = consume(engine, [
@@ -50,6 +50,96 @@ final class TrackpadGestureEngineTests: XCTestCase {
     ])
 
     XCTAssertEqual(matches.map { $0.action.systemControl }, [.volumeDown])
+  }
+
+  /// Volume is adjusted by tapping repeatedly, so requiring the whole hand to lift between
+  /// steps is what made the gesture feel unresponsive. A held anchor now takes every tap.
+  func testHeldAnchorTakesEveryTapWithoutLiftingTheWholeHand() {
+    let engine = makeEngine(rules: [tipTapRule(selectedFingerIndex: 0, action: .volumeUp)])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      frame(5, 0.50, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.50)]),
+      frame(6, 0.56, [contact(2, .touch, 0.70, 0.50), contact(4, .out, 0.30, 0.50)]),
+      frame(7, 0.74, [contact(2, .touch, 0.70, 0.50), contact(5, .touch, 0.30, 0.50)]),
+      frame(8, 0.80, [contact(2, .touch, 0.70, 0.50), contact(5, .out, 0.30, 0.50)]),
+      frame(9, 0.90, [contact(2, .out, 0.70, 0.50)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map { $0.action.systemControl },
+      [.volumeUp, .volumeUp, .volumeUp],
+      "three taps against a held anchor are three requests"
+    )
+  }
+
+  /// The repeat path has to tell a deliberate second tap apart from one finger bouncing,
+  /// and a debounced tap must not wedge the ones after it.
+  func testTapsInsideTheRepeatCooldownAreDebouncedWithoutDisarmingTheSession() {
+    let engine = makeEngine(rules: [tipTapRule(selectedFingerIndex: 0, action: .volumeUp)])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      frame(5, 0.36, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.50)]),
+      frame(6, 0.40, [contact(2, .touch, 0.70, 0.50), contact(4, .out, 0.30, 0.50)]),
+      frame(7, 0.56, [contact(2, .touch, 0.70, 0.50), contact(5, .touch, 0.30, 0.50)]),
+      frame(8, 0.60, [contact(2, .touch, 0.70, 0.50), contact(5, .out, 0.30, 0.50)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map(\.timestamp),
+      [0.32, 0.60],
+      "the second tap lands inside the cooldown and is dropped; the third still fires"
+    )
+  }
+
+  /// A tap that smears past the tolerance is not a tip tap and is dropped, but it must be
+  /// dropped on its own: the repeat path re-arms from the tap that just ended, so carrying
+  /// its travel forward would spend the next clean tap paying for it.
+  func testATapThatDriftsTooFarDoesNotDisqualifyTheTapAfterIt() {
+    let engine = makeEngine(rules: [tipTapRule(selectedFingerIndex: 0, action: .volumeUp)])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      frame(5, 0.50, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.50)]),
+      frame(6, 0.53, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.56)]),
+      frame(7, 0.56, [contact(2, .touch, 0.70, 0.50), contact(4, .out, 0.30, 0.56)]),
+      frame(8, 0.70, [contact(2, .touch, 0.70, 0.50), contact(5, .touch, 0.30, 0.50)]),
+      frame(9, 0.76, [contact(2, .touch, 0.70, 0.50), contact(5, .out, 0.30, 0.50)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map(\.timestamp),
+      [0.32, 0.76],
+      "the smeared middle tap is the only one that should be lost"
+    )
+  }
+
+  func testLiftingTheWholeHandAndPressingAgainStillRecognizesATipTap() {
+    let engine = makeEngine(rules: [tipTapRule(selectedFingerIndex: 0, action: .volumeUp)])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      frame(5, 0.40, [contact(2, .out, 0.70, 0.50)]),
+      frame(6, 0.50, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(7, 0.70, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(8, 0.75, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(9, 0.82, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+    ])
+
+    XCTAssertEqual(matches.map(\.timestamp), [0.32, 0.82])
   }
 
   func testTwoFingerScrollAndSimultaneousLiftDoNotRecognizeTipTap() {
@@ -368,7 +458,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
 
     XCTAssertEqual(first.map(\.continuousDelta), [2], "two-finger centroid distance must quantize into bounded steps")
     XCTAssertTrue(duringCooldown.isEmpty, "continuous actions must not emit during the cooldown")
-    XCTAssertEqual(afterCooldown.map(\.continuousDelta), [3], "a delayed two-finger backlog is capped to three steps")
+    XCTAssertEqual(afterCooldown.map(\.continuousDelta), [4], "a delayed two-finger backlog is capped to four steps")
   }
 
   func testSpecificApplicationRuleWinsOverAllApplicationsRule() {

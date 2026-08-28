@@ -59,7 +59,7 @@ final class TrackpadRuleEditorSheetTests: XCTestCase {
 
   // MARK: - Trigger badges
 
-  func testTipTapBadgesNameTheFamilyAndTheAnchorFinger() {
+  func testTipTapBadgesNameTheTapAndLeaveADefaultSpacingOut() {
     let trigger = TrackpadGestureTrigger(
       kind: .tipTap,
       fingerCount: 2,
@@ -71,21 +71,52 @@ final class TrackpadRuleEditorSheetTests: XCTestCase {
 
     XCTAssertEqual(badges.count, 2)
     XCTAssertEqual(badges[0], L10n.string("Tip-tap"))
-    XCTAssertTrue(
-      badges[1].contains("2"),
-      "the badge has to name the anchor finger: \(badges[1])"
+    XCTAssertEqual(badges[1], L10n.format("Finger %d taps", 2))
+    XCTAssertFalse(
+      badges[1].contains(L10n.string("Normal")),
+      "a tolerance the user never moved is not worth a word: \(badges[1])"
     )
-    XCTAssertTrue(badges[1].contains(L10n.string("Normal")), badges[1])
   }
 
-  func testContinuousEdgeBadgesNameTheFamilyAndTheEdge() {
+  /// A spacing the user did choose is the only thing separating two otherwise identical
+  /// tip-tap rules, so leaving out the default must not leave out the rest.
+  func testTipTapBadgesKeepASpacingTheUserChose() {
+    let trigger = TrackpadGestureTrigger(
+      kind: .tipTap,
+      fingerCount: 2,
+      selectedFingerIndex: 0,
+      tapSpacing: .far
+    )
+
+    let badges = TrackpadRuleSummary.triggerBadges(for: trigger)
+
+    XCTAssertEqual(badges[1], L10n.format("Finger %d taps · %@", 1, L10n.string("Far")))
+  }
+
+  /// The badge used to borrow the direction words, so a rule watching the left corridor
+  /// read as a swipe to the left.
+  func testContinuousEdgeBadgesNameTheEdgeRatherThanADirection() {
     let trigger = TrackpadGestureTrigger(kind: .edgeContinuous, fingerCount: 2, edge: .right)
 
     let badges = TrackpadRuleSummary.triggerBadges(for: trigger)
 
     XCTAssertEqual(badges.count, 2)
     XCTAssertEqual(badges[0], L10n.string("Continuous Edge"))
-    XCTAssertTrue(badges[1].contains(L10n.string("Right")), badges[1])
+    XCTAssertEqual(badges[1], L10n.format("%d fingers · %@", 2, L10n.string("Right edge")))
+  }
+
+  /// The four rules that ship enabled are the first thing a new user reads.
+  func testShippedPresetBadgesReadAsGesturesRatherThanStoredValues() {
+    let badges = TrackpadGestureSettings.presetRules.map {
+      TrackpadRuleSummary.triggerBadges(for: $0.trigger)[1]
+    }
+
+    XCTAssertEqual(badges, [
+      L10n.format("Finger %d taps", 1),
+      L10n.format("Finger %d taps", 2),
+      L10n.format("%d fingers · %@", 2, L10n.string("Left edge")),
+      L10n.format("%d fingers · %@", 2, L10n.string("Right edge")),
+    ])
   }
 
   func testSwipeBadgesNameTheFamilyAndTheDirection() {

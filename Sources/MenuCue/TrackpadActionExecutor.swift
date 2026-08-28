@@ -192,7 +192,7 @@ final class TrackpadActionExecutor {
   }
 
   private func continuousAdjustment(for delta: Double) -> TrackpadDirectAdjustment {
-    let amount = max(0.01, min(0.2, abs(delta) * 0.025))
+    let amount = max(0.01, min(0.2, abs(delta) * 0.035))
     return delta < 0 ? .decrement(amount) : .increment(amount)
   }
 
@@ -673,8 +673,8 @@ private enum CoreAudioOutputController {
     let muted: Bool
     var message: String {
       muted
-        ? L10n.string("Muted output.")
-        : L10n.format("Volume %d%%.", Int((scalar * 100).rounded()))
+        ? L10n.string("Muted output")
+        : L10n.format("Volume %d%%", Int((scalar * 100).rounded()))
     }
   }
 
@@ -947,7 +947,7 @@ private struct ObservedBrightness {
   let value: Float
 
   var message: String {
-    L10n.format("Brightness %d%%.", Int((value * 100).rounded()))
+    L10n.format("Brightness %d%%", Int((value * 100).rounded()))
   }
 }
 

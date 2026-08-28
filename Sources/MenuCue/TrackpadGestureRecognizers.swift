@@ -194,7 +194,7 @@ enum TrackpadRecognizerRegistry {
 // MARK: - Tip tap
 
 /// A finger lifts off a resting hand and taps back down in place while the others hold
-/// still.
+/// still, and may keep tapping for as long as the hand stays down.
 final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.tipTap
   static let suppression = TrackpadInputSuppressionNeed.none
@@ -205,6 +205,8 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
   private static let recontactRadius = 0.2
   /// A re-contact held longer than this is a press, not a tap.
   private static let maximumRecontactDuration: TimeInterval = 0.35
+  /// Two emissions closer together than this are one finger bouncing, not two requests.
+  private static let repeatCooldown: TimeInterval = 0.12
   private static let nearSpacing = 0.23
   private static let farSpacing = 0.4
 
@@ -221,6 +223,7 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
     }
 
     var pending: Pending?
+    var lastEmittedAt: TimeInterval?
   }
 
   func makeSessionState() -> TrackpadRecognizerSessionState? { SessionState() }
@@ -228,9 +231,9 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
   func consume(_ input: TrackpadRecognizerInput) -> [TrackpadRecognizedGesture] {
     guard let state = input.state as? SessionState else { return [] }
     let session = input.session
-    guard !session.didEmitDiscrete,
-      Self.supportedFingerCounts.contains(session.maxContactCount)
-    else { return [] }
+    // A tip tap does close the session for the other families, but not for this one: the
+    // family exists so a held hand can keep tapping without lifting off.
+    guard Self.supportedFingerCounts.contains(session.maxContactCount) else { return [] }
 
     if state.pending == nil,
       input.endedIDs.count == 1,
@@ -275,13 +278,29 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
       session.activeIDs.count == pending.anchorIDs.count
     else { return [] }
 
-    defer { state.pending = nil }
+    // The tapping finger is up again with the anchors still down, which is exactly the
+    // state the first lift armed. Re-arming here is what lets the next tap count without
+    // the whole hand lifting off first, whatever this one turns out to be.
+    //
+    // Travel starts over at zero. The arming lift reports how far the finger strayed while
+    // it rested, which nothing else checks, but a tap answers for its own travel below —
+    // carrying that forward would let one smeared tap disqualify the clean tap after it.
+    state.pending = SessionState.Pending(
+      selectedFingerIndex: pending.selectedFingerIndex,
+      initialPosition: history.start,
+      initialTravel: 0,
+      gapBeganAt: session.lastTimestamp,
+      heldDuration: session.lastTimestamp - session.fullContactBeganAt,
+      anchorIDs: pending.anchorIDs,
+      recontactID: nil,
+      recontactBeganAt: nil
+    )
+
     let tapDuration = session.lastTimestamp - recontactStart
     let eligible = input.eligibleRules.filter {
       $0.trigger.kind == .tipTap
         && $0.trigger.fingerCount == session.maxContactCount
         && $0.trigger.selectedFingerIndex == pending.selectedFingerIndex
-        && !session.emittedRuleIDs.contains($0.id)
     }
     guard let rule = eligible.first(where: { rule in
       let trigger = rule.trigger.normalized
@@ -302,6 +321,13 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
         selectedIndex: pending.selectedFingerIndex
       )
     }) else { return [] }
+
+    if let lastEmittedAt = state.lastEmittedAt,
+      session.lastTimestamp - lastEmittedAt < Self.repeatCooldown
+    {
+      return []
+    }
+    state.lastEmittedAt = session.lastTimestamp
 
     return [TrackpadRecognizedGesture(rule: rule, isDiscrete: true)]
   }
@@ -337,8 +363,8 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
 
   private static let requiredContactCount = 2
   private static let minimumStep = 0.004
-  private static let cooldown: TimeInterval = 0.055
-  private static let maximumStepsPerFrame = 3
+  private static let cooldown: TimeInterval = 0.035
+  private static let maximumStepsPerFrame = 4
 
   final class SessionState: TrackpadRecognizerSessionState {
     var remainders: [UUID: Double] = [:]

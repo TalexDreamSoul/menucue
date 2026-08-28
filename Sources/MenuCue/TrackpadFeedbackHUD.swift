@@ -1,7 +1,33 @@
 import AppKit
 
-/// The floating panel a trackpad gesture uses to report what it just did. It follows the
-/// pointer rather than the app, because a gesture can fire while another app is frontmost.
+/// Where the panel sits on a given screen. Kept apart from the panel itself because the
+/// arithmetic is the part worth testing, and a test cannot conjure a second display.
+enum TrackpadFeedbackHUDLayout {
+  /// Height above the usable area the panel floats at, in the band the system volume
+  /// bezel uses. Measured from `visibleFrame`, so a Dock along the bottom pushes the
+  /// panel up with it instead of hiding behind it.
+  static let bottomInset: CGFloat = 96
+
+  /// Bottom-centred inside `visibleFrame`, in the same global coordinates AppKit hands
+  /// out — a screen left of the main one has a negative origin, and the result follows it
+  /// there. `visibleFrame` already excludes the menu bar and the Dock on whichever side
+  /// it sits, so no edge needs naming here.
+  static func origin(panelSize: CGSize, in visibleFrame: CGRect) -> CGPoint {
+    // A panel that cannot fit is pinned to the near corner rather than centred out of
+    // view; clamping to a negative span would otherwise put it off-screen.
+    let furthestX = max(visibleFrame.minX, visibleFrame.maxX - panelSize.width)
+    let furthestY = max(visibleFrame.minY, visibleFrame.maxY - panelSize.height)
+    return CGPoint(
+      x: min(max(visibleFrame.midX - panelSize.width / 2, visibleFrame.minX), furthestX),
+      y: min(max(visibleFrame.minY + bottomInset, visibleFrame.minY), furthestY)
+    )
+  }
+}
+
+/// The floating panel a trackpad gesture uses to report what it just did. It sits at the
+/// bottom of whichever screen the pointer is on, rather than following the pointer, because
+/// a gesture can fire while another app is frontmost and a readout that moves is one the
+/// eye has to hunt for.
 final class TrackpadFeedbackHUD {
   private var panel: NSPanel?
   private var label: NSTextField?
@@ -62,12 +88,14 @@ final class TrackpadFeedbackHUD {
     return panel
   }
 
+  /// The pointer picks the screen and nothing else. Recomputed on every show, so a Dock
+  /// that moved or a display that was unplugged needs no invalidation of its own.
   private func position(_ panel: NSPanel) {
     let point = NSEvent.mouseLocation
-    guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return }
-    let desiredOrigin = NSPoint(x: point.x - panel.frame.width / 2, y: point.y + 22)
-    let x = min(max(desiredOrigin.x, screen.visibleFrame.minX), screen.visibleFrame.maxX - panel.frame.width)
-    let y = min(max(desiredOrigin.y, screen.visibleFrame.minY), screen.visibleFrame.maxY - panel.frame.height)
-    panel.setFrameOrigin(NSPoint(x: x, y: y))
+    let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
+    guard let screen else { return }
+    panel.setFrameOrigin(
+      TrackpadFeedbackHUDLayout.origin(panelSize: panel.frame.size, in: screen.visibleFrame)
+    )
   }
 }

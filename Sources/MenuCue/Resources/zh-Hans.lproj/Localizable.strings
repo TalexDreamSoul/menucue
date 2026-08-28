@@ -799,10 +799,10 @@
 "Allow Accessibility access to send keyboard shortcuts." = "请允许辅助功能权限以发送键盘快捷键。";
 "Allow Accessibility access to send mouse clicks." = "请允许辅助功能权限以发送鼠标点击。";
 "Allow Accessibility access to send mouse scrolling." = "请允许辅助功能权限以发送鼠标滚动。";
-"Brightness %d%%." = "亮度 %d%%。";
+"Brightness %d%%" = "亮度 %d%%";
 "Display brightness control is unavailable on this Mac." = "这台 Mac 无法使用显示器亮度控制。";
 "Mute is not a display brightness action." = "静音不是显示器亮度操作。";
-"Muted output." = "输出已静音。";
+"Muted output" = "输出已静音";
 "No activatable window is under the pointer." = "指针下方没有可激活的窗口。";
 "No previous window placement is available to restore." = "没有可恢复的上一次窗口位置。";
 "No second display is connected." = "未连接第二台显示器。";
@@ -828,7 +828,7 @@
 "The selected folder no longer exists." = "所选文件夹已不存在。";
 "This gesture has no action assigned." = "这个手势尚未分配操作。";
 "This Quick Action is unavailable." = "这个快捷操作当前不可用。";
-"Volume %d%%." = "音量 %d%%。";
+"Volume %d%%" = "音量 %d%%";
 "macOS could not compile the AppleScript." = "macOS 无法编译该 AppleScript。";
 "macOS could not create the keyboard shortcut event." = "macOS 无法创建键盘快捷键事件。";
 "macOS could not create the mouse click event." = "macOS 无法创建鼠标点击事件。";
@@ -1137,6 +1137,12 @@
 "Edge" = "边缘";
 "%d fingers · %@" = "%d 指 · %@";
 "Finger %d · %@" = "第 %d 指 · %@";
+"Finger %d taps" = "第 %d 指点按";
+"Finger %d taps · %@" = "第 %d 指点按 · %@";
+"Left edge" = "左边缘";
+"Right edge" = "右边缘";
+"Top edge" = "上边缘";
+"Bottom edge" = "下边缘";
 
 /* 日历个性化 */
 "Show date distance" = "显示日期距离";
