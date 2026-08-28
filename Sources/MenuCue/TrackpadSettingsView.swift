@@ -14,7 +14,7 @@ struct TrackpadSettingsView: View {
   /// leaving the pane but not that.
   @StateObject private var livePreviewGate = VisibilityGate()
 
-  @State private var expandedRuleID: UUID?
+  @State private var editingTarget: TrackpadRuleSheetTarget?
   @State private var feedbackMessage: String?
   @State private var feedbackIsError = false
   @State private var showsResetConfirmation = false
@@ -50,6 +50,15 @@ struct TrackpadSettingsView: View {
     }
     .onDisappear {
       livePreviewGate.disconnect()
+    }
+    .sheet(item: $editingTarget) { target in
+      TrackpadRuleEditorSheet(
+        model: model,
+        rule: target.rule,
+        isNewRule: target.isNew,
+        onSave: saveRule,
+        onDelete: deleteRule
+      )
     }
     .confirmationDialog(
       "Reset gesture presets?",
@@ -358,41 +367,27 @@ struct TrackpadSettingsView: View {
         // permission state, and this pane redraws with live touch input.
         let availabilities = service.availabilities(for: settings.rules.map(\.action))
         VStack(alignment: .leading, spacing: 0) {
+          TrackpadRuleTableHeader()
+
           ForEach(Array(settings.rules.enumerated()), id: \.element.id) { index, rule in
+            Divider()
+
             TrackpadRuleRow(
               rule: rule,
               availability: availabilities[index],
               index: index,
               ruleCount: settings.rules.count,
-              isExpanded: expandedRuleID == rule.id,
               onToggle: { enabled in
                 updateRule(rule.id) { $0.isEnabled = enabled }
               },
-              onToggleExpanded: {
-                withAnimation(motion.stateAnimation) {
-                  expandedRuleID = expandedRuleID == rule.id ? nil : rule.id
-                }
-              },
+              onEdit: { editingTarget = TrackpadRuleSheetTarget(rule: rule, isNew: false) },
               onDuplicate: { duplicateRule(rule) },
               onDelete: { deleteRule(rule.id) },
               onMoveUp: { moveRule(at: index, by: -1) },
               onMoveDown: { moveRule(at: index, by: 1) }
             )
-
-            if expandedRuleID == rule.id {
-              TrackpadRuleEditor(model: model, rule: rule)
-                .padding(.top, 12)
-                .padding(.bottom, 14)
-                .padding(.leading, 30)
-                .transition(motion.revealTransition(edge: .top))
-            }
-
-            if index < settings.rules.count - 1 {
-              Divider()
-            }
           }
         }
-        .animation(motion.stateAnimation, value: expandedRuleID)
       }
     }
   }
@@ -466,14 +461,22 @@ struct TrackpadSettingsView: View {
     }
   }
 
+  /// The new rule exists only as a draft until the sheet is saved, so backing out of
+  /// "Add Rule" leaves the list exactly as it was.
   private func addRule() {
     let rule = TrackpadGestureRule(
       name: L10n.format("Gesture Rule %d", settings.rules.count + 1),
       trigger: TrackpadGestureTrigger(kind: .contact),
       action: TrackpadGestureAction(kind: .none)
     )
-    model.updateTrackpadGestureSettings { $0.rules.append(rule) }
-    expandedRuleID = rule.id
+    editingTarget = TrackpadRuleSheetTarget(rule: rule, isNew: true)
+  }
+
+  /// The single write the sheet performs, for both a new rule and an edited one.
+  private func saveRule(_ rule: TrackpadGestureRule) {
+    model.updateTrackpadGestureSettings { settings in
+      settings.rules = TrackpadRuleDraft.upserting(rule, into: settings.rules)
+    }
   }
 
   private func duplicateRule(_ source: TrackpadGestureRule) {
@@ -487,14 +490,13 @@ struct TrackpadSettingsView: View {
       }
       settings.rules.insert(copy, at: index + 1)
     }
-    expandedRuleID = copy.id
   }
 
   private func deleteRule(_ id: UUID) {
     model.updateTrackpadGestureSettings { settings in
       settings.rules.removeAll { $0.id == id }
     }
-    if expandedRuleID == id { expandedRuleID = nil }
+    if editingTarget?.id == id { editingTarget = nil }
   }
 
   private func moveRule(at index: Int, by offset: Int) {
@@ -512,7 +514,7 @@ struct TrackpadSettingsView: View {
       return localized
     }
     model.updateTrackpadGestureSettings { $0.rules = localizedPresets }
-    expandedRuleID = nil
+    editingTarget = nil
     showFeedback(L10n.string("Gesture presets were restored."), isError: false)
   }
 
@@ -563,7 +565,7 @@ struct TrackpadSettingsView: View {
       let envelope = try decoder.decode(TrackpadRuleSetEnvelope.self, from: data)
       let imported = try envelope.importedSettings()
       model.updateTrackpadGestureSettings { $0 = imported }
-      expandedRuleID = nil
+      editingTarget = nil
       showFeedback(
         L10n.format("Imported %d gesture rules.", imported.rules.count),
         isError: false
@@ -652,7 +654,7 @@ struct TrackpadSettingsView: View {
   }
 }
 
-private enum TrackpadSettingsLayout {
+enum TrackpadSettingsLayout {
   static let previewHeight: CGFloat = 210
   static let drawingHeight: CGFloat = 180
   static let contactDiameter: CGFloat = 18
@@ -725,52 +727,77 @@ private struct TrackpadLiveContactPreview: View {
   }
 }
 
+/// Which rule the editor sheet is open on. A new rule carries its seeded draft here
+/// rather than in the rule list, so nothing is stored until the sheet saves.
+private struct TrackpadRuleSheetTarget: Identifiable {
+  let rule: TrackpadGestureRule
+  let isNew: Bool
+
+  var id: UUID { rule.id }
+}
+
+/// What each rule row's columns mean. The rows carry no labels of their own, so a table
+/// this wide needs the header to stay readable.
+private struct TrackpadRuleTableHeader: View {
+  var body: some View {
+    HStack(spacing: TrackpadRuleTableLayout.columnSpacing) {
+      Text("Rule")
+        .frame(maxWidth: .infinity, alignment: .leading)
+      Text("Action")
+        .frame(width: TrackpadRuleTableLayout.actionWidth, alignment: .leading)
+      Text("Scope")
+        .frame(width: TrackpadRuleTableLayout.scopeWidth, alignment: .leading)
+      Color.clear
+        .frame(width: TrackpadRuleTableLayout.controlsWidth, height: 1)
+    }
+    .font(.caption2.weight(.medium))
+    .foregroundStyle(.secondary)
+    .padding(.leading, TrackpadRuleTableLayout.toggleWidth + TrackpadRuleTableLayout.columnSpacing)
+    .padding(.bottom, 6)
+    .accessibilityHidden(true)
+  }
+}
+
+/// The rule column stays elastic and everything else is fixed, because the pane is only
+/// 560pt wide: a name that truncates is a worse row than a scope that does.
+private enum TrackpadRuleTableLayout {
+  static let toggleWidth: CGFloat = 32
+  static let actionWidth: CGFloat = 132
+  static let scopeWidth: CGFloat = 84
+  static let controlsWidth: CGFloat = 58
+  static let columnSpacing: CGFloat = 9
+}
+
+/// One row of the rule table. Everything but the enable switch and the row menu opens the
+/// editor sheet: the row states what the rule does, and the sheet is where it is changed.
 private struct TrackpadRuleRow: View {
   let rule: TrackpadGestureRule
   let availability: ActionAvailability
   let index: Int
   let ruleCount: Int
-  let isExpanded: Bool
   let onToggle: (Bool) -> Void
-  let onToggleExpanded: () -> Void
+  let onEdit: () -> Void
   let onDuplicate: () -> Void
   let onDelete: () -> Void
   let onMoveUp: () -> Void
   let onMoveDown: () -> Void
 
   var body: some View {
-    HStack(alignment: .center, spacing: 9) {
+    HStack(alignment: .center, spacing: TrackpadRuleTableLayout.columnSpacing) {
       Toggle(
         "Enabled",
         isOn: Binding(get: { rule.isEnabled }, set: onToggle)
       )
       .labelsHidden()
+      .frame(width: TrackpadRuleTableLayout.toggleWidth, alignment: .leading)
       .accessibilityLabel(L10n.format("Enable %@", rule.settingsDisplayName))
 
-      Button(action: onToggleExpanded) {
-        VStack(alignment: .leading, spacing: 3) {
-          HStack(spacing: 5) {
-            Text(rule.settingsDisplayName)
-              .font(.subheadline.weight(.medium))
-              .lineLimit(1)
-            if rule.activatesWindowUnderPointer {
-              Image(systemName: "cursorarrow.motionlines")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .help("Activates the window under the pointer")
-                .accessibilityLabel("Activates the window under the pointer")
-            }
-          }
-          Text(L10n.format("%@ → %@", rule.trigger.settingsSummary, rule.action.settingsSummary))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(2)
-          Text(rule.applicationScope.settingsSummary)
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
-            .lineLimit(1)
+      Button(action: onEdit) {
+        HStack(spacing: TrackpadRuleTableLayout.columnSpacing) {
+          ruleColumn
+          actionColumn
+          scopeColumn
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
@@ -778,38 +805,83 @@ private struct TrackpadRuleRow: View {
       .accessibilityValue(
         L10n.format("%@, %@", rule.trigger.settingsSummary, rule.action.settingsSummary)
       )
-      .accessibilityHint(isExpanded ? "Collapse rule editor" : "Edit rule")
+      .accessibilityHint("Edit rule")
 
+      trailingControls
+    }
+    .padding(.vertical, 8)
+    .opacity(rule.isEnabled ? 1 : 0.68)
+    .contextMenu {
+      rowCommands
+    }
+  }
+
+  /// Name above, trigger badges below: what the rule is called and what sets it off are
+  /// the two things a row is scanned for.
+  private var ruleColumn: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      HStack(spacing: 5) {
+        Text(rule.settingsDisplayName)
+          .font(.subheadline.weight(.medium))
+          .lineLimit(1)
+        if rule.activatesWindowUnderPointer {
+          Image(systemName: "cursorarrow.motionlines")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .help("Activates the window under the pointer")
+            .accessibilityLabel("Activates the window under the pointer")
+        }
+      }
+
+      HStack(spacing: 4) {
+        ForEach(TrackpadRuleSummary.triggerBadges(for: rule.trigger), id: \.self) { badge in
+          Text(badge)
+            .font(.caption2)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(Color.secondary.opacity(0.15)))
+        }
+      }
+      .help(rule.trigger.settingsSummary)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var scopeColumn: some View {
+    Text(rule.applicationScope.settingsSummary)
+      .font(.caption2)
+      .foregroundStyle(.tertiary)
+      .lineLimit(2)
+      .frame(width: TrackpadRuleTableLayout.scopeWidth, alignment: .leading)
+      .help(rule.applicationScope.settingsSummary)
+  }
+
+  private var actionColumn: some View {
+    HStack(spacing: 5) {
+      Image(systemName: rule.action.settingsSymbol)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .frame(width: 14)
+      Text(rule.action.settingsSummary)
+        .font(.caption)
+        .lineLimit(1)
+      Spacer(minLength: 0)
+    }
+    .frame(width: TrackpadRuleTableLayout.actionWidth, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+
+  private var trailingControls: some View {
+    HStack(spacing: 6) {
       // A rule whose action cannot run today looks identical to one that works, right
       // up until the gesture silently does nothing.
       if !availability.isAvailable {
         ActionUnavailableBadge(reason: availability.reason, settingsURL: availability.settingsURL)
       }
 
-      Button(action: onMoveUp) {
-        Image(systemName: "chevron.up")
-      }
-      .buttonStyle(.borderless)
-      .disabled(index == 0)
-      .help("Move up")
-      .accessibilityLabel("Move up")
-
-      Button(action: onMoveDown) {
-        Image(systemName: "chevron.down")
-      }
-      .buttonStyle(.borderless)
-      .disabled(index == ruleCount - 1)
-      .help("Move down")
-      .accessibilityLabel("Move down")
-
       Menu {
-        Button(action: onDuplicate) {
-          Label("Duplicate Rule", systemImage: "plus.square.on.square")
-        }
-        Divider()
-        Button(role: .destructive, action: onDelete) {
-          Label("Delete Gesture Rule", systemImage: "trash")
-        }
+        rowCommands
       } label: {
         Image(systemName: "ellipsis.circle")
       }
@@ -818,1078 +890,76 @@ private struct TrackpadRuleRow: View {
       .help("Rule actions")
       .accessibilityLabel(L10n.format("Actions for %@", rule.settingsDisplayName))
 
-      Button(action: onToggleExpanded) {
-        Image(systemName: isExpanded ? "chevron.up.circle.fill" : "chevron.down.circle")
+      Button(action: onEdit) {
+        Image(systemName: "chevron.right")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.tertiary)
       }
       .buttonStyle(.borderless)
-      .help(isExpanded ? "Collapse rule editor" : "Edit rule")
-      .accessibilityLabel(isExpanded ? "Collapse rule editor" : "Edit rule")
+      .help("Edit rule")
+      .accessibilityLabel("Edit rule")
     }
-    .padding(.vertical, 9)
-    .opacity(rule.isEnabled ? 1 : 0.68)
-  }
-}
-
-private struct TrackpadRuleEditor: View {
-  @ObservedObject var model: AppModel
-  let fallbackRule: TrackpadGestureRule
-
-  init(model: AppModel, rule: TrackpadGestureRule) {
-    self.model = model
-    self.fallbackRule = rule
+    .frame(width: TrackpadRuleTableLayout.controlsWidth, alignment: .trailing)
   }
 
-  var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
-      VStack(alignment: .leading, spacing: 8) {
-        Text("Rule Details")
-          .font(.subheadline.weight(.semibold))
-
-        LabeledContent("Name") {
-          TextField("Rule name", text: ruleBinding(\.name))
-            .textFieldStyle(.roundedBorder)
-            .frame(maxWidth: 330)
-        }
-
-        LabeledContent("Required modifiers") {
-          TrackpadModifierSelector(selection: ruleBinding(\.requiredModifiers))
-        }
-      }
-
-      Divider()
-      TrackpadTriggerEditor(
-        trigger: ruleBinding(\.trigger),
-        edgeWidth: settings.edgeWidth,
-        sensitivity: settings.sensitivity
-      )
-
-      Divider()
-      TrackpadActionEditor(
-        model: model,
-        action: ruleBinding(\.action),
-        triggerKind: currentRule.trigger.kind
-      )
-
-      Divider()
-      TrackpadApplicationScopeEditor(scope: ruleBinding(\.applicationScope))
-
-      LabeledContent("Trackpad devices") {
-        Picker("Trackpad devices", selection: ruleBinding(\.deviceScope)) {
-          ForEach(TrackpadDeviceScope.allCases) { scope in
-            Text(scope.settingsTitle).tag(scope)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-      Toggle("Activate the window under the pointer before the action", isOn: ruleBinding(\.activatesWindowUnderPointer))
-        .help("MenuCue fails closed when macOS cannot identify an activatable window.")
-
-      VStack(alignment: .leading, spacing: 5) {
-        Text("Note")
-          .font(.caption.weight(.medium))
-          .foregroundStyle(.secondary)
-        TextEditor(text: ruleBinding(\.note))
-          .font(.body)
-          .frame(minHeight: 58, maxHeight: 88)
-          .padding(4)
-          .overlay {
-            RoundedRectangle(cornerRadius: TrackpadSettingsLayout.controlCornerRadius)
-              .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-          }
-          .accessibilityLabel("Rule note")
-      }
-    }
-  }
-
-  private var settings: TrackpadGestureSettings {
-    model.settings.trackpadGestureSettings
-  }
-
-  private var currentRule: TrackpadGestureRule {
-    settings.rules.first(where: { $0.id == fallbackRule.id }) ?? fallbackRule
-  }
-
-  private func ruleBinding<Value>(
-    _ keyPath: WritableKeyPath<TrackpadGestureRule, Value>
-  ) -> Binding<Value> {
-    Binding(
-      get: { currentRule[keyPath: keyPath] },
-      set: { value in
-        model.updateTrackpadGestureSettings { settings in
-          guard let index = settings.rules.firstIndex(where: { $0.id == fallbackRule.id }) else {
-            return
-          }
-          settings.rules[index][keyPath: keyPath] = value
-        }
-      }
-    )
-  }
-}
-
-private struct TrackpadTriggerEditor: View {
-  @Binding var trigger: TrackpadGestureTrigger
-  let edgeWidth: Double
-  let sensitivity: Double
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("Trigger")
-        .font(.subheadline.weight(.semibold))
-
-      LabeledContent("Gesture family") {
-        Picker("Gesture family", selection: kindBinding) {
-          ForEach(TrackpadGestureKind.allCases) { kind in
-            Text(kind.settingsTitle).tag(kind)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-      LabeledContent("Finger count") {
-        Stepper(value: binding(\.fingerCount), in: fingerRange) {
-          Text(L10n.format("%d fingers", trigger.fingerCount))
-            .monospacedDigit()
-        }
-        .accessibilityLabel("Finger count")
-        .accessibilityValue(L10n.format("%d fingers", trigger.fingerCount))
-      }
-
-      familyFields
-    }
-  }
-
+  /// Reordering, duplication, and deletion stay reachable from both the row menu and a
+  /// right-click, now that the row itself is the way into the editor.
   @ViewBuilder
-  private var familyFields: some View {
+  private var rowCommands: some View {
+    Button(action: onEdit) {
+      Label("Edit Rule", systemImage: "slider.horizontal.3")
+    }
+    Divider()
+    Button(action: onMoveUp) {
+      Label("Move up", systemImage: "chevron.up")
+    }
+    .disabled(index == 0)
+    Button(action: onMoveDown) {
+      Label("Move down", systemImage: "chevron.down")
+    }
+    .disabled(index == ruleCount - 1)
+    Button(action: onDuplicate) {
+      Label("Duplicate Rule", systemImage: "plus.square.on.square")
+    }
+    Divider()
+    Button(role: .destructive, action: onDelete) {
+      Label("Delete Gesture Rule", systemImage: "trash")
+    }
+  }
+}
+
+/// The row-sized reading of a trigger: the family it belongs to and the one parameter that
+/// distinguishes it from its siblings. The full sentence stays in `settingsSummary`.
+enum TrackpadRuleSummary {
+  static func triggerBadges(for trigger: TrackpadGestureTrigger) -> [String] {
+    [trigger.kind.settingsTitle, keyParameter(for: trigger)]
+  }
+
+  private static func keyParameter(for trigger: TrackpadGestureTrigger) -> String {
     switch trigger.kind {
     case .contact:
-      LabeledContent("Contact gesture") {
-        Picker("Contact gesture", selection: binding(\.contactGesture)) {
-          ForEach(TrackpadContactGesture.allCases) { gesture in
-            Text(gesture.settingsTitle).tag(gesture)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-      LabeledContent("Region") {
-        Picker("Region", selection: binding(\.region)) {
-          ForEach(TrackpadGestureRegion.allCases) { region in
-            Text(region.settingsTitle).tag(region)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-      durationSlider
-      movementToleranceSlider
-
-      if trigger.contactGesture == .click || trigger.contactGesture == .forceClick {
-        Label(
-          "Click and force-click use contact density and size. They remain inactive on hardware that cannot distinguish the configured gesture.",
-          systemImage: "info.circle"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
-
+      return L10n.format(
+        "%d fingers · %@", trigger.fingerCount, trigger.contactGesture.settingsTitle)
     case .swipe:
-      directionPicker
-      distanceSlider(title: L10n.string("Minimum swipe distance"))
-      velocitySlider
-      durationSlider
-      movementToleranceSlider
-
-    case .edgeEntrySwipe:
-      edgePicker
-      directionPicker
-      distanceSlider(title: L10n.string("Minimum entry distance"))
-      velocitySlider
-      durationSlider
-
+      return L10n.format("%d fingers · %@", trigger.fingerCount, trigger.direction.settingsTitle)
+    case .edgeEntrySwipe, .edgeContinuous:
+      return L10n.format("%d fingers · %@", trigger.fingerCount, trigger.edge.settingsTitle)
     case .pinch:
-      LabeledContent("Pinch direction") {
-        Picker("Pinch direction", selection: binding(\.pinchDirection)) {
-          ForEach(TrackpadPinchDirection.allCases) { direction in
-            Text(direction.settingsTitle).tag(direction)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-      distanceSlider(title: L10n.string("Minimum pinch change"))
-      durationSlider
-      movementToleranceSlider
-
+      return L10n.format(
+        "%d fingers · %@", trigger.fingerCount, trigger.pinchDirection.settingsTitle)
     case .tipTap:
-      selectedFingerStepper
-      LabeledContent("Tap spacing") {
-        Picker("Tap spacing", selection: binding(\.tapSpacing)) {
-          ForEach(TrackpadTapSpacing.allCases) { spacing in
-            Text(spacing.settingsTitle).tag(spacing)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-      TrackpadLabeledSlider(
-        title: L10n.string("Anchor hold time"),
-        value: binding(\.holdDuration),
-        range: 0.08...1.5,
-        step: 0.01,
-        valueText: TrackpadUIFormat.seconds(trigger.holdDuration)
-      )
-      durationSlider
-      movementToleranceSlider
-      Text("Finger positions are assigned left to right when the gesture arms.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      Text("Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
+      return L10n.format(
+        "Finger %d · %@", trigger.selectedFingerIndex + 1, trigger.tapSpacing.settingsTitle)
     case .fingerSwipe:
-      selectedFingerStepper
-      directionPicker
-      distanceSlider(title: L10n.string("Minimum finger distance"))
-      velocitySlider
-      durationSlider
-      movementToleranceSlider
-
+      return L10n.format(
+        "Finger %d · %@", trigger.selectedFingerIndex + 1, trigger.direction.settingsTitle)
     case .drawing:
-      LabeledContent("Drawing activation") {
-        Picker("Drawing activation", selection: binding(\.drawingActivation)) {
-          ForEach(TrackpadDrawingActivation.allCases) { activation in
-            Text(activation.settingsTitle).tag(activation)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-      if trigger.drawingActivation == .holdTap {
-        TrackpadLabeledSlider(
-          title: L10n.string("Hold time"),
-          value: binding(\.holdDuration),
-          range: 0.08...1.5,
-          step: 0.01,
-          valueText: TrackpadUIFormat.seconds(trigger.holdDuration)
-        )
-      }
-
-      TrackpadDrawingRecorder(points: binding(\.drawingTemplate))
-
-      TrackpadLabeledSlider(
-        title: L10n.string("Minimum drawing match"),
-        value: binding(\.minimumDrawingScore),
-        range: 0.30...0.98,
-        step: 0.01,
-        valueText: TrackpadUIFormat.percent(trigger.minimumDrawingScore)
-      )
-      durationSlider
-      movementToleranceSlider
-
-      Text("A drawing trigger runs the selected action directly. It replaces the cross-module normal-mouse drawing bridge with an equivalent editable rule.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-    case .edgeContinuous:
-      edgePicker
-      Toggle("Invert edge direction", isOn: binding(\.isInverted))
-      distanceSlider(title: L10n.string("Distance per action step"))
-      velocitySlider
-      Label(
-        L10n.format(
-          "Uses the global edge width of %@ and sensitivity of %@.",
-          TrackpadUIFormat.percent(edgeWidth),
-          TrackpadUIFormat.multiplier(sensitivity)
-        ),
-        systemImage: "slider.horizontal.3"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
-    }
-  }
-
-  private var kindBinding: Binding<TrackpadGestureKind> {
-    Binding(
-      get: { trigger.kind },
-      set: { kind in
-        var next = trigger
-        next.kind = kind
-        let supported = TrackpadRecognizerRegistry.supportedFingerCounts(for: kind)
-        next.fingerCount = min(supported.upperBound, max(supported.lowerBound, next.fingerCount))
-        trigger = next.normalized
-      }
-    )
-  }
-
-  /// The recognizer decides what it can honour; the editor only offers it.
-  private var fingerRange: ClosedRange<Int> {
-    TrackpadRecognizerRegistry.supportedFingerCounts(for: trigger.kind)
-  }
-
-  private var selectedFingerStepper: some View {
-    LabeledContent("Selected finger") {
-      Stepper(value: binding(\.selectedFingerIndex), in: 0...max(0, trigger.fingerCount - 1)) {
-        Text(L10n.format("Finger %d", trigger.selectedFingerIndex + 1))
-          .monospacedDigit()
-      }
-      .accessibilityLabel("Selected finger")
-      .accessibilityValue(L10n.format("Finger %d", trigger.selectedFingerIndex + 1))
-    }
-  }
-
-  private var directionPicker: some View {
-    LabeledContent("Direction") {
-      Picker("Direction", selection: binding(\.direction)) {
-        ForEach(TrackpadDirection.allCases) { direction in
-          Text(direction.settingsTitle).tag(direction)
-        }
-      }
-      .labelsHidden()
-      .frame(maxWidth: 260)
-    }
-  }
-
-  private var edgePicker: some View {
-    LabeledContent("Edge") {
-      Picker("Edge", selection: binding(\.edge)) {
-        ForEach(TrackpadEdge.allCases) { edge in
-          Text(edge.settingsTitle).tag(edge)
-        }
-      }
-      .labelsHidden()
-      .frame(maxWidth: 260)
-    }
-  }
-
-  private var durationSlider: some View {
-    TrackpadLabeledSlider(
-      title: L10n.string("Maximum duration"),
-      value: binding(\.maximumDuration),
-      range: 0.12...3,
-      step: 0.01,
-      valueText: TrackpadUIFormat.seconds(trigger.maximumDuration)
-    )
-  }
-
-  private var movementToleranceSlider: some View {
-    TrackpadLabeledSlider(
-      title: L10n.string("Movement tolerance"),
-      value: binding(\.movementTolerance),
-      range: 0.005...0.25,
-      step: 0.005,
-      valueText: TrackpadUIFormat.percent(trigger.movementTolerance)
-    )
-  }
-
-  private var velocitySlider: some View {
-    TrackpadLabeledSlider(
-      title: L10n.string("Minimum velocity"),
-      value: binding(\.minimumVelocity),
-      range: 0...10,
-      step: 0.1,
-      valueText: TrackpadUIFormat.decimal(trigger.minimumVelocity)
-    )
-  }
-
-  private func distanceSlider(title: String) -> some View {
-    TrackpadLabeledSlider(
-      title: title,
-      value: binding(\.minimumDistance),
-      range: 0.005...0.8,
-      step: 0.005,
-      valueText: TrackpadUIFormat.percent(trigger.minimumDistance)
-    )
-  }
-
-  private func binding<Value>(
-    _ keyPath: WritableKeyPath<TrackpadGestureTrigger, Value>
-  ) -> Binding<Value> {
-    Binding(
-      get: { trigger[keyPath: keyPath] },
-      set: { value in
-        var next = trigger
-        next[keyPath: keyPath] = value
-        trigger = next.normalized
-      }
-    )
-  }
-}
-
-private struct TrackpadActionEditor: View {
-  @ObservedObject var model: AppModel
-  @ObservedObject private var quickActionService: QuickActionService
-  @Binding var action: TrackpadGestureAction
-  let triggerKind: TrackpadGestureKind
-
-  @State private var runningApplications: [TrackpadApplicationIdentity] = []
-
-  init(
-    model: AppModel,
-    action: Binding<TrackpadGestureAction>,
-    triggerKind: TrackpadGestureKind
-  ) {
-    self.model = model
-    self.quickActionService = model.quickActionService
-    self._action = action
-    self.triggerKind = triggerKind
-  }
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("Action")
-        .font(.subheadline.weight(.semibold))
-
-      LabeledContent("Action family") {
-        Picker("Action family", selection: kindBinding) {
-          ForEach(TrackpadGestureActionKind.allCases) { kind in
-            Text(kind.settingsTitle).tag(kind)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 280)
-      }
-
-      actionFields
-      availabilityNotice
-      permissionGuidance
-
-      if triggerKind == .drawing {
-        Label(
-          "The recorded drawing runs this action directly; no simulated normal-mouse drawing bridge is needed.",
-          systemImage: "pencil.and.outline"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
-    }
-    .onAppear(perform: refreshRunningApplications)
-  }
-
-  @ViewBuilder
-  private var actionFields: some View {
-    switch action.kind {
-    case .systemControl:
-      LabeledContent("System control") {
-        Picker("System control", selection: binding(\.systemControl)) {
-          ForEach(TrackpadSystemControl.allCases) { control in
-            Text(control.settingsTitle).tag(control)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 280)
-      }
-
-    case .quickAction:
-      if quickActionService.catalogItems.isEmpty {
-        Text("No Quick Actions are currently available.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      } else {
-        LabeledContent("Quick Action") {
-          Picker("Quick Action", selection: binding(\.quickActionStorageValue)) {
-            ForEach(quickActionService.catalogItems) { item in
-              Text(item.title).tag(item.reference.storageValue)
-            }
-          }
-          .labelsHidden()
-          .frame(maxWidth: 320)
-        }
-      }
-
-    case .keyboardShortcut:
-      LabeledContent("Characters") {
-        TextField("Optional display characters", text: binding(\.keyboardShortcut.characters))
-          .textFieldStyle(.roundedBorder)
-          .frame(maxWidth: 220)
-      }
-      LabeledContent("Key code") {
-        TextField("Key code", text: keyCodeTextBinding)
-          .textFieldStyle(.roundedBorder)
-          .frame(width: 100)
-          .accessibilityValue(String(action.keyboardShortcut.keyCode))
-      }
-      LabeledContent("Shortcut modifiers") {
-        TrackpadModifierSelector(selection: binding(\.keyboardShortcut.modifiers))
-      }
-
-    case .mouse:
-      LabeledContent("Mouse action") {
-        Picker("Mouse action", selection: binding(\.mouseAction)) {
-          ForEach(TrackpadMouseAction.allCases) { mouseAction in
-            Text(mouseAction.settingsTitle).tag(mouseAction)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-    case .scroll:
-      LabeledContent("Scroll direction") {
-        Picker("Scroll direction", selection: binding(\.scrollDirection)) {
-          ForEach(TrackpadDirection.allCases) { direction in
-            Text(direction.settingsTitle).tag(direction)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-      Text("Scroll actions use a bounded step and do not add momentum.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-
-    case .open:
-      LabeledContent("Target type") {
-        Picker("Target type", selection: binding(\.openTargetKind)) {
-          ForEach(TrackpadOpenTargetKind.allCases) { kind in
-            Text(kind.settingsTitle).tag(kind)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
-
-      LabeledContent(openTargetLabel) {
-        HStack(spacing: 8) {
-          TextField(openTargetPlaceholder, text: binding(\.target))
-            .textFieldStyle(.roundedBorder)
-          openTargetChooser
-        }
-        .frame(maxWidth: 380)
-      }
-
-    case .appleScript:
-      VStack(alignment: .leading, spacing: 5) {
-        Text("AppleScript")
-          .font(.caption.weight(.medium))
-          .foregroundStyle(.secondary)
-        TextEditor(text: binding(\.appleScript))
-          .font(.body.monospaced())
-          .frame(minHeight: 100, maxHeight: 170)
-          .padding(4)
-          .overlay {
-            RoundedRectangle(cornerRadius: TrackpadSettingsLayout.controlCornerRadius)
-              .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-          }
-          .accessibilityLabel("AppleScript source")
-      }
-
-    case .window:
-      LabeledContent("Window placement") {
-        Picker("Window placement", selection: binding(\.windowAction)) {
-          ForEach(TrackpadWindowAction.allCases) { windowAction in
-            Text(windowAction.settingsTitle).tag(windowAction)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 280)
-      }
-
-    case .none:
-      Text("This rule recognizes the gesture without running an action.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-  }
-
-  /// What is actually wrong right now, as opposed to what this action family requires in
-  /// general. Only shown when the rule would fail if the gesture fired this second.
-  @ViewBuilder
-  private var availabilityNotice: some View {
-    let availability = model.trackpadGestureService.availability(for: action)
-    if !availability.isAvailable, let reason = availability.reason {
-      VStack(alignment: .leading, spacing: 7) {
-        Label(reason, systemImage: "exclamationmark.triangle.fill")
-          .font(.caption)
-          .foregroundStyle(.orange)
-          .fixedSize(horizontal: false, vertical: true)
-        if let settingsURL = availability.settingsURL {
-          Button("Open System Settings") {
-            WorkspaceOpener.openSettings(settingsURL)
-          }
-        }
-      }
-    }
-  }
-
-  @ViewBuilder
-  private var permissionGuidance: some View {
-    switch action.kind {
-    case .keyboardShortcut, .mouse, .scroll, .window:
-      Label(
-        "This action requires Accessibility when it runs. Touch observation remains independent and pass-through.",
-        systemImage: "lock.shield"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
-
-    case .appleScript:
-      Label(
-        "macOS may request Automation permission only when this script controls another app.",
-        systemImage: "lock.shield"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
-
-    case .systemControl:
-      Label(systemControlPermissionText, systemImage: "checkmark.shield")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-    case .open:
-      Label("Opening an app, URL, file, or folder does not require Accessibility.", systemImage: "checkmark.shield")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-
-    // A Quick Action's permissions belong to the action itself, and a rule with no
-    // action asks for nothing; both are covered by the notice above when they fail.
-    case .quickAction, .none:
-      EmptyView()
-    }
-  }
-
-  @ViewBuilder
-  private var openTargetChooser: some View {
-    switch action.openTargetKind {
-    case .application:
-      Menu {
-        if runningApplications.isEmpty {
-          Button("No running apps available") {}
-            .disabled(true)
-        } else {
-          ForEach(runningApplications) { application in
-            Button(application.name) {
-              var next = action
-              next.target = application.bundleIdentifier
-              action = next
-            }
-          }
-        }
-        Divider()
-        Button("Refresh Running Apps", action: refreshRunningApplications)
-      } label: {
-        Image(systemName: "plus.app")
-      }
-      .menuStyle(.borderlessButton)
-      .help("Choose a running app")
-      .accessibilityLabel("Choose a running app")
-
-    case .file:
-      Button("Choose…") { chooseFileSystemTarget(directory: false) }
-
-    case .folder:
-      Button("Choose…") { chooseFileSystemTarget(directory: true) }
-
-    case .url:
-      EmptyView()
-    }
-  }
-
-  private var kindBinding: Binding<TrackpadGestureActionKind> {
-    Binding(
-      get: { action.kind },
-      set: { kind in
-        var next = action
-        next.kind = kind
-        if kind == .quickAction,
-          next.quickActionStorageValue.isEmpty,
-          let first = quickActionService.catalogItems.first
-        {
-          next.quickActionStorageValue = first.reference.storageValue
-        }
-        action = next
-      }
-    )
-  }
-
-  private var keyCodeTextBinding: Binding<String> {
-    Binding(
-      get: { String(action.keyboardShortcut.keyCode) },
-      set: { value in
-        guard let code = UInt16(value.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-          return
-        }
-        var next = action
-        next.keyboardShortcut.keyCode = code
-        action = next
-      }
-    )
-  }
-
-  private var openTargetLabel: LocalizedStringKey {
-    switch action.openTargetKind {
-    case .application: return "Bundle identifier"
-    case .url: return "URL"
-    case .file: return "File path"
-    case .folder: return "Folder path"
-    }
-  }
-
-  private var openTargetPlaceholder: LocalizedStringKey {
-    switch action.openTargetKind {
-    case .application: return "com.example.app"
-    case .url: return "https://example.com"
-    case .file: return "/path/to/file"
-    case .folder: return "/path/to/folder"
-    }
-  }
-
-  private var systemControlPermissionText: String {
-    switch action.systemControl {
-    case .brightnessUp, .brightnessDown, .continuousBrightness:
-      return L10n.string("Supported display brightness control does not require Accessibility and fails closed on unsupported displays.")
-    default:
-      return L10n.string("Volume control does not require Accessibility and publishes only observed system values.")
-    }
-  }
-
-  private func binding<Value>(
-    _ keyPath: WritableKeyPath<TrackpadGestureAction, Value>
-  ) -> Binding<Value> {
-    Binding(
-      get: { action[keyPath: keyPath] },
-      set: { value in
-        var next = action
-        next[keyPath: keyPath] = value
-        action = next
-      }
-    )
-  }
-
-  private func chooseFileSystemTarget(directory: Bool) {
-    let panel = NSOpenPanel()
-    panel.canChooseFiles = !directory
-    panel.canChooseDirectories = directory
-    panel.allowsMultipleSelection = false
-    panel.title = L10n.string(directory ? "Choose Folder" : "Choose File")
-    guard panel.runModal() == .OK, let url = panel.url else { return }
-    var next = action
-    next.target = url.path
-    action = next
-  }
-
-  private func refreshRunningApplications() {
-    runningApplications = TrackpadApplicationCatalog.runningApplications()
-  }
-}
-
-private struct TrackpadApplicationScopeEditor: View {
-  @Binding var scope: TrackpadApplicationScope
-  @State private var manualBundleIdentifier = ""
-  @State private var runningApplications: [TrackpadApplicationIdentity] = []
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("Applications")
-        .font(.subheadline.weight(.semibold))
-
-      LabeledContent("Run this rule in") {
-        Picker("Run this rule in", selection: modeBinding) {
-          ForEach(TrackpadApplicationScopeMode.allCases) { mode in
-            Text(mode.settingsTitle).tag(mode)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 300)
-      }
-
-      if scope.mode != .allApplications {
-        if scope.applications.isEmpty {
-          Text(emptyScopeMessage)
-            .font(.caption)
-            .foregroundStyle(scope.mode == .includedApplications ? Color.orange : Color.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        } else {
-          VStack(alignment: .leading, spacing: 6) {
-            ForEach(scope.applications) { application in
-              HStack(spacing: 8) {
-                Image(systemName: "app")
-                  .foregroundStyle(.secondary)
-                  .frame(width: 18)
-                VStack(alignment: .leading, spacing: 1) {
-                  Text(application.name)
-                    .lineLimit(1)
-                  Text(application.bundleIdentifier)
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Button(role: .destructive) {
-                  removeApplication(application.id)
-                } label: {
-                  Image(systemName: "minus.circle")
-                }
-                .buttonStyle(.borderless)
-                .help("Remove application")
-                .accessibilityLabel(L10n.format("Remove %@", application.name))
-              }
-            }
-          }
-        }
-
-        HStack(spacing: 8) {
-          TextField("Bundle identifier", text: $manualBundleIdentifier)
-            .textFieldStyle(.roundedBorder)
-            .onSubmit(addManualApplication)
-          Button("Add", action: addManualApplication)
-            .disabled(
-              manualBundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            )
-
-          Menu {
-            if runningApplications.isEmpty {
-              Button("No running apps available") {}
-                .disabled(true)
-            } else {
-              ForEach(runningApplications) { application in
-                Button(application.name) { addApplication(application) }
-              }
-            }
-            Divider()
-            Button("Refresh Running Apps", action: refreshRunningApplications)
-          } label: {
-            Label("Running Apps", systemImage: "plus.app")
-          }
-          .menuStyle(.borderlessButton)
-        }
-      }
-    }
-    .onAppear(perform: refreshRunningApplications)
-  }
-
-  private var modeBinding: Binding<TrackpadApplicationScopeMode> {
-    Binding(
-      get: { scope.mode },
-      set: { mode in
-        var next = scope
-        next.mode = mode
-        if mode == .allApplications { next.applications = [] }
-        scope = next.normalized
-      }
-    )
-  }
-
-  private var emptyScopeMessage: String {
-    switch scope.mode {
-    case .includedApplications:
-      return L10n.string("No apps are included, so this rule will not run until one is added.")
-    case .excludedApplications:
-      return L10n.string("No apps are excluded; this currently behaves like All Applications.")
-    case .allApplications:
-      return ""
-    }
-  }
-
-  private func addManualApplication() {
-    let identifier = manualBundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !identifier.isEmpty else { return }
-    addApplication(
-      TrackpadApplicationIdentity(bundleIdentifier: identifier, name: identifier)
-    )
-    manualBundleIdentifier = ""
-  }
-
-  private func addApplication(_ application: TrackpadApplicationIdentity) {
-    var next = scope
-    guard !next.applications.contains(where: { $0.bundleIdentifier == application.bundleIdentifier }) else {
-      return
-    }
-    next.applications.append(application)
-    scope = next.normalized
-  }
-
-  private func removeApplication(_ id: String) {
-    var next = scope
-    next.applications.removeAll { $0.id == id }
-    scope = next.normalized
-  }
-
-  private func refreshRunningApplications() {
-    runningApplications = TrackpadApplicationCatalog.runningApplications()
-  }
-}
-
-private enum TrackpadApplicationCatalog {
-  static func runningApplications() -> [TrackpadApplicationIdentity] {
-    var applicationsByID: [String: TrackpadApplicationIdentity] = [:]
-    for application in NSWorkspace.shared.runningApplications {
-      guard let bundleIdentifier = application.bundleIdentifier,
-        !bundleIdentifier.isEmpty
-      else {
-        continue
-      }
-      let name = application.localizedName?.trimmingCharacters(in: .whitespacesAndNewlines)
-      applicationsByID[bundleIdentifier] = TrackpadApplicationIdentity(
-        bundleIdentifier: bundleIdentifier,
-        name: (name?.isEmpty == false ? name : nil) ?? bundleIdentifier,
-        path: application.bundleURL?.path
-      )
-    }
-    return applicationsByID.values.sorted {
-      let comparison = $0.name.localizedStandardCompare($1.name)
-      return comparison == .orderedSame
-        ? $0.bundleIdentifier < $1.bundleIdentifier
-        : comparison == .orderedAscending
+      return trigger.drawingActivation.settingsTitle
     }
   }
 }
 
-private struct TrackpadModifierSelector: View {
-  @Binding var selection: Set<TrackpadModifier>
-
-  var body: some View {
-    HStack(spacing: 10) {
-      ForEach(TrackpadModifier.allCases) { modifier in
-        Toggle(
-          modifier.symbol,
-          isOn: Binding(
-            get: { selection.contains(modifier) },
-            set: { selected in
-              if selected {
-                selection.insert(modifier)
-              } else {
-                selection.remove(modifier)
-              }
-            }
-          )
-        )
-        .toggleStyle(.checkbox)
-        .help(modifier.settingsTitle)
-        .accessibilityLabel(modifier.settingsTitle)
-      }
-    }
-  }
-}
-
-private struct TrackpadDrawingRecorder: View {
-  @Binding var points: [TrackpadPoint]
-  @State private var draft: [TrackpadPoint]
-  @State private var isRecording = false
-
-  init(points: Binding<[TrackpadPoint]>) {
-    self._points = points
-    self._draft = State(initialValue: points.wrappedValue)
-  }
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 7) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Drawing Template")
-            .font(.caption.weight(.medium))
-          Text("Draw one continuous path inside the trackpad surface.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        Spacer()
-        Text(L10n.format("%d points", draft.count))
-          .font(.caption.monospacedDigit())
-          .foregroundStyle(.secondary)
-        Button("Clear") {
-          draft = []
-          points = []
-        }
-        .disabled(draft.isEmpty)
-      }
-
-      GeometryReader { geometry in
-        Canvas { context, size in
-          let background = Path(
-            roundedRect: CGRect(origin: .zero, size: size),
-            cornerRadius: 12
-          )
-          context.fill(background, with: .color(Color(nsColor: .controlBackgroundColor)))
-          context.stroke(
-            background,
-            with: .color(Color(nsColor: .separatorColor)),
-            lineWidth: 1
-          )
-
-          guard let first = draft.first else { return }
-          var path = Path()
-          path.move(to: canvasPoint(first, size: size))
-          for point in draft.dropFirst() {
-            path.addLine(to: canvasPoint(point, size: size))
-          }
-          context.stroke(
-            path,
-            with: .color(.accentColor),
-            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
-          )
-        }
-        .contentShape(Rectangle())
-        .gesture(
-          DragGesture(minimumDistance: 0)
-            .onChanged { value in
-              if !isRecording {
-                draft = []
-                isRecording = true
-              }
-              append(location: value.location, size: geometry.size)
-            }
-            .onEnded { value in
-              append(location: value.location, size: geometry.size)
-              isRecording = false
-              points = Array(draft.prefix(TrackpadSettingsLayout.maximumDrawingPoints))
-            }
-        )
-      }
-      .frame(height: TrackpadSettingsLayout.drawingHeight)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel("Drawing recorder")
-      .accessibilityValue(L10n.format("%d points", draft.count))
-      .accessibilityHint("Use a pointer to record a normalized single-stroke gesture, or import a rule set.")
-    }
-    .onChange(of: points) { updatedPoints in
-      guard !isRecording, updatedPoints != draft else { return }
-      draft = updatedPoints
-    }
-  }
-
-  private func append(location: CGPoint, size: CGSize) {
-    guard size.width > 0, size.height > 0,
-      draft.count < TrackpadSettingsLayout.maximumDrawingPoints
-    else {
-      return
-    }
-    let point = TrackpadPoint(
-      x: Double(location.x / size.width),
-      y: Double(1 - location.y / size.height)
-    ).clamped
-    guard draft.last?.distance(to: point) ?? .infinity
-      >= TrackpadSettingsLayout.minimumDrawingPointDistance
-    else {
-      return
-    }
-    draft.append(point)
-  }
-
-  private func canvasPoint(_ point: TrackpadPoint, size: CGSize) -> CGPoint {
-    CGPoint(
-      x: CGFloat(point.clamped.x) * size.width,
-      y: CGFloat(1 - point.clamped.y) * size.height
-    )
-  }
-}
-
-private struct TrackpadLabeledSlider: View {
+struct TrackpadLabeledSlider: View {
   let title: String
   @Binding var value: Double
   let range: ClosedRange<Double>
@@ -1914,7 +984,7 @@ private struct TrackpadLabeledSlider: View {
   }
 }
 
-private enum TrackpadUIFormat {
+enum TrackpadUIFormat {
   static func percent(_ value: Double) -> String {
     String(format: "%.0f%%", locale: L10n.appLocale, value * 100)
   }
@@ -1932,7 +1002,7 @@ private enum TrackpadUIFormat {
   }
 }
 
-private extension TrackpadGestureTrigger {
+extension TrackpadGestureTrigger {
   var settingsSummary: String {
     switch kind {
     case .contact:
@@ -1958,7 +1028,7 @@ private extension TrackpadGestureTrigger {
   }
 }
 
-private extension TrackpadGestureAction {
+extension TrackpadGestureAction {
   var settingsSummary: String {
     switch kind {
     case .systemControl:
@@ -1989,9 +1059,38 @@ private extension TrackpadGestureAction {
       return L10n.string("No action")
     }
   }
+
+  /// The same symbols the action catalog uses, so a rule row and the Action Center never
+  /// picture the same action differently.
+  var settingsSymbol: String {
+    switch kind {
+    case .systemControl:
+      return systemControl.actionSystemImage
+    case .quickAction:
+      switch QuickActionReference(storageValue: quickActionStorageValue) {
+      case .builtIn(let actionID): return actionID.systemImage
+      case .shortcut: return "command.square.fill"
+      case nil: return "bolt.horizontal"
+      }
+    case .keyboardShortcut:
+      return "keyboard"
+    case .mouse:
+      return "cursorarrow.click"
+    case .scroll:
+      return "arrow.up.and.down"
+    case .open:
+      return "arrow.up.forward.app"
+    case .appleScript:
+      return "applescript"
+    case .window:
+      return "macwindow"
+    case .none:
+      return "circle.dashed"
+    }
+  }
 }
 
-private extension TrackpadApplicationScope {
+extension TrackpadApplicationScope {
   var settingsSummary: String {
     switch mode {
     case .allApplications:
@@ -2008,7 +1107,7 @@ private extension TrackpadApplicationScope {
   }
 }
 
-private extension TrackpadModifier {
+extension TrackpadModifier {
   var settingsTitle: String {
     switch self {
     case .function: return L10n.string("Function")
@@ -2030,7 +1129,7 @@ private extension TrackpadModifier {
   }
 }
 
-private extension TrackpadApplicationScopeMode {
+extension TrackpadApplicationScopeMode {
   var settingsTitle: String {
     switch self {
     case .allApplications: return L10n.string("All Applications")
@@ -2040,7 +1139,7 @@ private extension TrackpadApplicationScopeMode {
   }
 }
 
-private extension TrackpadDeviceScope {
+extension TrackpadDeviceScope {
   var settingsTitle: String {
     switch self {
     case .allSupported: return L10n.string("All Supported Trackpads")
@@ -2050,7 +1149,7 @@ private extension TrackpadDeviceScope {
   }
 }
 
-private extension TrackpadGestureKind {
+extension TrackpadGestureKind {
   var settingsTitle: String {
     switch self {
     case .contact: return L10n.string("Contact")
@@ -2065,7 +1164,7 @@ private extension TrackpadGestureKind {
   }
 }
 
-private extension TrackpadContactGesture {
+extension TrackpadContactGesture {
   var settingsTitle: String {
     switch self {
     case .tap: return L10n.string("Tap")
@@ -2076,11 +1175,11 @@ private extension TrackpadContactGesture {
   }
 }
 
-private extension TrackpadDirection {
+extension TrackpadDirection {
   var settingsTitle: String { actionTitle }
 }
 
-private extension TrackpadEdge {
+extension TrackpadEdge {
   var settingsTitle: String {
     switch self {
     case .left: return L10n.string("Left")
@@ -2091,7 +1190,7 @@ private extension TrackpadEdge {
   }
 }
 
-private extension TrackpadGestureRegion {
+extension TrackpadGestureRegion {
   var settingsTitle: String {
     switch self {
     case .anywhere: return L10n.string("Anywhere")
@@ -2110,7 +1209,7 @@ private extension TrackpadGestureRegion {
   }
 }
 
-private extension TrackpadPinchDirection {
+extension TrackpadPinchDirection {
   var settingsTitle: String {
     switch self {
     case .inward: return L10n.string("Inward")
@@ -2119,7 +1218,7 @@ private extension TrackpadPinchDirection {
   }
 }
 
-private extension TrackpadTapSpacing {
+extension TrackpadTapSpacing {
   var settingsTitle: String {
     switch self {
     case .near: return L10n.string("Near")
@@ -2129,7 +1228,7 @@ private extension TrackpadTapSpacing {
   }
 }
 
-private extension TrackpadDrawingActivation {
+extension TrackpadDrawingActivation {
   var settingsTitle: String {
     switch self {
     case .modifier: return L10n.string("Modifier + Finger")
@@ -2139,7 +1238,7 @@ private extension TrackpadDrawingActivation {
   }
 }
 
-private extension TrackpadGestureActionKind {
+extension TrackpadGestureActionKind {
   var settingsTitle: String {
     switch self {
     case .systemControl: return L10n.string("System Control")
@@ -2155,15 +1254,15 @@ private extension TrackpadGestureActionKind {
   }
 }
 
-private extension TrackpadSystemControl {
+extension TrackpadSystemControl {
   var settingsTitle: String { actionTitle }
 }
 
-private extension TrackpadMouseAction {
+extension TrackpadMouseAction {
   var settingsTitle: String { actionTitle }
 }
 
-private extension TrackpadOpenTargetKind {
+extension TrackpadOpenTargetKind {
   var settingsTitle: String {
     switch self {
     case .application: return L10n.string("Application")
@@ -2174,6 +1273,6 @@ private extension TrackpadOpenTargetKind {
   }
 }
 
-private extension TrackpadWindowAction {
+extension TrackpadWindowAction {
   var settingsTitle: String { actionTitle }
 }
