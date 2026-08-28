@@ -31,8 +31,8 @@ final class DashboardSectionTests: XCTestCase {
   }
 
   /// The Dashboard holds no settings, so it is not a settings pane at all any more: it
-  /// has its own window, reached through `showDashboardWindow`. Menu Bar leads the
-  /// sidebar, and is what a bare `showSettingsWindow()` opens on.
+  /// has its own window, reached through `AppRouter.openDashboard`. Menu Bar leads the
+  /// sidebar, and is where an untouched router opens Settings.
   func testTheDashboardIsNoLongerASettingsPane() {
     XCTAssertEqual(SettingsPane.allCases.first, .menuBar)
     XCTAssertFalse(SettingsPane.allCases.map(\.rawValue).contains("dashboard"))

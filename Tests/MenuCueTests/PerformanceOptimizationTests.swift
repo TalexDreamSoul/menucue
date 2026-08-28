@@ -6,10 +6,10 @@ import XCTest
 @testable import MenuCue
 
 @MainActor
-final class StatusSamplingControllerTests: XCTestCase {
+final class VisibilityGateTests: XCTestCase {
   func testVisibilityPublisherStopsSynchronouslyAndIdempotently() {
     let presentation = PopoverPresentationState()
-    let controller = StatusSamplingController()
+    let controller = VisibilityGate()
     var starts = 0
     var stops = 0
 
@@ -41,7 +41,7 @@ final class StatusSamplingControllerTests: XCTestCase {
   }
 
   func testClosingPresentationPreventsPrimingAndTimerSamples() {
-    let suite = "StatusSamplingControllerTests.\(UUID().uuidString)"
+    let suite = "VisibilityGateTests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suite)!
     defer { defaults.removePersistentDomain(forName: suite) }
     let firstProbe = expectation(description: "first probe started")
@@ -56,7 +56,7 @@ final class StatusSamplingControllerTests: XCTestCase {
       lowPowerModeProvider: { false }
     )
     let presentation = PopoverPresentationState()
-    let controller = StatusSamplingController()
+    let controller = VisibilityGate()
     controller.connect(
       to: presentation,
       onStart: service.retain,

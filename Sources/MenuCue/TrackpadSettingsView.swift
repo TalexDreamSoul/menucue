@@ -6,8 +6,13 @@ import UniformTypeIdentifiers
 
 struct TrackpadSettingsView: View {
   @Environment(\.menuCueMotion) private var motion
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject private var service: TrackpadGestureService
+  /// The live preview publishes touches at 30 Hz, so it must stop when the settings
+  /// window closes. Closing that window only orders it out, and `onDisappear` covers
+  /// leaving the pane but not that.
+  @StateObject private var livePreviewGate = VisibilityGate()
 
   @State private var expandedRuleID: UUID?
   @State private var feedbackMessage: String?
@@ -37,10 +42,14 @@ struct TrackpadSettingsView: View {
     }
     .onAppear {
       model.quickActionService.refreshAll()
-      service.retainLivePreview()
+      livePreviewGate.connect(
+        to: router.visibility(of: .settings),
+        onStart: { service.retainLivePreview() },
+        onStop: { service.releaseLivePreview() }
+      )
     }
     .onDisappear {
-      service.releaseLivePreview()
+      livePreviewGate.disconnect()
     }
     .confirmationDialog(
       "Reset gesture presets?",

@@ -99,12 +99,17 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private let model: AppModel
   private let updateService: UpdateService
   private let languageService: AppLanguageService
+  /// Every navigation state and request in the app. This controller is the end of the
+  /// pipe: it turns a request into a window on screen and reports back which windows
+  /// are up, and touches nothing else about where the user is.
+  private let router: AppRouter
   private var settingsWindow: NSWindow?
   private var dashboardWindow: NSWindow?
   private var quickEventWindow: NSWindow?
   private var timer: Timer?
   private var settingsCancellable: AnyCancellable?
   private var syncStatusCancellable: AnyCancellable?
+  private var routeCancellable: AnyCancellable?
   private var isPresentingSyncPrompt = false
   private var currentStatusClockID: String?
   private var clockSelection = StatusClockSelectionState()
@@ -119,6 +124,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   static let wheelSwitchCooldown: TimeInterval = 0.16
   private let preciseGestureResetInterval: TimeInterval = 0.35
 
+  @MainActor
   init(
     model: AppModel,
     updateService: UpdateService,
@@ -127,6 +133,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     self.model = model
     self.updateService = updateService
     self.languageService = languageService
+    self.router = AppRouter()
     self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.popover = NSPopover()
     super.init()
@@ -135,6 +142,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     configurePopover()
     configurePowerMonitoring()
     observeSettings()
+    observeRoutes()
     startTimer()
     refreshClockTitle()
   }
@@ -200,35 +208,49 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let hostingController = SwipeForwardingController(
       rootView: StatusPopoverView(
         model: model,
-        openSettings: { [weak self] in
-          Task { @MainActor in
-            self?.showSettingsWindow()
-          }
-        },
-        openQuickActionSettings: { [weak self] in
-          Task { @MainActor in
-            self?.showSettingsWindow(initialPane: .actionCenter)
-          }
-        },
-        openPowerSettings: { [weak self] in
-          Task { @MainActor in
-            self?.showSettingsWindow(initialPane: .power)
-          }
-        },
-        openDashboard: { [weak self] section in
-          Task { @MainActor in
-            self?.showDashboardWindow(section: section)
-          }
-        },
         quitApp: {
           NSApp.terminate(nil)
         },
         swipeRelay: relay
-      ),
+      )
+      .environmentObject(router),
       relay: relay
     )
     hostingController.applyAppearance(NSApp.appearance)
     popover.contentViewController = hostingController
+  }
+
+  /// The router only records where something asked to go; putting that on screen is
+  /// this controller's job, and this is the single place it happens.
+  ///
+  /// A request usually arrives from a button inside the popover, and presenting a window
+  /// closes that popover — so the work waits for the next turn of the run loop rather
+  /// than tearing down the view tree that is still handling the click.
+  @MainActor
+  private func observeRoutes() {
+    routeCancellable = router.$route
+      .compactMap { $0 }
+      .sink { request in
+        Task { @MainActor [weak self] in
+          self?.perform(request.value)
+        }
+      }
+  }
+
+  @MainActor
+  private func perform(_ route: AppRouter.Route) {
+    switch route {
+    case .popover:
+      // A tab request from inside the popover is already served by the router state;
+      // only a closed popover has anything to do here.
+      showPopover()
+    case .settings:
+      presentSettingsWindow()
+    case .dashboard:
+      presentDashboardWindow()
+    case .newEvent:
+      showQuickEventWindow()
+    }
   }
 
   private func observeSettings() {
@@ -309,10 +331,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
 
   private func refreshClockTitle(transitionOrigin: ClockTransitionOrigin = .bottom) {
     let appearance = NSApp.appearance
-    Self.apply(appearance, to: popover.contentViewController?.view)
-    Self.apply(appearance, to: settingsWindow?.contentViewController?.view)
-    Self.apply(appearance, to: dashboardWindow?.contentViewController?.view)
-    Self.apply(appearance, to: quickEventWindow?.contentViewController?.view)
+    Self.apply(appearance, to: popover.contentViewController)
+    Self.apply(appearance, to: settingsWindow?.contentViewController)
+    Self.apply(appearance, to: dashboardWindow?.contentViewController)
+    Self.apply(appearance, to: quickEventWindow?.contentViewController)
     let now = Date()
     let clocks = model.settings.clockTimeZones
     let clock = currentStatusClock(at: now)
@@ -329,6 +351,20 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let buttonBounds = statusItem.button?.bounds ?? .zero
     if let interactionView, interactionView.frame != buttonBounds {
       interactionView.frame = buttonBounds
+    }
+  }
+
+  /// A `SwipeForwardingController` pins an appearance on the hosted view as well as on
+  /// its container, and an explicitly pinned subview stops inheriting — so reaching only
+  /// the container would leave the SwiftUI content in whichever appearance was in effect
+  /// when the controller was built. That was survivable while these controllers were
+  /// rebuilt on every open, and is not now that they are built once.
+  private static func apply(_ appearance: NSAppearance?, to controller: NSViewController?) {
+    guard let controller else { return }
+    if let forwarding = controller as? AppearanceForwarding {
+      forwarding.applyAppearance(appearance)
+    } else {
+      apply(appearance, to: controller.view)
     }
   }
 
@@ -684,7 +720,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
 
   @MainActor
   @objc private func openSettingsFromMenu(_ sender: NSMenuItem) {
-    showSettingsWindow()
+    // No pane named, so the window comes back on the one the user left it on.
+    router.openSettings()
   }
 
   @MainActor
@@ -692,8 +729,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     updateService.checkForUpdates()
   }
 
+  @MainActor
   @objc private func openNewEventFromMenu(_ sender: NSMenuItem) {
-    showQuickEventWindow()
+    router.openNewEvent()
   }
 
   @objc private func clearManualClockSelection(_ sender: NSMenuItem) {
@@ -724,12 +762,31 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     guard let window = notification.object as? NSWindow,
       window === settingsWindow || window === dashboardWindow
     else { return }
+    // Neither window is released when it closes, so its SwiftUI tree stays alive and
+    // `onDisappear` need never run. Saying so here is what stops the work scoped to
+    // the window: live readings, the trackpad preview, the `pmset` poll.
+    router.setWindow(window === settingsWindow ? .settings : .dashboard, visible: false)
     // Both windows share one activation policy. Dropping back to accessory while the
     // other is still around would take the Dock tile and the menu bar out from under
     // it — and a miniaturized window with no Dock tile cannot be restored at all.
     let sibling = window === settingsWindow ? dashboardWindow : settingsWindow
     if let sibling, sibling.isVisible || sibling.isMiniaturized { return }
     settingsWindowDockController.settingsDidClose()
+  }
+
+  /// A window in the Dock is not on screen, and its readings are not being read.
+  @MainActor
+  func windowDidMiniaturize(_ notification: Notification) {
+    guard let window = notification.object as? NSWindow else { return }
+    if window === settingsWindow { router.setWindow(.settings, visible: false) }
+    if window === dashboardWindow { router.setWindow(.dashboard, visible: false) }
+  }
+
+  @MainActor
+  func windowDidDeminiaturize(_ notification: Notification) {
+    guard let window = notification.object as? NSWindow else { return }
+    if window === settingsWindow { router.setWindow(.settings, visible: true) }
+    if window === dashboardWindow { router.setWindow(.dashboard, visible: true) }
   }
 
   /// Brings one of the reusable windows on screen.
@@ -739,7 +796,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   /// the click looks like it did nothing.
   @MainActor
   private func present(_ window: NSWindow) {
-    window.contentViewController?.view.appearance = NSApp.appearance
+    Self.apply(NSApp.appearance, to: window.contentViewController)
     if window.isMiniaturized {
       window.deminiaturize(nil)
     }
@@ -747,40 +804,44 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     NSApp.activate(ignoringOtherApps: true)
   }
 
+  /// Puts the settings window on screen on whichever pane the router holds.
+  ///
+  /// The view tree is built once and never replaced. The old code rebuilt it on every
+  /// call so that a repeat deep link would be noticed, and the price was that any
+  /// settings entry point reset a window the user already had open back to its first
+  /// pane. Repeats are now carried by `AppRouter`'s sequence number instead.
   @MainActor
-  private func showSettingsWindow(initialPane: SettingsPane = .menuBar) {
+  private func presentSettingsWindow() {
     popover.performClose(nil)
     settingsWindowDockController.settingsWillShow()
     model.refreshCalendarData()
     model.quickActionService.refreshAll()
-
-    // Rebuilt on every call, which is what makes a repeat deep link land on the
-    // requested pane rather than on whichever one was open last.
-    let hostingController = NSHostingController(
-      rootView: SettingsWindowView(
-        model: model,
-        updateService: updateService,
-        languageService: languageService,
-        initialPane: initialPane
-      )
-    )
-    hostingController.view.appearance = NSApp.appearance
+    // The panes read these once when they appear, and a reused window does not appear
+    // again — so what Settings shows is refreshed on the way in instead.
+    model.refreshLaunchAtLoginState()
 
     let window: NSWindow
     if let settingsWindow {
       window = settingsWindow
-      window.contentViewController = hostingController
     } else {
+      let hostingController = NSHostingController(
+        rootView: SettingsWindowView(
+          model: model,
+          updateService: updateService,
+          languageService: languageService
+        )
+        .environmentObject(router)
+      )
+      hostingController.view.appearance = NSApp.appearance
       window = makeSettingsWindow(hostingController: hostingController)
+      window.delegate = self
       settingsWindow = window
     }
-    window.delegate = self
     present(window)
+    router.setWindow(.settings, visible: true)
   }
 
-  private func makeSettingsWindow(
-    hostingController: NSHostingController<SettingsWindowView>
-  ) -> NSWindow {
+  private func makeSettingsWindow(hostingController: NSViewController) -> NSWindow {
     let window = NSWindow(contentViewController: hostingController)
     window.title = L10n.string("MenuCue Settings")
     window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
@@ -809,35 +870,36 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   /// tabs of live readings sitting where preferences are configured. As its own window
   /// it can also stay open next to Settings, which is what someone comparing a reading
   /// against a setting actually wants.
+  ///
+  /// Built once, like the settings window — which is also what lets the charts keep
+  /// their history across a close and reopen.
   @MainActor
-  private func showDashboardWindow(section: DashboardSection = .cpu) {
+  private func presentDashboardWindow() {
     popover.performClose(nil)
     settingsWindowDockController.settingsWillShow()
-
-    // The Dashboard's tabs answer to sideways flicks, so this window carries the relay
-    // that used to belong to the settings window — where nothing else consumed it.
-    let relay = SwipeRelay()
-    let hostingController = SwipeForwardingController(
-      rootView: DashboardView(model: model, initialSection: section, swipeRelay: relay),
-      relay: relay
-    )
-    hostingController.applyAppearance(NSApp.appearance)
 
     let window: NSWindow
     if let dashboardWindow {
       window = dashboardWindow
-      window.contentViewController = hostingController
     } else {
+      // The Dashboard's tabs answer to sideways flicks, so this window carries the
+      // relay that used to belong to the settings window — where nothing consumed it.
+      let relay = SwipeRelay()
+      let hostingController = SwipeForwardingController(
+        rootView: DashboardView(model: model, swipeRelay: relay)
+          .environmentObject(router),
+        relay: relay
+      )
+      hostingController.applyAppearance(NSApp.appearance)
       window = makeDashboardWindow(hostingController: hostingController)
+      window.delegate = self
       dashboardWindow = window
     }
-    window.delegate = self
     present(window)
+    router.setWindow(.dashboard, visible: true)
   }
 
-  private func makeDashboardWindow(
-    hostingController: SwipeForwardingController<DashboardView>
-  ) -> NSWindow {
+  private func makeDashboardWindow(hostingController: NSViewController) -> NSWindow {
     let window = NSWindow(contentViewController: hostingController)
     window.title = L10n.string("Dashboard")
     // No `.fullSizeContentView` here: the settings window inherits its titlebar inset
@@ -899,14 +961,15 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     }
   }
 
+  /// Opening the popover refreshes the data behind it, so a popover that is already
+  /// open stops here: a tab change routed through `AppRouter` must not cost a full
+  /// calendar and action refresh.
   private func showPopover() {
-    guard let button = statusItem.button else { return }
+    guard let button = statusItem.button, !popover.isShown else { return }
     model.refreshCalendarData()
     model.quickActionService.refreshAll()
     refreshClockTitle()
-    if !popover.isShown {
-      popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-    }
+    popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     NSApp.activate(ignoringOtherApps: true)
   }
 }

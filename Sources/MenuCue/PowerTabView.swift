@@ -1,12 +1,11 @@
 import SwiftUI
 
 struct PowerTabView: View {
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject var diagnostics: PowerDiagnosticsService
   @ObservedObject var processEnergy: ProcessEnergyService
   @ObservedObject var processHealth: ProcessHealthService
-  /// Opens the Settings window on the Power pane, which owns the system power switches.
-  let openPowerSettings: () -> Void
   @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
 
   @State private var selectedProcess: ProcessEnergyEntry?
@@ -308,7 +307,7 @@ struct PowerTabView: View {
           .fixedSize(horizontal: false, vertical: true)
       }
 
-      Button(L10n.string("Configure in Settings"), action: openPowerSettings)
+      Button(L10n.string("Configure in Settings")) { router.openSettings(pane: .power) }
         .buttonStyle(.link)
         .font(.system(size: 10, weight: .semibold))
     }

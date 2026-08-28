@@ -52,7 +52,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   static func migrating(rawValue: String) -> SettingsPane? {
     switch rawValue {
     // The Dashboard is read-only and has never held a setting; it is its own window
-    // now, so a link to it goes through `showDashboardWindow` rather than through here.
+    // now, so `AppRouter.route(forIdentifier:)` sends that link to the window instead.
     case "dashboard": return nil
     case "overview": return .panel
     case "dateAndTime": return .menuBar
@@ -116,27 +116,15 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 }
 
 struct SettingsWindowView: View {
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
-  @State private var selectedPane: SettingsPane
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  init(
-    model: AppModel,
-    updateService: UpdateService,
-    languageService: AppLanguageService,
-    initialPane: SettingsPane = .menuBar
-  ) {
-    self.model = model
-    self.updateService = updateService
-    self.languageService = languageService
-    self._selectedPane = State(initialValue: initialPane)
-  }
 
   var body: some View {
     NavigationSplitView {
-      List(selection: $selectedPane) {
+      List(selection: $router.settingsPane) {
         ForEach(SettingsPaneGroup.allCases) { group in
           Section(group.title) {
             ForEach(group.panes) { pane in
@@ -157,7 +145,7 @@ struct SettingsWindowView: View {
         model: model,
         updateService: updateService,
         languageService: languageService,
-        pane: selectedPane
+        pane: router.settingsPane
       )
     }
     .navigationSplitViewStyle(.balanced)

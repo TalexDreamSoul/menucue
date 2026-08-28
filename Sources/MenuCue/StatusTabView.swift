@@ -1,67 +1,18 @@
 import Combine
 import SwiftUI
 
-@MainActor
-final class StatusSamplingController: ObservableObject {
-  private var visibilityCancellable: AnyCancellable?
-  private var stopAction: (() -> Void)?
-  private(set) var isActive = false
-
-  func connect(
-    to presentation: PopoverPresentationState,
-    onStart: @escaping () -> Void,
-    onStop: @escaping () -> Void
-  ) {
-    guard visibilityCancellable == nil else { return }
-    stopAction = onStop
-    visibilityCancellable = presentation.$isVisible
-      .removeDuplicates()
-      .sink { [weak self] isVisible in
-        self?.update(isVisible: isVisible, onStart: onStart, onStop: onStop)
-      }
-  }
-
-  func disconnect() {
-    visibilityCancellable = nil
-    guard isActive else {
-      stopAction = nil
-      return
-    }
-    isActive = false
-    let stop = stopAction
-    stopAction = nil
-    stop?()
-  }
-
-  private func update(
-    isVisible: Bool,
-    onStart: () -> Void,
-    onStop: () -> Void
-  ) {
-    guard isVisible != isActive else { return }
-    isActive = isVisible
-    if isVisible {
-      onStart()
-    } else {
-      onStop()
-    }
-  }
-}
-
 /// Live system monitor tab. Sampling is tied to this view's lifetime so a closed
 /// popover costs nothing.
 struct StatusTabView: View {
   @Environment(\.menuCueMotion) private var motion
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject var metrics: SystemMetricsService
   @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
-  let openAllActions: () -> Void
-  /// Opens the Dashboard window on the tab that expands a card.
-  let openDashboard: (DashboardSection) -> Void
   /// Owned here rather than by the popover: hover detail is only meaningful while
   /// this tab is on screen, and tearing it down on exit stops every extra probe.
   @StateObject private var detail = SystemDetailService()
-  @StateObject private var samplingController = StatusSamplingController()
+  @StateObject private var samplingController = VisibilityGate()
   /// Measured, because the panel can only be kept inside the popover if its height
   /// is known — a naive above/below flip pushed tall panels off the top edge.
   @State private var detailPanelHeight: CGFloat = 0
@@ -69,12 +20,12 @@ struct StatusTabView: View {
   var body: some View {
     PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
-        SystemMetricsCards(metrics: metrics, detail: detail, openDashboard: openDashboard)
+        SystemMetricsCards(metrics: metrics, detail: detail)
 
         // Pinned actions live here too so the common case needs no tab switch;
         // the Actions tab remains the full catalog.
         PopoverCard(title: "Quick Actions", systemImage: "bolt.fill", tint: .yellow) {
-          Button("All", action: openAllActions)
+          Button("All") { router.openPopover(tab: .actions) }
             .buttonStyle(.plain)
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(Color.accentColor)
@@ -183,9 +134,9 @@ extension StatusTabView {
 /// The card stack itself, kept separate from the scroll container so it can be
 /// laid out and snapshot-rendered on its own.
 struct SystemMetricsCards: View {
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var metrics: SystemMetricsService
   @ObservedObject var detail: SystemDetailService
-  var openDashboard: ((DashboardSection) -> Void)?
 
   private static let userColor = Color.accentColor
   private static let systemColor = Color.orange
@@ -222,11 +173,9 @@ struct SystemMetricsCards: View {
     }
   }
 
-  /// `nil` when no destination was supplied, which leaves the card non-clickable
-  /// instead of giving it a link that goes nowhere.
+  /// Opens the Dashboard window on the tab that expands this card.
   private func link(_ target: MetricDetailTarget) -> (() -> Void)? {
-    guard let openDashboard else { return nil }
-    return { openDashboard(DashboardSection(target: target)) }
+    { router.openDashboard(section: DashboardSection(target: target)) }
   }
 
   // MARK: - CPU

@@ -1,13 +1,14 @@
-## Scenario: Retained popover sampling and machine-local motion policy
+## Scenario: Retained-surface sampling and machine-local motion policy
 
 ### 1. Scope / Trigger
 
-Use this pattern when a retained `NSPopover` owns live sampling or when a visual-quality preference changes SwiftUI/AppKit animation behavior without changing data freshness.
+Use this pattern when a retained surface owns live sampling — the `NSPopover`, or either window that is `isReleasedWhenClosed = false` — or when a visual-quality preference changes SwiftUI/AppKit animation behavior without changing data freshness.
 
 ### 2. Signatures
 
-- Authoritative presentation state: `@MainActor PopoverPresentationState.isPresented`
-- Idempotent sampling gate: `StatusSamplingController.update(isVisible:isStatusSelected:)`
+- Authoritative popover state: `@MainActor PopoverPresentationState.isVisible`
+- Authoritative window state: `AppRouter.visibility(of:) -> AnyPublisher<Bool, Never>`
+- Idempotent visibility gate: `VisibilityGate.connect(to:onStart:onStop:)`, `disconnect()`
 - Coherent metrics publication: `SystemMetricsService.frame: SystemMetricsDisplayFrame`
 - Local setting: `AppSettings.animationQuality: AnimationQuality`
 - Persistence key: `animationQuality.v1`
@@ -15,7 +16,7 @@ Use this pattern when a retained `NSPopover` owns live sampling or when a visual
 
 ### 3. Contracts
 
-- `NSPopover` retains its content after closing, so SwiftUI `onDisappear` is cleanup fallback only. Start and stop popover-scoped work from `PopoverPresentationState` plus the selected-tab state.
+- A retained surface keeps its content after closing, so SwiftUI `onDisappear` is cleanup fallback only. Start and stop popover-scoped work from `PopoverPresentationState` plus the selected-tab state, and window-scoped work from `AppRouter.visibility(of:)`, which also reports a miniaturized window as away.
 - Retain/release transitions must be idempotent. Closing the popover or leaving Status releases metrics exactly once and clears hover-detail state; reopening reacquires exactly once.
 - A released sampling generation may finish utility work, but it must not publish stale data or schedule a follow-up sample.
 - Publish each successful metrics sample as one coherent frame containing the snapshot and matching CPU history. Derived consumers subscribe to the frame rather than independent snapshot/history publications.
@@ -37,7 +38,7 @@ Use this pattern when a retained `NSPopover` owns live sampling or when a visual
 
 ### 5. Good / Base / Bad Cases
 
-- Good: `StatusSamplingController` combines authoritative visibility and tab selection, while views consume one injected `MotionProfile`.
+- Good: one `VisibilityGate` per retained surface starts and stops from an authoritative visibility publisher, while views consume one injected `MotionProfile`.
 - Base: the default Elegant profile keeps concise primary feedback and the configured sampling interval unchanged.
 - Bad: relying only on `onDisappear`, publishing snapshot and history separately, or globally disabling SwiftUI transactions.
 
@@ -54,15 +55,19 @@ Use this pattern when a retained `NSPopover` owns live sampling or when a visual
 ### 7. Wrong vs Correct
 
 ```swift
-// Wrong: retained popover content may never disappear, and two publications
+// Wrong: retained content may never disappear, and two publications
 // invalidate the same observed tree twice.
 .onAppear { metrics.retain() }
 .onDisappear { metrics.release() }
 metrics.snapshot = snapshot
 metrics.cpuHistory = history
 
-// Correct: presentation state drives one guarded lifecycle and one frame commit.
-sampling.update(isVisible: presentation.isPresented, isStatusSelected: isStatusSelected)
+// Correct: authoritative visibility drives one guarded lifecycle and one frame commit.
+gate.connect(
+  to: router.visibility(of: .dashboard),
+  onStart: { metrics.retain() },
+  onStop: { metrics.release() }
+)
 metrics.frame = SystemMetricsDisplayFrame(snapshot: snapshot, cpuHistory: history)
 ```
 

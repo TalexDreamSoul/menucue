@@ -224,10 +224,16 @@ final class SwipeForwardingView: NSView {
   }
 }
 
+/// Hosted content that pins its own appearance and therefore has to be told when the
+/// app's appearance changes, rather than inheriting it from an ancestor.
+protocol AppearanceForwarding: AnyObject {
+  func applyAppearance(_ appearance: NSAppearance?)
+}
+
 /// A `SwipeForwardingView` with the SwiftUI content as its only child, so the
 /// container is an ancestor of every scroll view inside and can receive their
 /// forwarded horizontal events.
-final class SwipeForwardingController<Content: View>: NSViewController {
+final class SwipeForwardingController<Content: View>: NSViewController, AppearanceForwarding {
   private let hosting: NSHostingController<Content>
   private let swipeRelay: SwipeRelay
 
@@ -268,8 +274,14 @@ final class SwipeForwardingController<Content: View>: NSViewController {
     ])
   }
 
+  /// Assigning an appearance re-runs the appearance walk over the whole hosted tree even
+  /// when the value is unchanged, and this runs once a second — so compare first.
   func applyAppearance(_ appearance: NSAppearance?) {
-    view.appearance = appearance
-    hosting.view.appearance = appearance
+    if view.appearance !== appearance {
+      view.appearance = appearance
+    }
+    if hosting.view.appearance !== appearance {
+      hosting.view.appearance = appearance
+    }
   }
 }

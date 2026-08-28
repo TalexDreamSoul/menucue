@@ -6,9 +6,13 @@ import SwiftUI
 /// leads with the answer — what woke the Mac, and what is stopping it sleeping —
 /// because those are the two questions people actually ask.
 struct DashboardPowerSection: View {
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject var diagnostics: PowerDiagnosticsService
   @ObservedObject var energy: ProcessEnergyService
+  /// The `pmset` poll follows the window, not this view: closing the Dashboard only
+  /// orders it out, so leaving the tab is the one disappearance `onDisappear` covers.
+  @StateObject private var diagnosticsGate = VisibilityGate()
 
   var body: some View {
     let snapshot = diagnostics.snapshot
@@ -20,8 +24,14 @@ struct DashboardPowerSection: View {
       keepsRunningCard
       wakeHistoryCard(snapshot)
     }
-    .onAppear { diagnostics.retain() }
-    .onDisappear { diagnostics.release() }
+    .onAppear {
+      diagnosticsGate.connect(
+        to: router.visibility(of: .dashboard),
+        onStart: { diagnostics.retain() },
+        onStop: { diagnostics.release() }
+      )
+    }
+    .onDisappear { diagnosticsGate.disconnect() }
   }
 
   /// Looking at this used to be the opt-in, which meant background sampling started

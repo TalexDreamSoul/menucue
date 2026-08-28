@@ -43,20 +43,16 @@ extension PopoverTab {
 }
 
 struct StatusPopoverView: View {
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
-  let openSettings: () -> Void
-  /// Opens the Settings window on the Quick Actions pane, which is also where the
-  /// full action catalog is run from.
-  let openQuickActionSettings: () -> Void
-  /// Opens the Settings window on the Power pane, which owns the system power switches.
-  let openPowerSettings: () -> Void
-  /// Opens the Dashboard window, pre-selected to a metric's tab.
-  let openDashboard: (DashboardSection) -> Void
   let quitApp: () -> Void
   /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
   @ObservedObject var swipeRelay: SwipeRelay
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @StateObject private var metrics = SystemMetricsService()
+  /// Mirrors `router.popoverTab`, and is what the transition animates against. The
+  /// router carries no direction, so the local copy is what tells a tap from a swipe
+  /// which way to slide.
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
   @State private var selectedCalendarDate = Date()
@@ -68,20 +64,14 @@ struct StatusPopoverView: View {
 
   init(
     model: AppModel,
-    openSettings: @escaping () -> Void,
-    openQuickActionSettings: @escaping () -> Void,
-    openPowerSettings: @escaping () -> Void,
-    openDashboard: @escaping (DashboardSection) -> Void,
     quitApp: @escaping () -> Void,
     swipeRelay: SwipeRelay
   ) {
     self.model = model
-    self.openSettings = openSettings
-    self.openQuickActionSettings = openQuickActionSettings
-    self.openPowerSettings = openPowerSettings
-    self.openDashboard = openDashboard
     self.quitApp = quitApp
     self.swipeRelay = swipeRelay
+    // Nothing has asked for a tab yet, so the popover opens on the first one in the
+    // user's own order.
     _selectedTab = State(initialValue: model.settings.popoverTabOrder.first ?? .status)
   }
 
@@ -114,8 +104,6 @@ struct StatusPopoverView: View {
 
       PopoverFooter(
         bootDate: metrics.bootDate,
-        openSettings: openSettings,
-        openQuickActionSettings: openQuickActionSettings,
         newEvent: openQuickEventEditor,
         quitApp: quitApp
       )
@@ -142,6 +130,16 @@ struct StatusPopoverView: View {
         )
       }
       select(destination, direction: command.direction)
+    }
+    // Both halves compare before writing, so the pair settles after one pass rather
+    // than bouncing the value back and forth through SwiftUI's update loop.
+    .onChange(of: router.popoverTab) { requested in
+      guard let requested, requested != selectedTab else { return }
+      select(requested, direction: navigationDirection(to: requested))
+    }
+    .onChange(of: selectedTab) { tab in
+      guard router.popoverTab != tab else { return }
+      router.popoverTab = tab
     }
     .sheet(isPresented: quickEventSheetBinding) {
       quickEventSheet
@@ -187,27 +185,21 @@ struct StatusPopoverView: View {
   private var tabContent: some View {
     switch selectedTab {
     case .status:
-      StatusTabView(
-        model: model,
-        metrics: metrics,
-        openAllActions: { select(.actions, direction: navigationDirection(to: .actions)) },
-        openDashboard: openDashboard
-      )
-      .transition(tabTransition)
+      StatusTabView(model: model, metrics: metrics)
+        .transition(tabTransition)
     case .power:
       PowerTabView(
         model: model,
         diagnostics: model.powerDiagnosticsService,
         processEnergy: model.processEnergyService,
-        processHealth: model.processHealthService,
-        openPowerSettings: openPowerSettings
+        processHealth: model.processHealthService
       )
       .transition(tabTransition)
     case .calendar:
       calendarTab
         .transition(tabTransition)
     case .actions:
-      ActionsTabView(model: model, openSettings: openQuickActionSettings)
+      ActionsTabView(model: model)
         .transition(tabTransition)
     }
   }

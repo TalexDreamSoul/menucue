@@ -25,10 +25,10 @@
 
 ## 跨子任务验收
 
-- [ ] 每个子任务收尾时 `swift build` 与 `swift test` 全绿，行为回归仅限该任务声明的意图内变更。
-- [ ] 双语本地化（en / zh-Hans）同步，`LocalizationCoverageTests` 通过。
-- [ ] 每个子任务独立提交（repo 惯例：`fix:` / `feat:` / `refactor:` 前缀）。
-- [ ] 全部完成后父任务整体 review：四份报告列出的问题逐条核对状态（已修 / 有意不修 + 理由）。
+- [x] 每个子任务收尾时 `swift build` 与 `swift test` 全绿，行为回归仅限该任务声明的意图内变更。（最终 547+5 用例 0 失败）
+- [x] 双语本地化（en / zh-Hans）同步，`LocalizationCoverageTests` 通过。（1117 键，两语言键集一致）
+- [x] 每个子任务独立提交（repo 惯例：`fix:` / `feat:` / `refactor:` 前缀）。
+- [x] 全部完成后父任务整体 review：四份报告列出的问题逐条核对状态（已修 / 有意不修 + 理由）。→ 见 notes.md 台账
 
 ## 不做（本轮）
 

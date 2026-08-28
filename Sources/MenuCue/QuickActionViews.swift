@@ -45,18 +45,17 @@ struct PinnedQuickActionGrid: View {
 /// in Settings is where the same actions are arranged.
 struct ActionsTabView: View {
   @Environment(\.menuCueMotion) private var motion
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
-  let openSettings: () -> Void
 
   @State private var query = ""
   /// Shortcuts start closed: they are the user's own list and can be long, while the
   /// built-in categories are a fixed short set.
   @State private var collapsedGroups: Set<String> = [ActionSource.shortcut.rawValue]
 
-  init(model: AppModel, openSettings: @escaping () -> Void) {
+  init(model: AppModel) {
     self.model = model
-    self.openSettings = openSettings
     self.service = model.quickActionService
   }
 
@@ -64,7 +63,7 @@ struct ActionsTabView: View {
     VStack(spacing: 8) {
       HStack(spacing: 8) {
         searchRow
-        Button(action: openSettings) {
+        Button { router.openSettings(pane: .actionCenter) } label: {
           Image(systemName: "slider.horizontal.3")
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.secondary)
@@ -129,7 +128,7 @@ struct ActionsTabView: View {
               .padding(.vertical, 6)
           }
 
-          Button(action: openSettings) {
+          Button { router.openSettings(pane: .actionCenter) } label: {
             Label("Manage Actions…", systemImage: "slider.horizontal.3")
               .font(.system(size: 11, weight: .medium))
               .frame(maxWidth: .infinity)

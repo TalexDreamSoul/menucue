@@ -236,9 +236,8 @@ struct PopoverTabBar: View {
 
 /// Persistent footer: uptime on the left, an overflow menu on the right.
 struct PopoverFooter: View {
+  @EnvironmentObject private var router: AppRouter
   let bootDate: Date?
-  let openSettings: () -> Void
-  let openQuickActionSettings: () -> Void
   let newEvent: () -> Void
   let quitApp: () -> Void
 
@@ -264,9 +263,9 @@ struct PopoverFooter: View {
 
       Menu {
         Button("New Event…", action: newEvent)
-        Button("Manage Actions…", action: openQuickActionSettings)
+        Button("Manage Actions…") { router.openSettings(pane: .actionCenter) }
         Divider()
-        Button("Settings…", action: openSettings)
+        Button("Settings…") { router.openSettings() }
         Divider()
         Button("Quit MenuCue", action: quitApp)
       } label: {
@@ -281,7 +280,7 @@ struct PopoverFooter: View {
       .fixedSize()
       .accessibilityLabel("More options")
 
-      Button(action: openSettings) {
+      Button { router.openSettings() } label: {
         Image(systemName: "gearshape")
           .font(.system(size: 11, weight: .semibold))
           .foregroundStyle(.secondary)

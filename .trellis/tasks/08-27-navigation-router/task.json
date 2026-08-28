@@ -3,7 +3,7 @@
   "name": "navigation-router",
   "title": "导航层 Router 化",
   "description": "引入显式导航对象，消除 5 个闭包下传与设置窗口重开重置 pane 的问题。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

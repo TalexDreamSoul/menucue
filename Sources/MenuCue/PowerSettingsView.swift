@@ -5,10 +5,13 @@ import SwiftUI
 /// power settings it writes through the helper, and the helper itself.
 struct PowerSettingsView: View {
   @Environment(\.menuCueMotion) private var motion
+  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject private var service: QuickActionService
   @ObservedObject private var powerHelper: PowerHelperManager
   @ObservedObject private var diagnostics: PowerDiagnosticsService
+  /// Polling `pmset` follows the settings window, which stays alive after it closes.
+  @StateObject private var diagnosticsGate = VisibilityGate()
   @State private var helperFeedback: String?
   @State private var selectedSource: ManagedPowerSource = .ac
   @State private var pendingAllSources: PendingPowerSetting?
@@ -36,10 +39,14 @@ struct PowerSettingsView: View {
       }
       // Reading the profiles is what `retain` is for here; the pane shows what pmset
       // currently reports rather than whatever was last cached.
-      diagnostics.retain()
+      diagnosticsGate.connect(
+        to: router.visibility(of: .settings),
+        onStart: { diagnostics.retain() },
+        onStop: { diagnostics.release() }
+      )
     }
     .onDisappear {
-      diagnostics.release()
+      diagnosticsGate.disconnect()
     }
     .onChange(of: diagnostics.battery?.isOnAC) { onAC in
       guard let onAC else { return }
