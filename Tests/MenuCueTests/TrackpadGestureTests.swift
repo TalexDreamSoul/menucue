@@ -35,7 +35,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       frame(5, 0.40, [contact(2, .out, 0.70, 0.50)]),
     ])
 
-    XCTAssertEqual(matches.map { $0.rule.action.systemControl }, [.volumeUp])
+    XCTAssertEqual(matches.map { $0.action.systemControl }, [.volumeUp])
   }
 
   func testHeldLeftAndCompletedRightRecontactEmitsVolumeDownExactlyOnce() {
@@ -49,7 +49,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       frame(5, 0.40, [contact(1, .out, 0.30, 0.50)]),
     ])
 
-    XCTAssertEqual(matches.map { $0.rule.action.systemControl }, [.volumeDown])
+    XCTAssertEqual(matches.map { $0.action.systemControl }, [.volumeDown])
   }
 
   func testTwoFingerScrollAndSimultaneousLiftDoNotRecognizeTipTap() {
@@ -123,6 +123,31 @@ final class TrackpadGestureEngineTests: XCTestCase {
     ])
 
     XCTAssertTrue(matches.isEmpty, "a two-finger rule must reject a session that saw a third contact")
+  }
+
+  /// The editor used to offer five fingers for a family that stops at four, so the rule
+  /// could be saved and would then never fire. The offered range now comes from the
+  /// recognizer; this pins both ends of that agreement.
+  func testFiveFingerTipTapNeverFiresWhileTheSameSequenceOnFourFingersDoes() {
+    let fourFingerMatches = consume(
+      makeEngine(rules: [wideTipTapRule(fingerCount: 4)]),
+      wideTipTapFrames(restingContactIDs: [2, 3, 4])
+    )
+    let fiveFingerMatches = consume(
+      makeEngine(rules: [wideTipTapRule(fingerCount: 5)]),
+      wideTipTapFrames(restingContactIDs: [2, 3, 4, 5])
+    )
+
+    XCTAssertEqual(fourFingerMatches.map { $0.action.systemControl }, [.volumeUp])
+    XCTAssertTrue(
+      fiveFingerMatches.isEmpty,
+      "the tip-tap family stops at four contacts, so a five-finger rule can never fire"
+    )
+    XCTAssertEqual(
+      TrackpadRecognizerRegistry.supportedFingerCounts(for: .tipTap),
+      2...4,
+      "the rule editor offers exactly this range, so it must not offer five"
+    )
   }
 
   func testResetCancelsPendingTipTapWithoutRetainingItsState() {
@@ -217,7 +242,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
         ]),
       ])
 
-      XCTAssertEqual(matches.map { $0.rule.action.systemControl }, [testCase.action], testCase.name)
+      XCTAssertEqual(matches.map { $0.action.systemControl }, [testCase.action], testCase.name)
       XCTAssertEqual(matches.map(\.continuousDelta), [testCase.expectedDelta], testCase.name)
       XCTAssertEqual(matches.compactMap(\.direction), [testCase.expectedDirection], testCase.name)
     }
@@ -364,7 +389,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
 
     let matches = completedSingleFingerTap(engine, context: editorContext)
 
-    XCTAssertEqual(matches.map { $0.rule.action.systemControl }, [.volumeDown])
+    XCTAssertEqual(matches.map { $0.action.systemControl }, [.volumeDown])
   }
 
   func testModifierAndDeviceScopesGateRecognition() {
@@ -389,7 +414,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       )
 
       if let expected = testCase.expected {
-        XCTAssertEqual(matches.map { $0.rule.action.systemControl }, [expected], testCase.name)
+        XCTAssertEqual(matches.map { $0.action.systemControl }, [expected], testCase.name)
       } else {
         XCTAssertTrue(matches.isEmpty, testCase.name)
       }
@@ -640,7 +665,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       frame(5, 0.40, [contact(2, .out, 0.70, 0.50)]),
     ])
 
-    XCTAssertEqual(matches.map { $0.rule.action.systemControl }, [.volumeUp])
+    XCTAssertEqual(matches.map { $0.action.systemControl }, [.volumeUp])
   }
 
   func testDoubleTapStateDoesNotCrossDevicesResetsOrTimeReversal() {
@@ -693,7 +718,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       frame(4, 0.20, [contact(1, .out, 0.50, 0.50)]),
     ])
 
-    XCTAssertEqual(uninterruptedMatches.map { $0.rule.action.systemControl }, [.volumeUp])
+    XCTAssertEqual(uninterruptedMatches.map { $0.action.systemControl }, [.volumeUp])
     XCTAssertTrue(crossDeviceMatches.isEmpty, "a tap on another device cannot complete this device's double tap")
     XCTAssertTrue(resetMatches.isEmpty, "reset clears the pending first tap")
     XCTAssertTrue(reversedTimeMatches.isEmpty, "a time-reversed tap cannot complete a later first tap")
@@ -788,7 +813,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
         frame(2, 0.30, testCase.end),
       ])
 
-      XCTAssertEqual(fastMatches.map { $0.rule.action.systemControl }, [.volumeUp], testCase.name)
+      XCTAssertEqual(fastMatches.map { $0.action.systemControl }, [.volumeUp], testCase.name)
       XCTAssertTrue(slowMatches.isEmpty, "\(testCase.name) must reject a duration beyond maximumDuration")
     }
   }
@@ -836,7 +861,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       holdTapDrawingFrames(template: template, secondPathStartsAt: 0.20, anchorPositionDuringPath: TrackpadPoint(x: 0.20, y: 0.50))
     )
 
-    XCTAssertEqual(validMatches.map { $0.rule.action.systemControl }, [.volumeUp])
+    XCTAssertEqual(validMatches.map { $0.action.systemControl }, [.volumeUp])
     XCTAssertTrue(earlyPathMatches.isEmpty, "the drawing finger must begin after the anchor hold duration")
     XCTAssertTrue(movedAnchorMatches.isEmpty, "the hold-tap anchor must remain within movement tolerance")
   }
@@ -886,7 +911,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       )
 
       XCTAssertEqual(
-        fastMatches.map { $0.rule.action.systemControl },
+        fastMatches.map { $0.action.systemControl },
         [.volumeUp],
         activation.rawValue
       )
@@ -1464,6 +1489,35 @@ final class TrackpadGestureEngineTests: XCTestCase {
         sensitivity: sensitivity,
         rules: rules
       )
+    )
+  }
+
+  /// The leftmost finger lifts and taps back down while the rest of the hand rests.
+  /// `restingContactIDs` sets how wide that hand is.
+  private func wideTipTapFrames(restingContactIDs: [Int32]) -> [TrackpadFrame] {
+    let positions: [Int32: Double] = [1: 0.10, 2: 0.30, 3: 0.50, 4: 0.70, 5: 0.90]
+    let resting = restingContactIDs.map { contact($0, .touch, positions[$0] ?? 0.5, 0.50) }
+    let recontactID: Int32 = 6
+    return [
+      frame(1, 0, [contact(1, .touch, 0.10, 0.50)] + resting),
+      frame(2, 0.20, [contact(1, .out, 0.10, 0.50)] + resting),
+      frame(3, 0.25, resting + [contact(recontactID, .touch, 0.10, 0.50)]),
+      frame(4, 0.32, resting + [contact(recontactID, .out, 0.10, 0.50)]),
+    ]
+  }
+
+  private func wideTipTapRule(fingerCount: Int) -> TrackpadGestureRule {
+    TrackpadGestureRule(
+      name: "Wide tip tap",
+      trigger: TrackpadGestureTrigger(
+        kind: .tipTap,
+        fingerCount: fingerCount,
+        selectedFingerIndex: 0,
+        holdDuration: 0.18,
+        maximumDuration: 0.65,
+        movementTolerance: 0.035
+      ),
+      action: .system(.volumeUp)
     )
   }
 

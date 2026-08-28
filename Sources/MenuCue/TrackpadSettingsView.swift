@@ -1030,6 +1030,10 @@ private struct TrackpadTriggerEditor: View {
         .font(.caption)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+      Text("Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
 
     case .fingerSwipe:
       selectedFingerStepper
@@ -1102,32 +1106,16 @@ private struct TrackpadTriggerEditor: View {
       set: { kind in
         var next = trigger
         next.kind = kind
-        switch kind {
-        case .contact:
-          next.fingerCount = min(5, max(1, next.fingerCount))
-        case .swipe, .tipTap, .fingerSwipe:
-          next.fingerCount = min(5, max(2, next.fingerCount))
-        case .edgeEntrySwipe:
-          next.fingerCount = min(5, max(2, next.fingerCount))
-        case .pinch:
-          next.fingerCount = min(4, max(2, next.fingerCount))
-        case .drawing:
-          next.fingerCount = min(5, max(1, next.fingerCount))
-        case .edgeContinuous:
-          next.fingerCount = 2
-        }
+        let supported = TrackpadRecognizerRegistry.supportedFingerCounts(for: kind)
+        next.fingerCount = min(supported.upperBound, max(supported.lowerBound, next.fingerCount))
         trigger = next.normalized
       }
     )
   }
 
+  /// The recognizer decides what it can honour; the editor only offers it.
   private var fingerRange: ClosedRange<Int> {
-    switch trigger.kind {
-    case .contact, .drawing: return 1...5
-    case .swipe, .edgeEntrySwipe, .tipTap, .fingerSwipe: return 2...5
-    case .pinch: return 2...4
-    case .edgeContinuous: return 2...2
-    }
+    TrackpadRecognizerRegistry.supportedFingerCounts(for: trigger.kind)
   }
 
   private var selectedFingerStepper: some View {
@@ -1443,7 +1431,7 @@ private struct TrackpadActionEditor: View {
         let settingsURL = item.state.availability.settingsURL
       {
         Button("Open System Settings") {
-          NSWorkspace.shared.open(settingsURL)
+          WorkspaceOpener.openSettings(settingsURL)
         }
       }
 
@@ -2084,14 +2072,7 @@ private extension TrackpadContactGesture {
 }
 
 private extension TrackpadDirection {
-  var settingsTitle: String {
-    switch self {
-    case .up: return L10n.string("Up")
-    case .down: return L10n.string("Down")
-    case .left: return L10n.string("Left")
-    case .right: return L10n.string("Right")
-    }
-  }
+  var settingsTitle: String { actionTitle }
 }
 
 private extension TrackpadEdge {
@@ -2170,27 +2151,11 @@ private extension TrackpadGestureActionKind {
 }
 
 private extension TrackpadSystemControl {
-  var settingsTitle: String {
-    switch self {
-    case .volumeUp: return L10n.string("Volume Up")
-    case .volumeDown: return L10n.string("Volume Down")
-    case .toggleMute: return L10n.string("Toggle Mute")
-    case .brightnessUp: return L10n.string("Brightness Up")
-    case .brightnessDown: return L10n.string("Brightness Down")
-    case .continuousVolume: return L10n.string("Continuous Volume")
-    case .continuousBrightness: return L10n.string("Continuous Brightness")
-    }
-  }
+  var settingsTitle: String { actionTitle }
 }
 
 private extension TrackpadMouseAction {
-  var settingsTitle: String {
-    switch self {
-    case .leftClick: return L10n.string("Left Click")
-    case .rightClick: return L10n.string("Right Click")
-    case .middleClick: return L10n.string("Middle Click")
-    }
-  }
+  var settingsTitle: String { actionTitle }
 }
 
 private extension TrackpadOpenTargetKind {
@@ -2205,20 +2170,5 @@ private extension TrackpadOpenTargetKind {
 }
 
 private extension TrackpadWindowAction {
-  var settingsTitle: String {
-    switch self {
-    case .leftHalf: return L10n.string("Left Half")
-    case .rightHalf: return L10n.string("Right Half")
-    case .topHalf: return L10n.string("Top Half")
-    case .bottomHalf: return L10n.string("Bottom Half")
-    case .topLeftQuarter: return L10n.string("Top-left Quarter")
-    case .topRightQuarter: return L10n.string("Top-right Quarter")
-    case .bottomLeftQuarter: return L10n.string("Bottom-left Quarter")
-    case .bottomRightQuarter: return L10n.string("Bottom-right Quarter")
-    case .maximize: return L10n.string("Maximize")
-    case .center: return L10n.string("Center")
-    case .restore: return L10n.string("Restore")
-    case .nextDisplay: return L10n.string("Move to Next Display")
-    }
-  }
+  var settingsTitle: String { actionTitle }
 }

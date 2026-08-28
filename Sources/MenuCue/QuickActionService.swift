@@ -145,9 +145,9 @@ final class QuickActionService: ObservableObject {
   }
 
   var catalogItems: [QuickActionItem] {
-    let builtIns = BuiltInQuickActionID.allCases.map { item(for: .builtIn($0)) }
-    let shortcutItems = shortcuts.map { item(for: .shortcut($0)) }
-    return builtIns + shortcutItems
+    ActionCatalog
+      .quickActionReferences(surface: .panel, shortcuts: shortcuts)
+      .map(item(for:))
   }
 
   func pinnedItems(for references: [QuickActionReference]) -> [QuickActionItem] {
@@ -214,7 +214,7 @@ final class QuickActionService: ObservableObject {
     let selectedItem = item(for: reference)
     guard selectedItem.state.availability.isAvailable else {
       if let settingsURL = selectedItem.state.availability.settingsURL {
-        NSWorkspace.shared.open(settingsURL)
+        WorkspaceOpener.openSettings(settingsURL)
       }
       setFeedback(
         selectedItem.state.availability.reason ?? L10n.string("This action is unavailable.")
@@ -240,7 +240,7 @@ final class QuickActionService: ObservableObject {
       return
     }
     guard let settingsURL = states[actionID]?.availability.settingsURL else { return }
-    NSWorkspace.shared.open(settingsURL)
+    WorkspaceOpener.openSettings(settingsURL)
   }
 
   private func perform(_ actionID: BuiltInQuickActionID) {
@@ -259,7 +259,7 @@ final class QuickActionService: ObservableObject {
     case .hideNotch:
       let availability = states[actionID]?.availability
       if let settingsURL = availability?.settingsURL {
-        NSWorkspace.shared.open(settingsURL)
+        WorkspaceOpener.openSettings(settingsURL)
       }
       setFeedback(availability?.reason ?? L10n.string("This action is unavailable."))
     case .darkMode:
@@ -382,10 +382,7 @@ final class QuickActionService: ObservableObject {
       setFeedback(L10n.string("Screen Saver is unavailable on this macOS version."))
       return
     }
-    NSWorkspace.shared.openApplication(
-      at: URL(fileURLWithPath: path),
-      configuration: NSWorkspace.OpenConfiguration()
-    ) { [weak self] _, error in
+    WorkspaceOpener.openApplication(at: URL(fileURLWithPath: path)) { [weak self] error in
       DispatchQueue.main.async {
         if let error {
           self?.setFeedback(Self.localizedActionError(error))
@@ -715,14 +712,12 @@ final class QuickActionService: ObservableObject {
   }
 
   private static func runAppleScript(_ source: String) throws {
-    var error: NSDictionary?
-    NSAppleScript(source: source)?.executeAndReturnError(&error)
-    if let error {
-      let message =
-        error[NSAppleScript.errorMessage] as? String
-        ?? L10n.string("macOS denied the requested Automation action.")
-      throw QuickActionExecutionError.permissionRequired(message)
-    }
+    guard case .failure(let failure) = AppleScriptRunner.run(source) else { return }
+    // A script macOS refused is a permission problem the user can act on; one that would
+    // not compile is not, so it is not dressed up as one.
+    throw failure.isPermissionRelated
+      ? QuickActionExecutionError.permissionRequired(failure.message)
+      : QuickActionExecutionError.unavailable(failure.message)
   }
 
   private static func localizedActionError(_ error: Error) -> String {

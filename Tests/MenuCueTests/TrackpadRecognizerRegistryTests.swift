@@ -85,6 +85,41 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
     )
   }
 
+  /// The rule editor offers exactly what these declare, so a gap here becomes a rule the
+  /// user can save and never trigger.
+  func testFingerCountDeclarationsCoverEveryKindAndStayInsideHardwareLimits() {
+    let expected: [TrackpadGestureKind: ClosedRange<Int>] = [
+      .contact: 1...5,
+      .swipe: 2...5,
+      .edgeEntrySwipe: 2...5,
+      .pinch: 2...4,
+      .tipTap: 2...4,
+      .fingerSwipe: 2...5,
+      .drawing: 1...5,
+      .edgeContinuous: 2...2,
+    ]
+
+    for kind in TrackpadGestureKind.allCases {
+      let range = TrackpadRecognizerRegistry.supportedFingerCounts(for: kind)
+      XCTAssertEqual(range, expected[kind], kind.rawValue)
+      XCTAssertGreaterThanOrEqual(range.lowerBound, 1, kind.rawValue)
+      XCTAssertLessThanOrEqual(range.upperBound, 5, kind.rawValue)
+    }
+  }
+
+  /// Preset names are written to disk in English and localized for display, so both
+  /// catalogs have to carry them or a Chinese user sees the English literal.
+  func testEveryPresetNameIsTranslatedInBothCatalogs() throws {
+    let english = try L10n.entries(for: "en")
+    let chinese = try L10n.entries(for: "zh-Hans")
+
+    for name in TrackpadGestureSettings.presetRules.map(\.name) {
+      XCTAssertNotNil(english[name], name)
+      let translated = try XCTUnwrap(chinese[name], name)
+      XCTAssertNotEqual(translated, name, "\(name) is still the English literal in zh-Hans")
+    }
+  }
+
   func testShippedPresetsStillRequireNativeScrollSuppression() {
     XCTAssertTrue(
       TrackpadRecognizerRegistry

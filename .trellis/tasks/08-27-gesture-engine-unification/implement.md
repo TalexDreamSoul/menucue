@@ -15,16 +15,16 @@
 
 ## Stage B：动作层统一与声明修复
 
-9. [ ] TrackpadFeedbackHUD 搬出为独立文件（接口不变）。
-10. [ ] AppleScriptRunner 单点化；QuickActionService 与 Executor 改调；错误映射对齐两侧现状文案（本地化键复用）。
-11. [ ] 打开 App/URL/文件 收敛（Executor 完整实现为准，QuickActionService 局部调用改走它）。
-12. [ ] 触控板辅助功能判定复用 AccessibilityPermissionRequesting；清理死代码 SystemAccessibilityPermissionRequester.requestAccess（删除或接线，二选一并记录理由）。
-13. [ ] Trackpad 动作结构化可用性（ActionAvailability 对齐 QuickActionAvailability，含 settingsURL）；失败文案接补救入口（UI 层消费在子任务 3，本任务先把数据给全）。
-14. [ ] ActionCatalog 数据层：builtin 14 + shortcuts + 触控板原生动作登记；QuickActionService.catalogItems 改由目录生成；测试锁定 panel surface 清单与现状一致。
-15. [ ] Match 瘦身（ruleID+action+标记）；Service.handle 改字段直取。
-16. [ ] 动作执行路径 main.sync → async（抑制判定路径不动）。
-17. [ ] tipTap 手指范围 UI 对齐引擎（2…4）+ 编辑器说明文案；预设名本地化键（en/zh-Hans）。
-18. [ ] 全量 build + test + LocalizationCoverageTests；grep 验收（无 regionMatches/edgeContains/centroid 副本、无 hasEnabledEdgeContinuousRule）。
+9. [x] TrackpadFeedbackHUD 搬出为独立文件（接口不变）。
+10. [x] AppleScriptRunner 单点化；QuickActionService 与 Executor 改调；错误映射对齐两侧现状文案（本地化键复用）。
+11. [x] 打开 App/URL/文件 收敛（Executor 完整实现为准，QuickActionService 局部调用改走它）。
+12. [x] 触控板辅助功能判定复用 AccessibilityPermissionRequesting；清理死代码 SystemAccessibilityPermissionRequester.requestAccess（删除或接线，二选一并记录理由）。
+13. [x] Trackpad 动作结构化可用性（ActionAvailability 对齐 QuickActionAvailability，含 settingsURL）；失败文案接补救入口（UI 层消费在子任务 3，本任务先把数据给全）。
+14. [x] ActionCatalog 数据层：builtin 14 + shortcuts + 触控板原生动作登记；QuickActionService.catalogItems 改由目录生成；测试锁定 panel surface 清单与现状一致。
+15. [x] Match 瘦身（ruleID+action+标记）；Service.handle 改字段直取。
+16. [x] 动作执行路径 main.sync → async（抑制判定路径不动）。
+17. [x] tipTap 手指范围 UI 对齐引擎（2…4）+ 编辑器说明文案；预设名本地化键（en/zh-Hans）。
+18. [x] 全量 build + test + LocalizationCoverageTests；grep 验收（无 regionMatches/edgeContains/centroid 副本、无 hasEnabledEdgeContinuousRule）。
 
 ## 验证命令
 
@@ -33,8 +33,10 @@ swift build 2>&1 | tail -20
 swift test 2>&1 | tail -40
 # --filter matches suite names, not file names: TrackpadGestureTests.swift holds
 # TrackpadGestureEngineTests, so filtering on the file name silently runs 0 tests.
-swift test --filter Trackpad 2>&1 | tail -30   # 71 tests: 35 engine + 11 matcher + 6 registry + 19 policy
+swift test --filter Trackpad 2>&1 | tail -30   # Stage B: 76 tests（36 engine + 11 matcher + 8 registry + 7 click policy + 5 edge safety + 5 persistence + 1 feedback policy + 1 swipe + 2 catalog）
+swift test --filter ActionCatalog 2>&1 | tail -10   # 9 tests
 grep -rn "hasEnabledEdgeContinuousRule\|func regionMatches\|func edgeContains\|func centroid" Sources/ | grep -v TrackpadRuleMatcher.swift
+./scripts/verify-localizations.swift Sources/MenuCue/Resources/{en,zh-Hans}.lproj/Localizable.strings
 ```
 
 ## 回滚点

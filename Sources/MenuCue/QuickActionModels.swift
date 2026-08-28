@@ -145,25 +145,8 @@ enum QuickActionReference: Hashable, Identifiable {
   }
 }
 
-struct QuickActionAvailability: Equatable {
-  let isAvailable: Bool
-  let reason: String?
-  let settingsURL: URL?
-
-  static let available = QuickActionAvailability(
-    isAvailable: true,
-    reason: nil,
-    settingsURL: nil
-  )
-
-  static func unavailable(_ reason: String, settingsURL: URL? = nil) -> QuickActionAvailability {
-    QuickActionAvailability(
-      isAvailable: false,
-      reason: reason,
-      settingsURL: settingsURL
-    )
-  }
-}
+/// Quick Actions report availability in the shared shape every action surface uses.
+typealias QuickActionAvailability = ActionAvailability
 
 struct QuickActionState: Equatable {
   var availability: QuickActionAvailability

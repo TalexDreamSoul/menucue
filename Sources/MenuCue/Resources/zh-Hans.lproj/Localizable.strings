@@ -983,6 +983,7 @@
 "Touch callbacks are active only for the connected supported devices." = "触控回调仅对已连接且受支持的设备启用。";
 "Trackpad status: %@" = "触摸板状态：%@";
 "Activates the window under the pointer" = "激活指针下方的窗口";
+"Activate Window Under Pointer" = "激活指针下方的窗口";
 "%@ → %@" = "%@ → %@";
 "%@, %@" = "%@，%@";
 "Collapse rule editor" = "收起规则编辑器";
@@ -1015,6 +1016,7 @@
 "Tap spacing" = "轻点间距";
 "Anchor hold time" = "锚定按住时间";
 "Finger positions are assigned left to right when the gesture arms." = "手势就绪时会按从左到右分配手指位置。";
+"Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires." = "指尖轻点支持 2 到 4 指，保存为 5 指的规则不会触发。";
 "Selected finger" = "所选手指";
 "Finger %d" = "第 %d 指";
 "Minimum finger distance" = "手指最小移动距离";

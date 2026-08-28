@@ -100,14 +100,14 @@ Service.handle 不再读 `match.rule.*`（Service:1287 改由字段直取）。
 
 （对照现状 15 处：Engine 4 处、Service 4 处消失。）
 
-Stage A 后实测（`grep "case \.<kind>\|kind == \.<kind>"` 逐文件计数）：
+Stage B 后实测（`grep "case \.<kind>\|kind == \.<kind>"` 逐文件计数；括号内为 Stage A 数值）：
 
 | 文件 | per-kind 分支数 | 说明 |
 |---|---|---|
-| TrackpadGestureEngine.swift | **0** | 只剩 `recognizersByKind[trigger.kind]` 一次注册表查表 |
-| TrackpadGestureService.swift | 3 | 全在两个 SuppressionPolicy 自己的镜像谓词 + `isConfirmedContactTap` 内；新增 `.none` 抑制的手势族**不需要动** |
-| TrackpadGestureRecognizers.swift | 2 | 各族在自己的识别器里过滤自己的规则 |
-| TrackpadGestureModels.swift | 1 | edgeContinuous 强制 2 指的 `normalized` 钳制（触点 1） |
-| TrackpadSettingsView.swift | 34 | 触点 3/4，子任务 3 的 UI 重排范围 |
+| TrackpadGestureEngine.swift | **0**（0） | 只剩 `recognizersByKind[trigger.kind]` 一次注册表查表 |
+| TrackpadGestureService.swift | 2（3） | 只剩两个 SuppressionPolicy 自己的镜像谓词；`isConfirmedContactTap` 随 Match 瘦身消失 |
+| TrackpadGestureRecognizers.swift | 2（2） | 各族在自己的识别器里过滤自己的规则；`supportedFingerCounts` 是各族的静态声明，不产生分支 |
+| TrackpadGestureModels.swift | 2（1） | edgeContinuous 强制 2 指的 `normalized` 钳制 + Match 投影里的 contact-tap 标记（后者是 contact 专属，新增手势族不需要动） |
+| TrackpadSettingsView.swift | 24（34） | 触点 3/4，子任务 3 的 UI 重排范围；手指数范围两处 switch 已改为查 `TrackpadRecognizerRegistry.supportedFingerCounts` |
 
 新增一族的实际触点 = Models 1 + 识别器/注册表 1 + View familyFields 1 + View summary/title 1 + 双语 1 + 单测 1 = **6**（Engine / Service 均为 0）。

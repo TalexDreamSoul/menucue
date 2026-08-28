@@ -178,8 +178,7 @@ enum TrackpadMatchDispatchPolicy {
     _ match: TrackpadGestureMatch,
     edgeGestureOwned: Bool
   ) -> Bool {
-    TrackpadRecognizerRegistry.suppression(for: match.rule.trigger.kind) != .scrollWheel
-      || edgeGestureOwned
+    match.suppressionNeed != .scrollWheel || edgeGestureOwned
   }
 }
 
@@ -434,6 +433,12 @@ private final class TrackpadClickSuppressor {
   private static let armWindow: TimeInterval = 0.18
   private static let replayMarker: Int64 = 0x4D435450
 
+  private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
+
+  init(accessibilityPermissionRequester: AccessibilityPermissionRequesting) {
+    self.accessibilityPermissionRequester = accessibilityPermissionRequester
+  }
+
   private enum State {
     case idle
     case tentative(deadline: TimeInterval, token: UInt64, bufferedEvents: [CGEvent])
@@ -474,7 +479,7 @@ private final class TrackpadClickSuppressor {
       return
     }
 
-    guard AXIsProcessTrusted() else {
+    guard accessibilityPermissionRequester.status == .granted else {
       cancel()
       stopResources()
       transition(to: .requiresAccessibility)
@@ -519,9 +524,7 @@ private final class TrackpadClickSuppressor {
   /// Explicit user intent is the only path that can request the Accessibility prompt.
   func requestAccessibility() {
     dispatchPrecondition(condition: .onQueue(.main))
-    let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-    let options = [promptKey: true] as CFDictionary
-    guard AXIsProcessTrustedWithOptions(options) else {
+    guard accessibilityPermissionRequester.requestAccess() else {
       transition(to: .requiresAccessibility)
       return
     }
@@ -827,6 +830,7 @@ private final class TrackpadClickSuppressor {
 private final class TrackpadEdgeScrollSuppressor {
   private static let momentumDrainDuration: TimeInterval = 0.3
 
+  private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   private let lock = NSLock()
   private var eventTap: CFMachPort?
   private var runLoopSource: CFRunLoopSource?
@@ -843,6 +847,10 @@ private final class TrackpadEdgeScrollSuppressor {
 
   var stateHandler: ((TrackpadInputSuppressionStatus) -> Void)?
 
+  init(accessibilityPermissionRequester: AccessibilityPermissionRequesting) {
+    self.accessibilityPermissionRequester = accessibilityPermissionRequester
+  }
+
   deinit {
     stop()
   }
@@ -856,7 +864,7 @@ private final class TrackpadEdgeScrollSuppressor {
       transition(to: .disabled)
       return
     }
-    guard AXIsProcessTrusted() else {
+    guard accessibilityPermissionRequester.status == .granted else {
       setGestureActive(false, cancelMomentumDrain: true)
       stopResources()
       transition(to: .requiresAccessibility)
@@ -897,9 +905,7 @@ private final class TrackpadEdgeScrollSuppressor {
 
   func requestAccessibility() {
     dispatchPrecondition(condition: .onQueue(.main))
-    let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-    let options = [promptKey: true] as CFDictionary
-    guard AXIsProcessTrustedWithOptions(options) else {
+    guard accessibilityPermissionRequester.requestAccess() else {
       transition(to: .requiresAccessibility)
       return
     }
@@ -1008,6 +1014,7 @@ final class TrackpadGestureService: ObservableObject {
   )
   private let notificationCenter: NotificationCenter
   private let workspaceNotificationCenter: NotificationCenter
+  private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   private let executor: TrackpadActionExecutor
   private let clickSuppressor: TrackpadClickSuppressor
   private let edgeScrollSuppressor: TrackpadEdgeScrollSuppressor
@@ -1066,13 +1073,23 @@ final class TrackpadGestureService: ObservableObject {
   init(
     quickActionService: QuickActionService,
     notificationCenter: NotificationCenter = .default,
-    workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+    workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+    accessibilityPermissionRequester: AccessibilityPermissionRequesting =
+      SystemAccessibilityPermissionRequester()
   ) {
     self.notificationCenter = notificationCenter
     self.workspaceNotificationCenter = workspaceNotificationCenter
-    self.executor = TrackpadActionExecutor(quickActionService: quickActionService)
-    self.clickSuppressor = TrackpadClickSuppressor()
-    self.edgeScrollSuppressor = TrackpadEdgeScrollSuppressor()
+    self.accessibilityPermissionRequester = accessibilityPermissionRequester
+    self.executor = TrackpadActionExecutor(
+      quickActionService: quickActionService,
+      accessibilityPermissionRequester: accessibilityPermissionRequester
+    )
+    self.clickSuppressor = TrackpadClickSuppressor(
+      accessibilityPermissionRequester: accessibilityPermissionRequester
+    )
+    self.edgeScrollSuppressor = TrackpadEdgeScrollSuppressor(
+      accessibilityPermissionRequester: accessibilityPermissionRequester
+    )
     self.activeSettings = .default
     self.engine = TrackpadGestureEngine(settings: .default)
     clickSuppressor.stateHandler = { [weak self] status in
@@ -1146,10 +1163,7 @@ final class TrackpadGestureService: ObservableObject {
   }
 
   func openAccessibilitySettings() {
-    guard let url = URL(
-      string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-    ) else { return }
-    NSWorkspace.shared.open(url)
+    WorkspaceOpener.openSettings(accessibilityPermissionRequester.accessibilitySettingsURL)
   }
 
   func stop() {
@@ -1238,7 +1252,7 @@ final class TrackpadGestureService: ObservableObject {
     }
     if directive == .complete, clickSuppressionOwnerDeviceID == frame.deviceID {
       clickSuppressionOwnerDeviceID = nil
-      if dispatchableMatches.contains(where: Self.isConfirmedContactTap) {
+      if dispatchableMatches.contains(where: \.confirmsSuppressedClick) {
         clickSuppressor.confirm()
       } else {
         clickSuppressor.cancel()
@@ -1246,28 +1260,26 @@ final class TrackpadGestureService: ObservableObject {
     }
   }
 
+  /// Recognition happens on the engine queue; the action runs on the main thread and the
+  /// engine does not wait for it, so a modal an action puts up cannot stall the next frame.
   private func handle(_ match: TrackpadGestureMatch) {
-    publish(lastRecognition: match.rule.name)
+    publish(lastRecognition: match.ruleName)
     let feedbackHUDEnabled = activeSettings.feedbackHUDEnabled
     let hapticFeedbackEnabled = activeSettings.hapticFeedbackEnabled
     let continuous = match.continuousDelta != 0
     runOnMain { [weak self] in
       guard let self else { return }
-      if match.rule.activatesWindowUnderPointer {
+      if match.activatesWindowUnderPointer {
         _ = self.executor.activateWindowUnderPointer()
       }
       _ = self.executor.execute(
-        match.rule.action,
+        match.action,
         feedbackHUDEnabled: feedbackHUDEnabled,
         hapticFeedbackEnabled: hapticFeedbackEnabled,
         continuous: continuous,
         continuousDelta: match.continuousDelta
       )
     }
-  }
-
-  private static func isConfirmedContactTap(_ match: TrackpadGestureMatch) -> Bool {
-    match.rule.trigger.kind == .contact && match.rule.trigger.contactGesture == .tap
   }
 
 

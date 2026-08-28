@@ -983,6 +983,7 @@
 "Touch callbacks are active only for the connected supported devices." = "Touch callbacks are active only for the connected supported devices.";
 "Trackpad status: %@" = "Trackpad status: %@";
 "Activates the window under the pointer" = "Activates the window under the pointer";
+"Activate Window Under Pointer" = "Activate Window Under Pointer";
 "%@ → %@" = "%@ → %@";
 "%@, %@" = "%@, %@";
 "Collapse rule editor" = "Collapse rule editor";
@@ -1015,6 +1016,7 @@
 "Tap spacing" = "Tap spacing";
 "Anchor hold time" = "Anchor hold time";
 "Finger positions are assigned left to right when the gesture arms." = "Finger positions are assigned left to right when the gesture arms.";
+"Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires." = "Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires.";
 "Selected finger" = "Selected finger";
 "Finger %d" = "Finger %d";
 "Minimum finger distance" = "Minimum finger distance";

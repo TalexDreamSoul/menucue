@@ -7,13 +7,23 @@ import Foundation
 struct TrackpadActionExecutionResult: Equatable {
   let message: String
   let isFailure: Bool
+  /// Where the user can fix this failure, when it is one they are allowed to fix.
+  let settingsURL: URL?
 
   static func success(_ message: String) -> Self {
-    Self(message: L10n.string(message), isFailure: false)
+    Self(message: L10n.string(message), isFailure: false, settingsURL: nil)
   }
 
-  static func failure(_ message: String) -> Self {
-    Self(message: L10n.string(message), isFailure: true)
+  static func failure(_ message: String, settingsURL: URL? = nil) -> Self {
+    Self(message: L10n.string(message), isFailure: true, settingsURL: settingsURL)
+  }
+
+  static func unavailable(_ availability: ActionAvailability, fallbackReason: String) -> Self {
+    Self(
+      message: availability.reason ?? L10n.string(fallbackReason),
+      isFailure: true,
+      settingsURL: availability.settingsURL
+    )
   }
 }
 
@@ -57,14 +67,43 @@ private enum TrackpadWindowPlacementCommand {
 /// permission checks at action time; raw trackpad capture never reaches this class.
 final class TrackpadActionExecutor {
   private let quickActionService: QuickActionService
+  private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   private let brightnessController = DisplayBrightnessController()
   private let feedbackHUD = TrackpadFeedbackHUD()
   private var lastHapticTime: TimeInterval = 0
   private var restoredWindowFrames: [AXWindowIdentity: AXWindowFrame] = [:]
 
-  init(quickActionService: QuickActionService) {
+  init(
+    quickActionService: QuickActionService,
+    accessibilityPermissionRequester: AccessibilityPermissionRequesting =
+      SystemAccessibilityPermissionRequester()
+  ) {
     self.quickActionService = quickActionService
+    self.accessibilityPermissionRequester = accessibilityPermissionRequester
   }
+
+  /// Whether an action could run right now, in the shape the Quick Actions panel already
+  /// reports. Callers that only need to explain a failure read `reason` and `settingsURL`.
+  func availability(for action: TrackpadGestureAction) -> ActionAvailability {
+    guard action.kind != .quickAction else {
+      guard let reference = QuickActionReference(storageValue: action.quickActionStorageValue) else {
+        return .unavailable(L10n.string("The selected Quick Action is no longer available."))
+      }
+      return quickActionService.item(for: reference).state.availability
+    }
+    return availability(forActionKind: action.kind)
+  }
+
+  private func availability(
+    forActionKind kind: TrackpadGestureActionKind
+  ) -> ActionAvailability {
+    ActionCatalog.availability(
+      for: ActionCatalog.requirement(forActionKind: kind),
+      accessibilityStatus: accessibilityPermissionRequester.status,
+      accessibilitySettingsURL: accessibilityPermissionRequester.accessibilitySettingsURL
+    )
+  }
+
   func execute(
     _ action: TrackpadGestureAction,
     feedbackHUDEnabled: Bool,
@@ -167,10 +206,7 @@ final class TrackpadActionExecutor {
     case .application:
       return openApplication(bundleIdentifier: target)
     case .url:
-      guard let url = URL(string: target), url.scheme != nil else {
-        return .failure("The selected URL is invalid.")
-      }
-      return openURL(url)
+      return openURL(string: target)
     case .file:
       return openFileSystemItem(path: target, requiresDirectory: false)
     case .folder:
@@ -201,7 +237,10 @@ final class TrackpadActionExecutor {
     }
     let item = quickActionService.item(for: reference)
     guard item.state.availability.isAvailable else {
-      return .failure(item.state.availability.reason ?? "This Quick Action is unavailable.")
+      return .unavailable(
+        item.state.availability,
+        fallbackReason: "This Quick Action is unavailable."
+      )
     }
     quickActionService.perform(reference)
     return .success(L10n.format("Ran %@.", item.title))
@@ -211,9 +250,7 @@ final class TrackpadActionExecutor {
     keyCode: UInt16,
     modifiers: CGEventFlags
   ) -> TrackpadActionExecutionResult {
-    guard requestAccessibilityIfNeeded() else {
-      return .failure("Allow Accessibility access to send keyboard shortcuts.")
-    }
+    if let denial = accessibilityDenial(for: .keyboardShortcut) { return denial }
     guard
       let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: true),
       let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: false)
@@ -228,9 +265,7 @@ final class TrackpadActionExecutor {
   }
 
   func performMouseClick(button: CGMouseButton = .left) -> TrackpadActionExecutionResult {
-    guard requestAccessibilityIfNeeded() else {
-      return .failure("Allow Accessibility access to send mouse clicks.")
-    }
+    if let denial = accessibilityDenial(for: .mouse) { return denial }
     let point = CGEvent(source: nil)?.location ?? .zero
     let downType: CGEventType
     let upType: CGEventType
@@ -257,9 +292,7 @@ final class TrackpadActionExecutor {
   }
 
   func performScroll(deltaX: Int32, deltaY: Int32) -> TrackpadActionExecutionResult {
-    guard requestAccessibilityIfNeeded() else {
-      return .failure("Allow Accessibility access to send mouse scrolling.")
-    }
+    if let denial = accessibilityDenial(for: .scroll) { return denial }
     guard let event = CGEvent(
       scrollWheelEvent2Source: nil,
       units: .pixel,
@@ -275,55 +308,35 @@ final class TrackpadActionExecutor {
   }
 
   func performAppleScript(_ source: String) -> TrackpadActionExecutionResult {
-    guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-      return .failure("The AppleScript is empty.")
+    switch AppleScriptRunner.run(source) {
+    case .success:
+      return .success("Ran AppleScript.")
+    case .failure(let failure):
+      return .failure(failure.message)
     }
-    guard let script = NSAppleScript(source: source) else {
-      return .failure("macOS could not compile the AppleScript.")
-    }
-    var error: NSDictionary?
-    script.executeAndReturnError(&error)
-    if let error {
-      let message = error[NSAppleScript.errorMessage] as? String
-        ?? "macOS denied the requested Automation action."
-      return .failure(message)
-    }
-    return .success("Ran AppleScript.")
   }
 
-  func openURL(_ url: URL) -> TrackpadActionExecutionResult {
-    guard NSWorkspace.shared.open(url) else {
-      return .failure(
-        L10n.format("macOS could not open %@.", url.path.isEmpty ? url.absoluteString : url.path)
-      )
-    }
-    return .success(
-      L10n.format("Opened %@.", url.path.isEmpty ? url.absoluteString : url.lastPathComponent)
-    )
+  func openURL(string: String) -> TrackpadActionExecutionResult {
+    opened(WorkspaceOpener.open(urlString: string))
   }
 
   func openApplication(bundleIdentifier: String) -> TrackpadActionExecutionResult {
-    guard let applicationURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
-      return .failure("The selected application is not installed.")
-    }
-    guard NSWorkspace.shared.open(applicationURL) else {
-      return .failure("macOS could not open the selected application.")
-    }
-    return .success(
-      L10n.format("Opened %@.", applicationURL.deletingPathExtension().lastPathComponent)
-    )
+    opened(WorkspaceOpener.openApplication(bundleIdentifier: bundleIdentifier))
   }
 
   func openFileSystemItem(path: String, requiresDirectory: Bool?) -> TrackpadActionExecutionResult {
-    let url = URL(fileURLWithPath: path)
-    var isDirectory: ObjCBool = false
-    guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-      return .failure("The selected file or folder no longer exists.")
+    opened(WorkspaceOpener.openFileSystemItem(path: path, requiresDirectory: requiresDirectory))
+  }
+
+  private func opened(
+    _ result: Result<String, WorkspaceOpener.Failure>
+  ) -> TrackpadActionExecutionResult {
+    switch result {
+    case .success(let name):
+      return .success(L10n.format("Opened %@.", name))
+    case .failure(let failure):
+      return .failure(failure.message)
     }
-    if let requiresDirectory, requiresDirectory != isDirectory.boolValue {
-      return .failure(requiresDirectory ? "The selected folder no longer exists." : "The selected file no longer exists.")
-    }
-    return openURL(url)
   }
 
   private func adjustVolume(_ adjustment: TrackpadDirectAdjustment) -> TrackpadActionExecutionResult {
@@ -377,9 +390,7 @@ final class TrackpadActionExecutor {
   }
 
   private func placeFocusedWindow(_ placement: TrackpadWindowPlacementCommand) -> TrackpadActionExecutionResult {
-    guard requestAccessibilityIfNeeded() else {
-      return .failure("Allow Accessibility access to place windows.")
-    }
+    if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow() else {
       return .failure("macOS could not find a focused window to place.")
     }
@@ -410,9 +421,7 @@ final class TrackpadActionExecutor {
   }
 
   private func moveFocusedWindowToNextDisplay() -> TrackpadActionExecutionResult {
-    guard requestAccessibilityIfNeeded() else {
-      return .failure("Allow Accessibility access to place windows.")
-    }
+    if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow(), let currentFrame = focused.frame else {
       return .failure("macOS could not read the focused window frame.")
     }
@@ -465,8 +474,14 @@ final class TrackpadActionExecutor {
     MenuCueHaptics.performAlignment()
   }
 
-  private func requestAccessibilityIfNeeded() -> Bool {
-    AXIsProcessTrusted()
+  /// Action-time permission check. It never prompts: a gesture is not an explicit request
+  /// for Accessibility access, so a denial reports where to grant it instead.
+  private func accessibilityDenial(
+    for kind: TrackpadGestureActionKind
+  ) -> TrackpadActionExecutionResult? {
+    let availability = availability(forActionKind: kind)
+    guard !availability.isAvailable else { return nil }
+    return .unavailable(availability, fallbackReason: "This action is unavailable.")
   }
 
   private func focusedWindow() -> (window: AXUIElement, pid: pid_t, frame: AXWindowFrame?)? {
@@ -967,72 +982,3 @@ private final class DisplayServicesSymbols {
   }
 }
 
-private final class TrackpadFeedbackHUD {
-  private var panel: NSPanel?
-  private var label: NSTextField?
-  private var dismissWorkItem: DispatchWorkItem?
-
-  deinit {
-    dismissWorkItem?.cancel()
-    panel?.orderOut(nil)
-  }
-
-  func show(_ message: String, isFailure: Bool) {
-    DispatchQueue.main.async { [weak self] in
-      guard let self else { return }
-      let panel = self.panel ?? self.makePanel()
-      guard let label = self.label else { return }
-      label.stringValue = message
-      label.textColor = isFailure ? .systemRed : .labelColor
-      self.position(panel)
-      panel.orderFrontRegardless()
-      self.dismissWorkItem?.cancel()
-      let workItem = DispatchWorkItem { [weak panel] in panel?.orderOut(nil) }
-      self.dismissWorkItem = workItem
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: workItem)
-    }
-  }
-
-  private func makePanel() -> NSPanel {
-    let panel = NSPanel(
-      contentRect: NSRect(x: 0, y: 0, width: 280, height: 48),
-      styleMask: [.borderless, .nonactivatingPanel],
-      backing: .buffered,
-      defer: false
-    )
-    panel.isOpaque = false
-    panel.backgroundColor = .clear
-    panel.hasShadow = true
-    panel.level = .statusBar
-    panel.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
-    panel.isReleasedWhenClosed = false
-
-    let effectView = NSVisualEffectView(frame: panel.contentView?.bounds ?? .zero)
-    effectView.material = .hudWindow
-    effectView.blendingMode = .withinWindow
-    effectView.state = .active
-    effectView.autoresizingMask = [.width, .height]
-
-    let label = NSTextField(labelWithString: "")
-    label.font = .systemFont(ofSize: 13, weight: .medium)
-    label.alignment = .center
-    label.maximumNumberOfLines = 2
-    label.lineBreakMode = .byTruncatingTail
-    label.frame = NSRect(x: 14, y: 8, width: 252, height: 32)
-    label.autoresizingMask = [.width, .height]
-    effectView.addSubview(label)
-    panel.contentView = effectView
-    self.panel = panel
-    self.label = label
-    return panel
-  }
-
-  private func position(_ panel: NSPanel) {
-    let point = NSEvent.mouseLocation
-    guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return }
-    let desiredOrigin = NSPoint(x: point.x - panel.frame.width / 2, y: point.y + 22)
-    let x = min(max(desiredOrigin.x, screen.visibleFrame.minX), screen.visibleFrame.maxX - panel.frame.width)
-    let y = min(max(desiredOrigin.y, screen.visibleFrame.minY), screen.visibleFrame.maxY - panel.frame.height)
-    panel.setFrameOrigin(NSPoint(x: x, y: y))
-  }
-}

@@ -612,22 +612,46 @@ struct TrackpadFrame: Equatable {
   var contacts: [TrackpadContact]
 }
 
+/// What the engine decided should happen, with everything the dispatcher needs and nothing
+/// else. Carrying the rule itself would let any later stage re-interpret a configuration
+/// the engine has already finished reading.
 struct TrackpadGestureMatch: Equatable, Identifiable {
   var id: UInt64
-  var rule: TrackpadGestureRule
+  var ruleID: UUID
+  /// Reported as the recognized gesture; the settings pane localizes preset names.
+  var ruleName: String
+  var action: TrackpadGestureAction
+  var activatesWindowUnderPointer: Bool
+  /// What this gesture family needs suppressed, so dispatch never re-reads the trigger.
+  var suppressionNeed: TrackpadInputSuppressionNeed
+  /// True when this is the ordinary contact tap the click suppressor is waiting on before
+  /// it drops the physical click.
+  var confirmsSuppressedClick: Bool
   var direction: TrackpadDirection?
   /// Signed quantized movement for continuous actions. Discrete actions use zero.
   var continuousDelta: Double
   var timestamp: TimeInterval
-}
 
-struct TrackpadRecognition: Equatable, Identifiable {
-  var id: UInt64
-  var ruleID: UUID
-  var ruleName: String
-  var action: TrackpadGestureAction
-  var direction: TrackpadDirection?
-  var timestamp: TimeInterval
+  /// Projects a matched rule into an execution intent. This is the only place a rule
+  /// becomes a match.
+  init(
+    id: UInt64,
+    rule: TrackpadGestureRule,
+    direction: TrackpadDirection?,
+    continuousDelta: Double,
+    timestamp: TimeInterval
+  ) {
+    self.id = id
+    ruleID = rule.id
+    ruleName = rule.name
+    action = rule.action
+    activatesWindowUnderPointer = rule.activatesWindowUnderPointer
+    suppressionNeed = TrackpadRecognizerRegistry.suppression(for: rule.trigger.kind)
+    confirmsSuppressedClick = rule.trigger.kind == .contact && rule.trigger.contactGesture == .tap
+    self.direction = direction
+    self.continuousDelta = continuousDelta
+    self.timestamp = timestamp
+  }
 }
 
 enum TrackpadRuntimeStatus: Equatable {

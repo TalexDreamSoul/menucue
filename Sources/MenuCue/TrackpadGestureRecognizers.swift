@@ -103,6 +103,9 @@ protocol TrackpadRecognizerSessionState: AnyObject {}
 protocol TrackpadGestureRecognizer: AnyObject {
   static var kind: TrackpadGestureKind { get }
   static var suppression: TrackpadInputSuppressionNeed { get }
+  /// Finger counts this family can recognize. The rule editor offers exactly this range,
+  /// so a count the family would silently ignore cannot be configured.
+  static var supportedFingerCounts: ClosedRange<Int> { get }
 
   /// Scratch space for a new session, or nil for a family that only judges completed
   /// sessions.
@@ -125,8 +128,11 @@ protocol TrackpadGestureRecognizer: AnyObject {
 }
 
 extension TrackpadGestureRecognizer {
+  static var supportedFingerCounts: ClosedRange<Int> { 1...5 }
+
   var kind: TrackpadGestureKind { Self.kind }
   var suppression: TrackpadInputSuppressionNeed { Self.suppression }
+  var supportedFingerCounts: ClosedRange<Int> { Self.supportedFingerCounts }
 
   func makeSessionState() -> TrackpadRecognizerSessionState? { nil }
   func consume(_ input: TrackpadRecognizerInput) -> [TrackpadRecognizedGesture] { [] }
@@ -157,10 +163,19 @@ enum TrackpadRecognizerRegistry {
   private static let suppressionByKind: [TrackpadGestureKind: TrackpadInputSuppressionNeed] =
     Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.suppression) })
 
+  private static let fingerCountsByKind: [TrackpadGestureKind: ClosedRange<Int>] =
+    Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.supportedFingerCounts) })
+
   static var registeredKinds: Set<TrackpadGestureKind> { Set(suppressionByKind.keys) }
 
   static func suppression(for kind: TrackpadGestureKind) -> TrackpadInputSuppressionNeed {
     suppressionByKind[kind] ?? TrackpadInputSuppressionNeed.none
+  }
+
+  /// What the rule editor may offer for a family, straight from the recognizer that will
+  /// have to honour it.
+  static func supportedFingerCounts(for kind: TrackpadGestureKind) -> ClosedRange<Int> {
+    fingerCountsByKind[kind] ?? 1...5
   }
 
   /// What the currently enabled rules require the service to suppress.
@@ -183,6 +198,8 @@ enum TrackpadRecognizerRegistry {
 final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.tipTap
   static let suppression = TrackpadInputSuppressionNeed.none
+  /// A fifth contact is a resting hand, not an anchor plus a tapping finger.
+  static let supportedFingerCounts = 2...4
 
   /// How far the re-contact may land from where the finger lifted.
   private static let recontactRadius = 0.2
@@ -212,8 +229,7 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
     guard let state = input.state as? SessionState else { return [] }
     let session = input.session
     guard !session.didEmitDiscrete,
-      session.maxContactCount >= 2,
-      session.maxContactCount <= 4
+      Self.supportedFingerCounts.contains(session.maxContactCount)
     else { return [] }
 
     if state.pending == nil,
@@ -317,6 +333,7 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
 final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.edgeContinuous
   static let suppression = TrackpadInputSuppressionNeed.scrollWheel
+  static let supportedFingerCounts = requiredContactCount...requiredContactCount
 
   private static let requiredContactCount = 2
   private static let minimumStep = 0.004
@@ -437,6 +454,7 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
 final class TrackpadContactRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.contact
   static let suppression = TrackpadInputSuppressionNeed.optInLeftClick
+  static let supportedFingerCounts = 1...5
 
   private static let maximumDoubleTapInterval: TimeInterval = 0.5
   private static let clickDensity = 1.0
@@ -511,6 +529,7 @@ final class TrackpadContactRecognizer: TrackpadGestureRecognizer {
 final class TrackpadSwipeRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.swipe
   static let suppression = TrackpadInputSuppressionNeed.none
+  static let supportedFingerCounts = 2...5
 
   func matchesCompletedSession(
     rule: TrackpadGestureRule,
@@ -539,6 +558,7 @@ final class TrackpadSwipeRecognizer: TrackpadGestureRecognizer {
 final class TrackpadEdgeEntrySwipeRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.edgeEntrySwipe
   static let suppression = TrackpadInputSuppressionNeed.none
+  static let supportedFingerCounts = 2...5
 
   /// Entry is judged against a wider corridor than a continuous edge gesture, because the
   /// hand is already moving when it lands.
@@ -575,6 +595,7 @@ final class TrackpadEdgeEntrySwipeRecognizer: TrackpadGestureRecognizer {
 final class TrackpadPinchRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.pinch
   static let suppression = TrackpadInputSuppressionNeed.none
+  static let supportedFingerCounts = 2...4
 
   func matchesCompletedSession(
     rule: TrackpadGestureRule,
@@ -601,6 +622,7 @@ final class TrackpadPinchRecognizer: TrackpadGestureRecognizer {
 final class TrackpadFingerSwipeRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.fingerSwipe
   static let suppression = TrackpadInputSuppressionNeed.none
+  static let supportedFingerCounts = 2...5
 
   func matchesCompletedSession(
     rule: TrackpadGestureRule,
@@ -629,6 +651,7 @@ final class TrackpadFingerSwipeRecognizer: TrackpadGestureRecognizer {
 final class TrackpadDrawingRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.drawing
   static let suppression = TrackpadInputSuppressionNeed.none
+  static let supportedFingerCounts = 1...5
 
   /// Below this many samples the score is noise on both sides of the comparison.
   private static let minimumSampleCount = 8

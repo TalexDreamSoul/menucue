@@ -20,7 +20,8 @@
 
 9. [ ] 操作中心重构：来源分段（内置/快捷指令/触控板原生·目录驱动）、行式列表、显式运行按钮（点行不执行）、图钉、被引用徽标（references(of:) 纯函数 + 单测）；电源助手组迁出。
 10. [ ] 弹窗操作页：搜索框、内置分类 DisclosureGroup、快捷指令组默认折叠、不可用徽标、底栏「管理操作…」；内置 14 项分类表按 implement 附录。
-11. [ ] 本地化：全部新键 en/zh-Hans；废键清理；LocalizationCoverageTests。
+11. [ ] 承接子任务 2 遗留：a) 触控板动作可用性数据接 UI——规则列表/编辑器对不可用动作显示原因徽标与「打开系统设置」补救按钮（executor.availability(for:) 与 TrackpadActionExecutionResult.settingsURL 目前无生产消费者）；b) TrackpadActionExecutionResult.failure 拆 failure(key:)/failure(message:) 两个入口，消除「参数是 key 还是成品句子」的含糊。
+12. [ ] 本地化：全部新键 en/zh-Hans；废键清理；LocalizationCoverageTests。
 12. [ ] 全量 build+test；手动核对清单（新分区可达性、深链、开关行为）写入任务 notes。
 
 ## 附录：内置动作分类建议
