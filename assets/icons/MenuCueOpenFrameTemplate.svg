@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+  <title id="title">MenuCue Open Frame</title>
+  <desc id="desc">A rounded system frame with a deliberate right-side aperture.</desc>
+  <mask id="open-frame-mask">
+    <rect width="24" height="24" fill="black"/>
+    <rect x="2" y="2" width="20" height="20" rx="6" fill="white"/>
+    <rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="black"/>
+    <rect x="17" y="9.25" width="5" height="5.5" fill="black"/>
+  </mask>
+  <rect width="24" height="24" fill="#20201E" mask="url(#open-frame-mask)"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="title desc">
+  <title id="title">MenuCue Open Frame Green Cut</title>
+  <desc id="desc">A green rounded tile cropped by the MenuCue open-frame aperture.</desc>
+  <mask id="green-cut-mask">
+    <rect width="24" height="24" fill="white"/>
+    <rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="black"/>
+    <rect x="17" y="9.25" width="5" height="5.5" fill="black"/>
+  </mask>
+  <rect x="1" y="1" width="22" height="22" rx="6.5" fill="#A7E72E" mask="url(#green-cut-mask)"/>
+</svg>
