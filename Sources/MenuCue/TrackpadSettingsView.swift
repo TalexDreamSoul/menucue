@@ -1264,7 +1264,7 @@ extension TrackpadTapSpacing {
   var settingsTitle: String {
     switch self {
     case .near: return L10n.string("Near")
-    case .normal: return L10n.string("Normal")
+    case .normal: return L10n.string("Any spacing")
     case .far: return L10n.string("Far")
     }
   }

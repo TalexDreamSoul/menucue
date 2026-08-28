@@ -192,6 +192,23 @@ final class TrackpadFeedbackHUD {
     if #available(macOS 14.0, *) {
       effectView.layer?.cornerCurve = .continuous
     }
+    // The layer radius clips only the view's own drawing. The behind-window blur is
+    // composited by the window server from the effect view's mask, so without one the
+    // backdrop keeps square corners that read as white spurs on a light desktop.
+    let maskRadius = TrackpadFeedbackHUDLayout.cornerRadius
+    let maskEdge = maskRadius * 2 + 1
+    let mask = NSImage(
+      size: NSSize(width: maskEdge, height: maskEdge),
+      flipped: false
+    ) { rect in
+      NSColor.black.setFill()
+      NSBezierPath(roundedRect: rect, xRadius: maskRadius, yRadius: maskRadius).fill()
+      return true
+    }
+    mask.capInsets = NSEdgeInsets(
+      top: maskRadius, left: maskRadius, bottom: maskRadius, right: maskRadius)
+    mask.resizingMode = .stretch
+    effectView.maskImage = mask
 
     let frames = TrackpadFeedbackHUDLayout.contentFrames(showingLevel: false)
 

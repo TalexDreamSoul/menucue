@@ -1139,6 +1139,7 @@
 "These run from a trackpad gesture rule, not from a pinned action." = "These run from a trackpad gesture rule, not from a pinned action.";
 
 /* Trackpad rule sheet */
+"Any spacing" = "Any spacing";
 "Rule" = "Rule";
 "Edit Rule" = "Edit Rule";
 "New Gesture Rule" = "New Gesture Rule";
