@@ -16,13 +16,12 @@ final class SettingsInformationArchitectureTests: XCTestCase {
         .power,
         .general,
         .about,
-        .dashboard,
       ]
     )
 
     XCTAssertEqual(SettingsPaneGroup.interface.panes, [.menuBar, .panel, .calendar, .actionCenter])
     XCTAssertEqual(SettingsPaneGroup.input.panes, [.trackpad, .alerts])
-    XCTAssertEqual(SettingsPaneGroup.system.panes, [.power, .general, .about, .dashboard])
+    XCTAssertEqual(SettingsPaneGroup.system.panes, [.power, .general, .about])
   }
 
   /// Every pane belongs to exactly one group, and the sidebar shows every pane: a pane

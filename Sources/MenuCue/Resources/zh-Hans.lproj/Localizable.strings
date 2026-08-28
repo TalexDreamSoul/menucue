@@ -1192,3 +1192,19 @@
 "Every action MenuCue can run, and where it appears." = "MenuCue 可运行的全部操作，以及它们出现的位置。";
 "Power Helper, system power settings, and wake history." = "电源助手、系统电源设置与唤醒历史。";
 "Startup, updates, appearance, language, and iCloud sync." = "启动、更新、外观、语言与 iCloud 同步。";
+
+/* Power monitoring switch */
+"Power Monitoring" = "电源监控";
+"Wake history and \"what keeps running\" are built from samples taken while nothing is on screen." = "唤醒历史与「持续运行」由无人查看时采集的样本累积而成。";
+"Track wakes and running processes in the background" = "在后台记录唤醒与运行中的进程";
+"Off by default. When on, the system power log is read after each wake and running processes are sampled every few minutes; when off, both surfaces only cover the time they are open." = "默认关闭。开启后，每次唤醒会读取系统电源日志，并每隔几分钟采样一次运行中的进程；关闭时，两处界面只覆盖打开期间的数据。";
+"Power monitoring is off, so history only covers the time this tab is open." = "电源监控已关闭，历史仅覆盖此页签打开期间。";
+"Turn On" = "打开";
+
+/* Power profiles moved into Settings */
+"These are macOS power settings. MenuCue writes them with pmset through the Power Helper, and they stay in effect for the whole Mac." = "这些是 macOS 的电源设置。MenuCue 通过电源助手用 pmset 写入，对整台 Mac 持续生效。";
+"Configure in Settings" = "在设置中配置";
+
+/* Wake history retention, moved into Settings */
+"Wake History" = "唤醒历史";
+"Sleep and wake events from the last 30 days, kept on this Mac · %@" = "最近 30 天的睡眠与唤醒事件，保存在本机 · %@";

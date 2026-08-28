@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The Dashboard pane: a pinned header and tab bar over a per-tab scroll view.
+/// The Dashboard window's content: a pinned header and tab bar over a per-tab scroll
+/// view.
 ///
-/// Owns both samplers, so sampling starts when this pane appears and stops when it
-/// goes away. Opening Settings on any other pane never constructs this view, and so
-/// never starts a timer — the Overview pane keeps rendering the cached snapshot.
+/// Owns both samplers, so sampling starts when this view appears and stops when it goes
+/// away. Nothing else constructs it, so a Mac whose owner never opens the Dashboard
+/// never starts these timers at all.
 struct DashboardView: View {
   @Environment(\.menuCueMotion) private var motion
   @ObservedObject var model: AppModel

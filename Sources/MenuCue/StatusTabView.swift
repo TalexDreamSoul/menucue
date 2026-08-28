@@ -56,7 +56,7 @@ struct StatusTabView: View {
   @ObservedObject var metrics: SystemMetricsService
   @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
   let openAllActions: () -> Void
-  /// Opens the Settings window on the Dashboard tab that expands a card.
+  /// Opens the Dashboard window on the tab that expands a card.
   let openDashboard: (DashboardSection) -> Void
   /// Owned here rather than by the popover: hover detail is only meaningful while
   /// this tab is on screen, and tearing it down on exit stops every extra probe.

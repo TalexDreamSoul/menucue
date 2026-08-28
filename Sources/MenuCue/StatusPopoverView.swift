@@ -48,7 +48,9 @@ struct StatusPopoverView: View {
   /// Opens the Settings window on the Quick Actions pane, which is also where the
   /// full action catalog is run from.
   let openQuickActionSettings: () -> Void
-  /// Opens the Settings window on the Dashboard, pre-selected to a metric's tab.
+  /// Opens the Settings window on the Power pane, which owns the system power switches.
+  let openPowerSettings: () -> Void
+  /// Opens the Dashboard window, pre-selected to a metric's tab.
   let openDashboard: (DashboardSection) -> Void
   let quitApp: () -> Void
   /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
@@ -68,6 +70,7 @@ struct StatusPopoverView: View {
     model: AppModel,
     openSettings: @escaping () -> Void,
     openQuickActionSettings: @escaping () -> Void,
+    openPowerSettings: @escaping () -> Void,
     openDashboard: @escaping (DashboardSection) -> Void,
     quitApp: @escaping () -> Void,
     swipeRelay: SwipeRelay
@@ -75,6 +78,7 @@ struct StatusPopoverView: View {
     self.model = model
     self.openSettings = openSettings
     self.openQuickActionSettings = openQuickActionSettings
+    self.openPowerSettings = openPowerSettings
     self.openDashboard = openDashboard
     self.quitApp = quitApp
     self.swipeRelay = swipeRelay
@@ -195,7 +199,8 @@ struct StatusPopoverView: View {
         model: model,
         diagnostics: model.powerDiagnosticsService,
         processEnergy: model.processEnergyService,
-        processHealth: model.processHealthService
+        processHealth: model.processHealthService,
+        openPowerSettings: openPowerSettings
       )
       .transition(tabTransition)
     case .calendar:

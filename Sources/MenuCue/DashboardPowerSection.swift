@@ -14,18 +14,46 @@ struct DashboardPowerSection: View {
     let snapshot = diagnostics.snapshot
 
     VStack(spacing: DashboardMetrics.cardSpacing) {
+      monitoringNotice
       latestWakeCard(snapshot)
       sleepBlockersCard(snapshot)
       keepsRunningCard
       wakeHistoryCard(snapshot)
     }
-    .onAppear {
-      diagnostics.retain()
-      // Looking at this is the opt-in. From here on history keeps accruing with the
-      // window closed, which is the only way an overnight wake can be explained.
-      model.enablePowerMonitoring()
-    }
+    .onAppear { diagnostics.retain() }
     .onDisappear { diagnostics.release() }
+  }
+
+  /// Looking at this used to be the opt-in, which meant background sampling started
+  /// without being asked for. Now the two cards below that need samples taken while
+  /// nothing is on screen say so instead, and the switch is one click away.
+  @ViewBuilder
+  private var monitoringNotice: some View {
+    if !model.settings.powerMonitoringEnabled {
+      HStack(alignment: .firstTextBaseline, spacing: 10) {
+        Image(systemName: "moon.zzz")
+          .foregroundStyle(.orange)
+        Text(
+          L10n.string("Power monitoring is off, so history only covers the time this tab is open.")
+        )
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        Spacer(minLength: 8)
+        Button(L10n.string("Turn On")) {
+          model.setPowerMonitoring(enabled: true)
+        }
+        .buttonStyle(.link)
+        .fixedSize()
+      }
+      .padding(.horizontal, 14)
+      .padding(.vertical, 10)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(
+        Color.orange.opacity(0.10),
+        in: RoundedRectangle(cornerRadius: DashboardMetrics.cardCornerRadius, style: .continuous)
+      )
+    }
   }
 
   // MARK: - What woke it
@@ -221,11 +249,10 @@ struct DashboardPowerSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
 
       // A clear used to be permanent and invisible: the records were gone and nothing
-      // said so. They are now only hidden, and the way back is on screen.
+      // said so. They are now only hidden, and this says so where they would be —
+      // undoing it is in Settings ▸ Power, with the button that hid them.
       if let clearedAt = diagnostics.clearedAt, diagnostics.hiddenEventCount > 0 {
-        ClearedHistoryNote(clearedAt: clearedAt, hiddenCount: diagnostics.hiddenEventCount) {
-          diagnostics.restoreHistory()
-        }
+        ClearedHistoryNote(clearedAt: clearedAt, hiddenCount: diagnostics.hiddenEventCount)
       }
 
       if diagnostics.migrationDroppedRecords > 0 {
@@ -290,10 +317,14 @@ struct DashboardPowerSection: View {
 /// Its own view rather than an inline `HStack` so it can be rendered and inspected on
 /// its own — the sentence is long, the languages disagree about how long, and whether
 /// it truncates is not something a unit test can see.
+///
+/// `restore` is optional because the sentence and the undo have different homes: the
+/// Dashboard states that records are hidden where the records would be, while the
+/// button that brings them back sits next to the button that hid them, in Settings.
 struct ClearedHistoryNote: View {
   let clearedAt: Date
   let hiddenCount: Int
-  let restore: () -> Void
+  var restore: (() -> Void)?
 
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -311,10 +342,12 @@ struct ClearedHistoryNote: View {
       // Sits directly after the sentence rather than being pushed to the trailing
       // edge. On a wide Dashboard a `Spacer` put ~700pt between the explanation and
       // the way to act on it, which reads as two unrelated things.
-      Button(L10n.string("Show them"), action: restore)
-        .buttonStyle(.link)
-        .font(.caption)
-        .fixedSize()
+      if let restore {
+        Button(L10n.string("Show them"), action: restore)
+          .buttonStyle(.link)
+          .font(.caption)
+          .fixedSize()
+      }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }

@@ -101,3 +101,48 @@
 6. **新增 `AppModel.settingsBinding(_:)`**（SettingsWindowViews.swift）取代原先 `SettingsContentView` 私有的 `binding(_:)`，避免在 3 个新分区文件里各抄一份；实现与原来逐字一致（走 `updateSettings`）。
 7. `SettingsContentView` 里 `.dateAndTime` 分区顶部那组「Menu Bar & Display」标题被删除——分区标题栏已经说了同一件事。它是标题不是设置项。
 
+## Stage B（行为修复与独立窗口）
+
+### 步骤 6：电源监控显式开关
+
+- `AppModel.enablePowerMonitoring()` → `setPowerMonitoring(enabled:)`（AppModel.swift:337-361）。停启对称：
+  | 方向 | PowerDiagnosticsService | ProcessEnergyService |
+  |---|---|---|
+  | on | `startBackgroundMonitoring()`（注册 wake observer + 一次 backfill） | `startBackgroundSampling()`（建 5 分钟 Timer） |
+  | off | `stopBackgroundMonitoring()`（`isBackgroundMonitoringEnabled=false` + `updateWakeObservers()`，引用计数归零即摘 observer） | `stopBackgroundSampling()`（`backgroundTimer.invalidate()` + 置 nil） |
+  两个 stop 方法**原本就存在**（PowerDiagnosticsService.swift:107、ProcessEnergyService.swift:66），此前只是没有生产调用者。两者都只操作主线程创建的 Timer / NotificationCenter observer，调用点是 SwiftUI 动作与 `onAppear`，均在主线程。
+- **PRD R2 的二选一：选「依赖开关默认值 + 关闭态提示行」，不做首次进入弹窗提示**。理由：默认值 false 不变，已开启用户（`powerMonitoringEnabled.v1` 为 true）在启动时仍由 `StatusBarController.configurePowerMonitoring` 照常启动，完全无感；未开启用户看到提示行，一次点击即开。存储键与默认值零改动。
+- 隐式 enable 两处已删：PowerTabView 的 `onAppear`、DashboardPowerSection 的 `onAppear`（后者保留 `diagnostics.retain()`）。
+- 提示行放在弹窗电源 tab 顶部（PowerTabView.monitoringNotice）。**偏差（增量）**：仪表盘电源 tab 也加了同一条提示（DashboardPowerSection.monitoringNotice，复用同一本地化键）。仪表盘同样失去了隐式 enable，而「持续运行」卡完全依赖后台采样；没有提示的话它会永久空着且不说明原因。
+
+### 步骤 7：pmset 卡迁入设置
+
+- 迁移内容（PowerTabView → PowerSettingsView，逻辑逐字搬运）：`displayedProfile` / `profileToggle` / `setPowerSetting` / `applyPowerSetting` / `hasMixedValue` / `settingValue` / `common` / `powerModeText` + 电源域 Picker + 「同时应用到电池与电源」确认 Alert。仅表现层改为设置页字号（去掉 `.controlSize(.mini)` 与 9/10pt 字号）。
+- 弹窗原位置改为只读摘要：按当前实际电源（`battery.isOnAC`）显示 4 项开关状态 + 功耗模式，helper 未启用时显示 `registrationState.detail`（helper 依赖状态保留），底部「在设置中配置」跳 `.power`。
+- 新增导航闭包 `openPowerSettings: () -> Void`，与既有 `openQuickActionSettings` 完全同构（StatusBarController → StatusPopoverView → PowerTabView）。**没有**改动导航闭包机制本身（子任务 4 范围）。
+- PowerSettingsView 新增 `diagnostics.retain()/release()`：读 profiles 必须刷新，代价是进入该分区会触发一次 `pmset -g log`（与弹窗电源 tab 打开时的代价相同）。
+
+### 步骤 8：仪表盘独立窗口
+
+- `StatusBarController.showDashboardWindow(section:)` + `makeDashboardWindow`：懒创建、`isReleasedWhenClosed=false`、关闭复用、frame autosave `MenuCueDashboardWindow`、内容尺寸沿用设置窗口的 900×680 与 720×540 最小尺寸。**不带 `.fullSizeContentView`**（设置窗口靠 NavigationSplitView 自带 titlebar inset，仪表盘没有侧栏，带上会让内容钻到标题栏下）。
+- SwipeRelay 归属调整：仪表盘窗口用 `SwipeForwardingController` 自持 relay；设置窗口改为普通 `NSHostingController`，`SettingsWindowView` 的 `swipeRelay` / `initialDashboardSection` 两个参数一并删除（relay 在设置窗口里本来就只有 dashboard 一个消费者）。
+- `SettingsPane.dashboard` 已删；`migrating(rawValue: "dashboard")` 返回 nil 并注明去向。deep-link 改道证据（`grep -rn "\.dashboard\b" Sources/ Tests/` 只剩 `dashboard-metrics` 队列标签这一无关命中；`grep -rn "SettingsPane\." Sources/` 排除新 9 个 case 后只剩 `SettingsPane.allCases`）。唯一的仪表盘入口是弹窗状态卡 → `openDashboard(DashboardSection)` → `showDashboardWindow(section:)`。
+- 双窗共用 activation policy：`windowWillClose` 只在**另一扇窗既不可见也未最小化**时才落回 `.accessory`，否则最小化的那扇会失去 Dock 图标而无法恢复。
+- 唤醒历史：设置>电源新增「Wake History」组（保留说明 + 文件占用 + 清除 + 恢复）。**偏差**：清除按钮从弹窗电源 tab 一并迁入（原来只迁「恢复」）。PRD R4 要求「撤销与操作同一归属」，而 R4 同时要求恢复入口落在设置>电源，两者只能都在设置里才成立。仪表盘保留「N 条被隐藏」的说明句（`ClearedHistoryNote.restore` 改为可选，仅隐藏按钮），数据在哪就在哪说明，撤销与操作同处。
+
+### Stage B 旁路发现（未处理，留 Stage C 或后续）
+
+1. 本地化孤儿键：`"Clear local history"`（弹窗垃圾桶按钮的 tooltip）随按钮迁移后失去调用点。Stage C 步骤 12 的废键清理一并处理。
+2. 既有重复键（`"System"`×2、`"Add"`×2 等共 10 组）本次未动，同属 Stage C 步骤 12。
+3. `configurePowerMonitoring`（StatusBarController.swift:186-192）与 `setPowerMonitoring` 的启动分支逻辑重复。两者语义不同（一个是启动时按持久化值恢复，一个是用户切换），暂不合并；服务生命周期统一属子任务 3/4 的范围。
+4. 仪表盘窗口标题与视图内大标题都是「仪表盘」，与设置窗口「MenuCue 设置」+ 分区标题的既有形态一致，未改。
+
+### Stage B 复核（trellis-check）
+
+自修 1 处：`showSettingsWindow` / `showDashboardWindow` 的收尾三行提为 `present(_:)`，并在 `makeKeyAndOrderFront` 前补 `deminiaturize`。`makeKeyAndOrderFront` 不会把最小化的窗口从 Dock 里取回来，所以窗口最小化后再点状态卡（或再开设置），只会给一个仍是 Dock 图标的窗口换掉 contentViewController，点击看上去毫无反应。此前只有设置窗口一扇，问题同样存在但少见；仪表盘作为常驻窗口后，最小化再深链是常规路径。
+
+复核未处理（记录，非缺陷）：
+
+1. 重开窗口时 contentViewController 整体重建，`DashboardView` 的 `@StateObject metrics`（120 点历史）随之清空。这正是 section 深链每次都生效的机制，与 Stage A 设置窗口一致；要两者兼得需把 section 提成外部可观察状态，属子任务 4 的导航状态范围。
+2. `powerModeText` 在 PowerTabView 与 PowerSettingsView 各存一份（各自 private，弹窗版仍带 9/10pt 字号）。8 行重复，可在 Stage C 合并为 `PowerMode` 的共享格式化。
+

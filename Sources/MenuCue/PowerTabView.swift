@@ -1,18 +1,16 @@
 import SwiftUI
-import MenuCueHelperProtocol
 
 struct PowerTabView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var diagnostics: PowerDiagnosticsService
   @ObservedObject var processEnergy: ProcessEnergyService
   @ObservedObject var processHealth: ProcessHealthService
+  /// Opens the Settings window on the Power pane, which owns the system power switches.
+  let openPowerSettings: () -> Void
   @ObservedObject private var popoverPresentation = PopoverPresentationState.shared
 
-  @State private var selectedSource: ManagedPowerSource = .ac
   @State private var selectedProcess: ProcessEnergyEntry?
   @State private var selectedGroup: ProcessEnergyGroup?
-  @State private var pendingConfirmation: PowerConfirmation?
-  @State private var helperFeedback: String?
   @State private var isSamplingActive = false
 
   private var helper: PowerHelperManager { model.quickActionService.powerHelperManager }
@@ -20,6 +18,7 @@ struct PowerTabView: View {
   var body: some View {
     PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
+        monitoringNotice
         batteryCard
         sleepBlockersCard
         wakeCard
@@ -29,25 +28,14 @@ struct PowerTabView: View {
       }
     }
     .onAppear {
-      if let onAC = diagnostics.battery?.isOnAC {
-        selectedSource = onAC ? .ac : .battery
-      }
       helper.refreshStatus()
       updateSampling(isVisible: popoverPresentation.isVisible)
-      // Opening this tab is the opt-in, exactly as it is on the Dashboard. Only the
-      // Dashboard called this, so a user who lives in the popover — the majority —
-      // never got the background backfill the feature is built around.
-      model.enablePowerMonitoring()
     }
     .onDisappear {
       updateSampling(isVisible: false)
     }
     .onChange(of: popoverPresentation.isVisible) { isVisible in
       updateSampling(isVisible: isVisible)
-    }
-    .onChange(of: diagnostics.battery?.isOnAC) { onAC in
-      guard let onAC else { return }
-      selectedSource = onAC ? .ac : .battery
     }
     .sheet(item: $selectedProcess) { entry in
       ProcessDetailSheet(entry: entry, service: processEnergy, helper: helper) {
@@ -59,25 +47,39 @@ struct PowerTabView: View {
         processEnergy.refresh()
       }
     }
-    .alert(item: $pendingConfirmation) { confirmation in
-      switch confirmation {
-      case .clearHistory:
-        return Alert(
-          title: Text(L10n.string("Clear local history?")),
-          message: Text(L10n.string("This removes sleep and wake history stored on this Mac.")),
-          primaryButton: .destructive(Text(L10n.string("Clear History"))) {
-            diagnostics.clearHistory()
-          },
-          secondaryButton: .cancel())
-      case .allSources(let setting, let enabled):
-        return Alert(
-          title: Text(L10n.string("Apply to Battery and AC?")),
-          message: Text(L10n.string("Battery and AC currently use different values.")),
-          primaryButton: .default(Text(L10n.string(enabled ? "Apply On" : "Apply Off"))) {
-            applyPowerSetting(setting, source: .all, enabled: enabled)
-          },
-          secondaryButton: .cancel())
+  }
+
+  /// Says what this tab cannot answer while monitoring is off, and offers the switch.
+  ///
+  /// Opening the tab used to turn monitoring on by itself. Saying so and waiting for a
+  /// click costs one row and leaves the choice with the user.
+  @ViewBuilder
+  private var monitoringNotice: some View {
+    if !model.settings.powerMonitoringEnabled {
+      HStack(alignment: .firstTextBaseline, spacing: 7) {
+        Image(systemName: "moon.zzz")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.orange)
+        Text(
+          L10n.string("Power monitoring is off, so history only covers the time this tab is open.")
+        )
+        .font(.system(size: 10))
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        Spacer(minLength: 4)
+        Button(L10n.string("Turn On")) {
+          model.setPowerMonitoring(enabled: true)
+        }
+        .buttonStyle(.link)
+        .font(.system(size: 10, weight: .semibold))
+        .fixedSize()
       }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 8)
+      .background(
+        Color.orange.opacity(0.10),
+        in: RoundedRectangle(cornerRadius: PopoverMetrics.cardCornerRadius, style: .continuous)
+      )
     }
   }
 
@@ -182,21 +184,14 @@ struct PowerTabView: View {
   }
 
   private var wakeCard: some View {
+    // Clearing this history lives in Settings > Power, next to the button that brings
+    // it back: a destructive act and its undo in one place rather than one in the
+    // popover and the other in another window.
     PopoverCard(title: "Sleep & Wake", systemImage: "moon.zzz.fill", tint: .indigo) {
-      HStack(spacing: 7) {
-        if let refreshedAt = diagnostics.snapshot.refreshedAt {
-          Text(refreshedAt, style: .relative)
-            .font(.system(size: 9, weight: .medium))
-            .foregroundStyle(.tertiary)
-        }
-        Button {
-          pendingConfirmation = .clearHistory
-        } label: {
-          Image(systemName: "trash")
-        }
-        .buttonStyle(.plain)
-        .help(L10n.string("Clear local history"))
-        .disabled(diagnostics.snapshot.events.isEmpty)
+      if let refreshedAt = diagnostics.snapshot.refreshedAt {
+        Text(refreshedAt, style: .relative)
+          .font(.system(size: 9, weight: .medium))
+          .foregroundStyle(.tertiary)
       }
     } content: {
       // The answer first. The counts below are context for it, not the point.
@@ -275,23 +270,24 @@ struct PowerTabView: View {
     }
   }
 
+  /// What `pmset` reports for the source this Mac is on, and the way to change it.
+  ///
+  /// These are system-wide settings, so the switches themselves live in Settings ▸
+  /// Power. Reading them here is still worth the space: the tab above explains what
+  /// woke the Mac, and Power Nap and Wake for network access are usually the answer.
   private var profilesCard: some View {
     PopoverCard(title: "Power Profiles", systemImage: "slider.horizontal.3", tint: .cyan) {
-      Picker("Power source", selection: $selectedSource) {
-        Text(L10n.string("Battery")).tag(ManagedPowerSource.battery)
-        Text(L10n.string("AC")).tag(ManagedPowerSource.ac)
-        Text(L10n.string("All")).tag(ManagedPowerSource.all)
+      if let currentSourceLabel {
+        Text(currentSourceLabel)
+          .font(.system(size: 9, weight: .semibold))
+          .foregroundStyle(.tertiary)
       }
-      .labelsHidden()
-      .pickerStyle(.segmented)
-      .frame(width: 142)
-      .controlSize(.mini)
     } content: {
-      if let profile = displayedProfile {
-        profileToggle("Power Nap", setting: .powerNap, value: profile.powerNap)
-        profileToggle("Wake for network access", setting: .wakeOnNetwork, value: profile.wakeOnNetwork)
-        profileToggle("Standby", setting: .standby, value: profile.standby)
-        profileToggle("TCP Keepalive", setting: .tcpKeepalive, value: profile.tcpKeepalive)
+      if let profile = currentProfile {
+        profileSummaryRow("Power Nap", value: profile.powerNap)
+        profileSummaryRow("Wake for network access", value: profile.wakeOnNetwork)
+        profileSummaryRow("Standby", value: profile.standby)
+        profileSummaryRow("TCP Keepalive", value: profile.tcpKeepalive)
         HStack {
           Text(L10n.string("Power mode"))
           Spacer()
@@ -302,12 +298,43 @@ struct PowerTabView: View {
       } else {
         CardPlaceholder(message: "Power profile unavailable")
       }
-      if let helperFeedback {
-        Text(helperFeedback)
+
+      // Whether these can be changed at all depends on the helper, so its state stays
+      // visible next to the values it gates.
+      if !helper.registrationState.isEnabled {
+        Text(helper.registrationState.detail)
           .font(.system(size: 9))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(.tertiary)
+          .fixedSize(horizontal: false, vertical: true)
       }
+
+      Button(L10n.string("Configure in Settings"), action: openPowerSettings)
+        .buttonStyle(.link)
+        .font(.system(size: 10, weight: .semibold))
     }
+  }
+
+  /// The profile for the source the Mac is actually running on. Picking a different
+  /// one is a configuration act, and configuration lives in Settings.
+  private var currentProfile: PowerProfile? {
+    let profiles = diagnostics.snapshot.profiles
+    guard let onAC = diagnostics.battery?.isOnAC else { return profiles.ac ?? profiles.battery }
+    return onAC ? profiles.ac : profiles.battery
+  }
+
+  private var currentSourceLabel: String? {
+    guard let onAC = diagnostics.battery?.isOnAC else { return nil }
+    return L10n.string(onAC ? "AC" : "Battery")
+  }
+
+  private func profileSummaryRow(_ title: String, value: Bool?) -> some View {
+    HStack {
+      Text(L10n.string(title))
+      Spacer()
+      Text(value.map { L10n.string($0 ? "On" : "Off") } ?? L10n.string("Unavailable"))
+        .foregroundStyle(.secondary)
+    }
+    .font(.system(size: 10, weight: .medium))
   }
 
   private var processCard: some View {
@@ -416,58 +443,6 @@ struct PowerTabView: View {
     }
   }
 
-  private var displayedProfile: PowerProfile? {
-    switch selectedSource {
-    case .battery: return diagnostics.snapshot.profiles.battery
-    case .ac: return diagnostics.snapshot.profiles.ac
-    case .all:
-      let profiles = [diagnostics.snapshot.profiles.battery, diagnostics.snapshot.profiles.ac]
-        .compactMap { $0 }
-      guard !profiles.isEmpty else { return nil }
-      return PowerProfile(
-        powerMode: common(profiles.map(\.powerMode)),
-        powerNap: common(profiles.map(\.powerNap)),
-        wakeOnNetwork: common(profiles.map(\.wakeOnNetwork)),
-        standby: common(profiles.map(\.standby)),
-        tcpKeepalive: common(profiles.map(\.tcpKeepalive)),
-        diskSleepMinutes: common(profiles.map(\.diskSleepMinutes)),
-        displaySleepMinutes: common(profiles.map(\.displaySleepMinutes)))
-    }
-  }
-
-  @ViewBuilder
-  private func profileToggle(_ title: String, setting: ManagedPowerSetting, value: Bool?) -> some View {
-    HStack {
-      Text(L10n.string(title))
-        .font(.system(size: 10, weight: .medium))
-      Spacer()
-      if let value {
-        Toggle("", isOn: Binding(
-          get: { value },
-          set: { setPowerSetting(setting, enabled: $0) }))
-          .labelsHidden()
-          .toggleStyle(.switch)
-          .controlSize(.mini)
-          .disabled(helper.isWorking)
-      } else if hasMixedValue(for: setting) {
-        Menu {
-          Button(L10n.string("Apply On")) { setPowerSetting(setting, enabled: true) }
-          Button(L10n.string("Apply Off")) { setPowerSetting(setting, enabled: false) }
-        } label: {
-          Text(L10n.string("Mixed"))
-            .font(.system(size: 9, weight: .medium))
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .disabled(helper.isWorking)
-      } else {
-        Text(L10n.string("Mixed or unsupported"))
-          .font(.system(size: 9))
-          .foregroundStyle(.tertiary)
-      }
-    }
-  }
-
   private func updateSampling(isVisible: Bool) {
     guard isVisible != isSamplingActive else { return }
     isSamplingActive = isVisible
@@ -478,60 +453,6 @@ struct PowerTabView: View {
       diagnostics.release()
       processEnergy.release()
     }
-  }
-
-  private func setPowerSetting(_ setting: ManagedPowerSetting, enabled: Bool) {
-    if selectedSource == .all, hasMixedValue(for: setting) {
-      pendingConfirmation = .allSources(setting: setting, enabled: enabled)
-      return
-    }
-    applyPowerSetting(setting, source: selectedSource, enabled: enabled)
-  }
-
-  private func applyPowerSetting(
-    _ setting: ManagedPowerSetting,
-    source: ManagedPowerSource,
-    enabled: Bool
-  ) {
-    guard helper.registrationState.isEnabled else {
-      helper.requestRegistration()
-      helperFeedback = helper.registrationState.detail
-      return
-    }
-    helper.setManagedPowerSetting(setting, source: source, enabled: enabled) { result in
-      switch result {
-      case .success:
-        helperFeedback = L10n.string("Power setting updated.")
-        diagnostics.refresh()
-      case .failure(let error):
-        helperFeedback = error.localizedDescription
-      }
-    }
-  }
-
-  private func hasMixedValue(for setting: ManagedPowerSetting) -> Bool {
-    guard selectedSource == .all,
-      let battery = settingValue(setting, in: diagnostics.snapshot.profiles.battery),
-      let ac = settingValue(setting, in: diagnostics.snapshot.profiles.ac)
-    else { return false }
-    return battery != ac
-  }
-
-  private func settingValue(_ setting: ManagedPowerSetting, in profile: PowerProfile?) -> Bool? {
-    switch setting {
-    case .powerNap: return profile?.powerNap
-    case .wakeOnNetwork: return profile?.wakeOnNetwork
-    case .standby: return profile?.standby
-    case .tcpKeepalive: return profile?.tcpKeepalive
-    }
-  }
-
-  private func common<T: Equatable>(_ values: [T?]) -> T? {
-    let concrete = values.compactMap { $0 }
-    guard concrete.count == values.count, let first = concrete.first,
-      concrete.dropFirst().allSatisfy({ $0 == first })
-    else { return nil }
-    return first
   }
 
   private func powerSourceText(_ onAC: Bool?) -> String {
@@ -555,20 +476,6 @@ struct PowerTabView: View {
     case .high: return L10n.string("High Power")
     case .other(let value): return L10n.format("Mode %d", value)
     case nil: return L10n.string("Unavailable")
-    }
-  }
-}
-
-private enum PowerConfirmation: Identifiable {
-  case clearHistory
-  case allSources(setting: ManagedPowerSetting, enabled: Bool)
-
-  var id: String {
-    switch self {
-    case .clearHistory:
-      return "clear-history"
-    case .allSources(let setting, let enabled):
-      return "all-sources-\(setting.rawValue)-\(enabled)"
     }
   }
 }

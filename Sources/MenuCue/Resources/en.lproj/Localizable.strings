@@ -1192,3 +1192,19 @@
 "Every action MenuCue can run, and where it appears." = "Every action MenuCue can run, and where it appears.";
 "Power Helper, system power settings, and wake history." = "Power Helper, system power settings, and wake history.";
 "Startup, updates, appearance, language, and iCloud sync." = "Startup, updates, appearance, language, and iCloud sync.";
+
+/* Power monitoring switch */
+"Power Monitoring" = "Power Monitoring";
+"Wake history and \"what keeps running\" are built from samples taken while nothing is on screen." = "Wake history and \"what keeps running\" are built from samples taken while nothing is on screen.";
+"Track wakes and running processes in the background" = "Track wakes and running processes in the background";
+"Off by default. When on, the system power log is read after each wake and running processes are sampled every few minutes; when off, both surfaces only cover the time they are open." = "Off by default. When on, the system power log is read after each wake and running processes are sampled every few minutes; when off, both surfaces only cover the time they are open.";
+"Power monitoring is off, so history only covers the time this tab is open." = "Power monitoring is off, so history only covers the time this tab is open.";
+"Turn On" = "Turn On";
+
+/* Power profiles moved into Settings */
+"These are macOS power settings. MenuCue writes them with pmset through the Power Helper, and they stay in effect for the whole Mac." = "These are macOS power settings. MenuCue writes them with pmset through the Power Helper, and they stay in effect for the whole Mac.";
+"Configure in Settings" = "Configure in Settings";
+
+/* Wake history retention, moved into Settings */
+"Wake History" = "Wake History";
+"Sleep and wake events from the last 30 days, kept on this Mac · %@" = "Sleep and wake events from the last 30 days, kept on this Mac · %@";

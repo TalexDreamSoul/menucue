@@ -334,24 +334,29 @@ final class AppModel: ObservableObject {
         preferenceSyncService.retry()
     }
 
-    /// Called every time the user looks at power, so history keeps accruing after the
-    /// window closes.
+    /// The one way this preference changes, in either direction.
     ///
-    /// Starting the timer here rather than only at launch is the point: persisting the
-    /// preference alone meant the very session in which someone first opened the pane
-    /// was the one session that did not backfill, and the promised "what woke my Mac
-    /// overnight" only began working the *next* time the app started.
-    /// `startBackgroundMonitoring` is idempotent, so calling this on every appearance
-    /// is free.
-    func enablePowerMonitoring() {
-        if !settings.powerMonitoringEnabled {
-            updateSettings { $0.powerMonitoringEnabled = true }
+    /// Applying it here rather than only at launch is the point: persisting the
+    /// preference alone meant the very session in which someone turned this on was the
+    /// one session that did not backfill, and the promised "what woke my Mac overnight"
+    /// only began working the *next* time the app started. Turning it off has to be
+    /// just as immediate — the setting is the only thing standing between an idle Mac
+    /// and a recurring `pmset -g log` plus `top`.
+    ///
+    /// Both samplers move together in both directions. Starting one alone leaves "what
+    /// kept running" blank while "what woke my Mac" fills in; stopping one alone leaves
+    /// the more expensive of the two running with the switch reading off.
+    func setPowerMonitoring(enabled: Bool) {
+        if settings.powerMonitoringEnabled != enabled {
+            updateSettings { $0.powerMonitoringEnabled = enabled }
         }
-        powerDiagnosticsService.startBackgroundMonitoring()
-        // Same reasoning, same pairing as `StatusBarController.configurePowerMonitoring`.
-        // Starting only one of the two here would leave "what kept running" blank for
-        // the whole first session while "what woke my Mac" filled in.
-        processEnergyService.startBackgroundSampling()
+        if enabled {
+            powerDiagnosticsService.startBackgroundMonitoring()
+            processEnergyService.startBackgroundSampling()
+        } else {
+            powerDiagnosticsService.stopBackgroundMonitoring()
+            processEnergyService.stopBackgroundSampling()
+        }
     }
 
     func updateNotificationSettings(_ update: (inout NotificationSettings) -> Void) {

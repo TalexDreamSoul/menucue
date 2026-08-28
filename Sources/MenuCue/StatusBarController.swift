@@ -100,6 +100,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private let updateService: UpdateService
   private let languageService: AppLanguageService
   private var settingsWindow: NSWindow?
+  private var dashboardWindow: NSWindow?
   private var quickEventWindow: NSWindow?
   private var timer: Timer?
   private var settingsCancellable: AnyCancellable?
@@ -209,9 +210,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
             self?.showSettingsWindow(initialPane: .actionCenter)
           }
         },
+        openPowerSettings: { [weak self] in
+          Task { @MainActor in
+            self?.showSettingsWindow(initialPane: .power)
+          }
+        },
         openDashboard: { [weak self] section in
           Task { @MainActor in
-            self?.showSettingsWindow(initialPane: .dashboard, dashboardSection: section)
+            self?.showDashboardWindow(section: section)
           }
         },
         quitApp: {
@@ -305,6 +311,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let appearance = NSApp.appearance
     Self.apply(appearance, to: popover.contentViewController?.view)
     Self.apply(appearance, to: settingsWindow?.contentViewController?.view)
+    Self.apply(appearance, to: dashboardWindow?.contentViewController?.view)
     Self.apply(appearance, to: quickEventWindow?.contentViewController?.view)
     let now = Date()
     let clocks = model.settings.clockTimeZones
@@ -714,33 +721,50 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
 
   @MainActor
   func windowWillClose(_ notification: Notification) {
-    guard let window = notification.object as? NSWindow, window === settingsWindow else { return }
+    guard let window = notification.object as? NSWindow,
+      window === settingsWindow || window === dashboardWindow
+    else { return }
+    // Both windows share one activation policy. Dropping back to accessory while the
+    // other is still around would take the Dock tile and the menu bar out from under
+    // it — and a miniaturized window with no Dock tile cannot be restored at all.
+    let sibling = window === settingsWindow ? dashboardWindow : settingsWindow
+    if let sibling, sibling.isVisible || sibling.isMiniaturized { return }
     settingsWindowDockController.settingsDidClose()
   }
 
+  /// Brings one of the reusable windows on screen.
+  ///
+  /// `makeKeyAndOrderFront` does not deminiaturize, so on its own a second deep link
+  /// swaps the contents of a window that is still nothing but a tile in the Dock, and
+  /// the click looks like it did nothing.
   @MainActor
-  private func showSettingsWindow(
-    initialPane: SettingsPane = .menuBar,
-    dashboardSection: DashboardSection = .cpu
-  ) {
+  private func present(_ window: NSWindow) {
+    window.contentViewController?.view.appearance = NSApp.appearance
+    if window.isMiniaturized {
+      window.deminiaturize(nil)
+    }
+    window.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
+  @MainActor
+  private func showSettingsWindow(initialPane: SettingsPane = .menuBar) {
     popover.performClose(nil)
     settingsWindowDockController.settingsWillShow()
     model.refreshCalendarData()
     model.quickActionService.refreshAll()
 
-    let relay = SwipeRelay()
-    let hostingController = SwipeForwardingController(
+    // Rebuilt on every call, which is what makes a repeat deep link land on the
+    // requested pane rather than on whichever one was open last.
+    let hostingController = NSHostingController(
       rootView: SettingsWindowView(
         model: model,
         updateService: updateService,
         languageService: languageService,
-        initialPane: initialPane,
-        initialDashboardSection: dashboardSection,
-        swipeRelay: relay
-      ),
-      relay: relay
+        initialPane: initialPane
+      )
     )
-    hostingController.applyAppearance(NSApp.appearance)
+    hostingController.view.appearance = NSApp.appearance
 
     let window: NSWindow
     if let settingsWindow {
@@ -751,14 +775,11 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
       settingsWindow = window
     }
     window.delegate = self
-
-    window.contentViewController?.view.appearance = NSApp.appearance
-    window.makeKeyAndOrderFront(nil)
-    NSApp.activate(ignoringOtherApps: true)
+    present(window)
   }
 
   private func makeSettingsWindow(
-    hostingController: SwipeForwardingController<SettingsWindowView>
+    hostingController: NSHostingController<SettingsWindowView>
   ) -> NSWindow {
     let window = NSWindow(contentViewController: hostingController)
     window.title = L10n.string("MenuCue Settings")
@@ -782,7 +803,61 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     return window
   }
 
+  /// The Dashboard, in a window of its own.
+  ///
+  /// It was the first item in the settings sidebar and held not one setting: seven
+  /// tabs of live readings sitting where preferences are configured. As its own window
+  /// it can also stay open next to Settings, which is what someone comparing a reading
+  /// against a setting actually wants.
+  @MainActor
+  private func showDashboardWindow(section: DashboardSection = .cpu) {
+    popover.performClose(nil)
+    settingsWindowDockController.settingsWillShow()
+
+    // The Dashboard's tabs answer to sideways flicks, so this window carries the relay
+    // that used to belong to the settings window — where nothing else consumed it.
+    let relay = SwipeRelay()
+    let hostingController = SwipeForwardingController(
+      rootView: DashboardView(model: model, initialSection: section, swipeRelay: relay),
+      relay: relay
+    )
+    hostingController.applyAppearance(NSApp.appearance)
+
+    let window: NSWindow
+    if let dashboardWindow {
+      window = dashboardWindow
+      window.contentViewController = hostingController
+    } else {
+      window = makeDashboardWindow(hostingController: hostingController)
+      dashboardWindow = window
+    }
+    window.delegate = self
+    present(window)
+  }
+
+  private func makeDashboardWindow(
+    hostingController: SwipeForwardingController<DashboardView>
+  ) -> NSWindow {
+    let window = NSWindow(contentViewController: hostingController)
+    window.title = L10n.string("Dashboard")
+    // No `.fullSizeContentView` here: the settings window inherits its titlebar inset
+    // from the split view, and this content has no sidebar to inset it.
+    window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+    window.tabbingMode = .disallowed
+    window.setContentSize(Self.settingsDefaultSize)
+    window.minSize = NSSize(width: 720, height: 540)
+    window.titlebarSeparatorStyle = .automatic
+    window.isReleasedWhenClosed = false
+
+    window.setFrameAutosaveName(Self.dashboardFrameAutosaveName)
+    if !window.setFrameUsingName(Self.dashboardFrameAutosaveName) {
+      window.center()
+    }
+    return window
+  }
+
   private static let settingsFrameAutosaveName = "MenuCueSettingsWindow"
+  private static let dashboardFrameAutosaveName = "MenuCueDashboardWindow"
   private static let settingsDefaultSize = CGSize(width: 900, height: 680)
 
   private func showQuickEventWindow() {

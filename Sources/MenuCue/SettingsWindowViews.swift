@@ -35,9 +35,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   case power
   case general
   case about
-  /// Temporary. The Dashboard is a read-only view with no settings in it, so it moves
-  /// to its own window in Stage B; until then it sits at the end of the System group.
-  case dashboard
 
   var id: String { rawValue }
 
@@ -45,7 +42,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     switch self {
     case .menuBar, .panel, .calendar, .actionCenter: return .interface
     case .trackpad, .alerts: return .input
-    case .power, .general, .about, .dashboard: return .system
+    case .power, .general, .about: return .system
     }
   }
 
@@ -54,6 +51,9 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   /// Returns nil when the destination is no longer a settings pane at all.
   static func migrating(rawValue: String) -> SettingsPane? {
     switch rawValue {
+    // The Dashboard is read-only and has never held a setting; it is its own window
+    // now, so a link to it goes through `showDashboardWindow` rather than through here.
+    case "dashboard": return nil
     case "overview": return .panel
     case "dateAndTime": return .menuBar
     case "quickActions": return .actionCenter
@@ -74,7 +74,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .power: return L10n.string("Power")
     case .general: return L10n.string("General")
     case .about: return L10n.string("About")
-    case .dashboard: return L10n.string("Dashboard")
     }
   }
 
@@ -98,8 +97,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
       return L10n.string("Startup, updates, appearance, language, and iCloud sync.")
     case .about:
       return L10n.string("Version, GitHub releases, and project links.")
-    case .dashboard:
-      return L10n.string("Live CPU, GPU, memory, storage, network, sensor and power readings.")
     }
   }
 
@@ -114,7 +111,6 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .power: return "bolt"
     case .general: return "gearshape"
     case .about: return "info.circle"
-    case .dashboard: return "chart.line.uptrend.xyaxis"
     }
   }
 }
@@ -124,27 +120,17 @@ struct SettingsWindowView: View {
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
   @State private var selectedPane: SettingsPane
-  /// Which Dashboard tab a popover card deep-linked to. Only read when the window
-  /// opens on `.dashboard`; `showSettingsWindow` rebuilds this view on every call,
-  /// so a repeat deep-link re-honors it.
-  private let initialDashboardSection: DashboardSection
-  /// Sideways flicks recognized by the AppKit container hosting this window.
-  @ObservedObject var swipeRelay: SwipeRelay
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   init(
     model: AppModel,
     updateService: UpdateService,
     languageService: AppLanguageService,
-    initialPane: SettingsPane = .menuBar,
-    initialDashboardSection: DashboardSection = .cpu,
-    swipeRelay: SwipeRelay = SwipeRelay()
+    initialPane: SettingsPane = .menuBar
   ) {
-    self.swipeRelay = swipeRelay
     self.model = model
     self.updateService = updateService
     self.languageService = languageService
-    self.initialDashboardSection = initialDashboardSection
     self._selectedPane = State(initialValue: initialPane)
   }
 
@@ -171,9 +157,7 @@ struct SettingsWindowView: View {
         model: model,
         updateService: updateService,
         languageService: languageService,
-        pane: selectedPane,
-        initialDashboardSection: initialDashboardSection,
-        swipeRelay: swipeRelay
+        pane: selectedPane
       )
     }
     .navigationSplitViewStyle(.balanced)
@@ -199,28 +183,17 @@ private struct SettingsContentView: View {
   @ObservedObject var updateService: UpdateService
   @ObservedObject var languageService: AppLanguageService
   let pane: SettingsPane
-  var initialDashboardSection: DashboardSection = .cpu
-  @ObservedObject var swipeRelay: SwipeRelay
 
   var body: some View {
-    // The Dashboard pins its own tab bar and scrolls per tab, so it opts out of the
-    // shared scroll container rather than nesting one inside another.
-    if pane == .dashboard {
-      DashboardView(
-        model: model, initialSection: initialDashboardSection, swipeRelay: swipeRelay
-      )
-      .background(Color(nsColor: .windowBackgroundColor))
-    } else {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 22) {
-          SettingsPaneHeader(pane: pane)
-          selectedPaneContent
-        }
-        .padding(28)
-        .frame(maxWidth: .infinity, alignment: .leading)
+    ScrollView {
+      VStack(alignment: .leading, spacing: 22) {
+        SettingsPaneHeader(pane: pane)
+        selectedPaneContent
       }
-      .background(Color(nsColor: .windowBackgroundColor))
+      .padding(28)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
+    .background(Color(nsColor: .windowBackgroundColor))
   }
 
   @ViewBuilder
@@ -248,9 +221,6 @@ private struct SettingsContentView: View {
       )
     case .about:
       AboutSettingsView()
-    case .dashboard:
-      // Handled in `body` before this switch is reached.
-      EmptyView()
     }
   }
 }

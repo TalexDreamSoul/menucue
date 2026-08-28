@@ -12,9 +12,9 @@
 
 ## Stage B：行为修复与独立窗口
 
-6. [ ] powerMonitoring 显式开关（电源分区）；移除两处 onAppear 隐式 enable；AppModel.setPowerMonitoring(enabled:)（false 停后台采样）；弹窗电源 tab 顶部关闭态提示行。
-7. [ ] 弹窗电源 tab「电源配置卡」→ 状态摘要 + 「在设置中配置」；pmset 卡视图迁入 PowerSettingsView。
-8. [ ] 仪表盘独立窗口（StatusBarController.showDashboardWindow）；侧边栏移除仪表盘；全部 deep-link 改道；「恢复唤醒历史」迁到设置>电源。build+test。
+6. [x] powerMonitoring 显式开关（电源分区）；移除两处 onAppear 隐式 enable；AppModel.setPowerMonitoring(enabled:)（false 停后台采样）；弹窗电源 tab 顶部关闭态提示行。
+7. [x] 弹窗电源 tab「电源配置卡」→ 状态摘要 + 「在设置中配置」；pmset 卡视图迁入 PowerSettingsView。
+8. [x] 仪表盘独立窗口（StatusBarController.showDashboardWindow）；侧边栏移除仪表盘；全部 deep-link 改道；「恢复唤醒历史」迁到设置>电源。build+test。
 
 ## Stage C：操作中心与弹窗操作页
 
@@ -22,7 +22,7 @@
 10. [ ] 弹窗操作页：搜索框、内置分类 DisclosureGroup、快捷指令组默认折叠、不可用徽标、底栏「管理操作…」；内置 14 项分类表按 implement 附录。
 11. [ ] 承接子任务 2 遗留：a) 触控板动作可用性数据接 UI——规则列表/编辑器对不可用动作显示原因徽标与「打开系统设置」补救按钮（executor.availability(for:) 与 TrackpadActionExecutionResult.settingsURL 目前无生产消费者）；b) TrackpadActionExecutionResult.failure 拆 failure(key:)/failure(message:) 两个入口，消除「参数是 key 还是成品句子」的含糊。
 12. [ ] 本地化：全部新键 en/zh-Hans；废键清理（含既有重复键 "System"×2、"Add"×2）；LocalizationCoverageTests。同步修 spec 漂移：.trellis/spec/frontend/state-management.md:326「hide sync pane」改为「General 分区组级 entitled 门控」；弹窗两处旧措辞（PopoverComponents.swift:267 "Quick Actions…"、QuickActionViews.swift:106 "Manage in Settings"）随步骤 10 更新。
-12. [ ] 全量 build+test；手动核对清单（新分区可达性、深链、开关行为）写入任务 notes。
+13. [ ] 全量 build+test；手动核对清单（新分区可达性、深链、开关行为）写入任务 notes。
 
 ## 附录：内置动作分类建议
 
