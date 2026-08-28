@@ -631,6 +631,8 @@ struct TrackpadGestureMatch: Equatable, Identifiable {
   var activatesWindowUnderPointer: Bool
   /// What this gesture family needs suppressed, so dispatch never re-reads the trigger.
   var suppressionNeed: TrackpadInputSuppressionNeed
+  /// True when the pointer must stay put from this result until the session ends.
+  var freezesPointer: Bool
   /// True when this is the ordinary contact tap the click suppressor is waiting on before
   /// it drops the physical click.
   var confirmsSuppressedClick: Bool
@@ -654,6 +656,7 @@ struct TrackpadGestureMatch: Equatable, Identifiable {
     action = rule.action
     activatesWindowUnderPointer = rule.activatesWindowUnderPointer
     suppressionNeed = TrackpadRecognizerRegistry.suppression(for: rule.trigger.kind)
+    freezesPointer = TrackpadRecognizerRegistry.freezesPointer(for: rule.trigger.kind)
     confirmsSuppressedClick = rule.trigger.kind == .contact && rule.trigger.contactGesture == .tap
     self.direction = direction
     self.continuousDelta = continuousDelta

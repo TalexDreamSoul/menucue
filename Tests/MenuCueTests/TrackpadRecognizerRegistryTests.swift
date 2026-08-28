@@ -60,6 +60,40 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
     }
   }
 
+  /// Only the family whose fingers drag the cursor may hold it still, and the declaration
+  /// has to survive projection into a match, which is all the dispatcher ever reads.
+  func testOnlyTheContinuousEdgeFamilyFreezesThePointer() {
+    let expected: [TrackpadGestureKind: Bool] = [
+      .contact: false,
+      .edgeContinuous: true,
+      .swipe: false,
+      .edgeEntrySwipe: false,
+      .pinch: false,
+      .tipTap: false,
+      .fingerSwipe: false,
+      .drawing: false,
+    ]
+
+    for kind in TrackpadGestureKind.allCases {
+      XCTAssertEqual(
+        TrackpadRecognizerRegistry.freezesPointer(for: kind),
+        expected[kind],
+        kind.rawValue
+      )
+      XCTAssertEqual(
+        TrackpadGestureMatch(
+          id: 1,
+          rule: rule(kind: kind),
+          direction: nil,
+          continuousDelta: 0,
+          timestamp: 0
+        ).freezesPointer,
+        expected[kind],
+        kind.rawValue
+      )
+    }
+  }
+
   func testSuppressionNeedsFollowTheEnabledRulesOnly() {
     let edge = rule(kind: .edgeContinuous)
     let tap = rule(kind: .contact)

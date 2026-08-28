@@ -1008,16 +1008,14 @@ final class TrackpadGestureService: ObservableObject {
   @Published private(set) var clickSuppressionStatus: TrackpadInputSuppressionStatus = .disabled
   @Published private(set) var edgeScrollSuppressionStatus: TrackpadInputSuppressionStatus = .disabled
 
-  private let engineQueue = DispatchQueue(
-    label: "com.tagzxia.app.menucue.trackpad.engine",
-    qos: .userInteractive
-  )
+  private let engineQueue: DispatchQueue
   private let notificationCenter: NotificationCenter
   private let workspaceNotificationCenter: NotificationCenter
   private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   private let executor: TrackpadActionExecutor
   private let clickSuppressor: TrackpadClickSuppressor
   private let edgeScrollSuppressor: TrackpadEdgeScrollSuppressor
+  private let pointerFreeze: TrackpadPointerFreezeCoordinator
 
   private var engine: TrackpadGestureEngine
   private var activeSettings: TrackpadGestureSettings
@@ -1045,6 +1043,7 @@ final class TrackpadGestureService: ObservableObject {
     invalidFrameHandler: { [weak self] deviceID, reason in
       guard let self else { return }
       self.engine.reset(deviceID: deviceID)
+      self.pointerFreeze.release()
       let edgeDecision: TrackpadEdgeScrollSuppressionDecision
       switch reason {
       case .deviceRemoved:
@@ -1075,8 +1074,22 @@ final class TrackpadGestureService: ObservableObject {
     notificationCenter: NotificationCenter = .default,
     workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
     accessibilityPermissionRequester: AccessibilityPermissionRequesting =
-      SystemAccessibilityPermissionRequester()
+      SystemAccessibilityPermissionRequester(),
+    pointerFreezer: PointerFreezing = SystemPointerFreezer()
   ) {
+    let engineQueue = DispatchQueue(
+      label: "com.tagzxia.app.menucue.trackpad.engine",
+      qos: .userInteractive
+    )
+    self.engineQueue = engineQueue
+    // The closure captures the queue rather than the service, so the pending watchdog can
+    // never be the reason a deallocating service stays alive.
+    self.pointerFreeze = TrackpadPointerFreezeCoordinator(
+      freezer: pointerFreezer,
+      scheduleWatchdog: { delay, body in
+        engineQueue.asyncAfter(deadline: .now() + delay, execute: body)
+      }
+    )
     self.notificationCenter = notificationCenter
     self.workspaceNotificationCenter = workspaceNotificationCenter
     self.accessibilityPermissionRequester = accessibilityPermissionRequester
@@ -1118,6 +1131,7 @@ final class TrackpadGestureService: ObservableObject {
       self.activeSettings = settings
       self.engine.apply(settings: settings)
       self.engine.reset()
+      self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
@@ -1140,6 +1154,7 @@ final class TrackpadGestureService: ObservableObject {
     engineQueue.async { [weak self] in
       guard let self, self.activeSettings.isEnabled else { return }
       self.engine.reset()
+      self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
@@ -1180,6 +1195,9 @@ final class TrackpadGestureService: ObservableObject {
 
   func stop() {
     removeLifecycleObservers()
+    // Synchronously, not on the engine queue: `deinit` and application termination both
+    // land here, and by then a queued block would find `self` already gone.
+    pointerFreeze.release()
     runOnMain { [weak self] in
       self?.clickSuppressor.apply(isEnabled: false)
       self?.edgeScrollSuppressor.apply(isEnabled: false)
@@ -1188,6 +1206,8 @@ final class TrackpadGestureService: ObservableObject {
     engineQueue.async { [weak self] in
       guard let self else { return }
       self.engine.reset()
+      // Again, in case a frame already in flight froze the pointer after the call above.
+      self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
@@ -1259,9 +1279,21 @@ final class TrackpadGestureService: ObservableObject {
         edgeGestureOwned: edgeDecision.isSuppressing
       )
     }
+    // The pointer is frozen by the first continuous step, not by entry into the corridor,
+    // so an ordinary two-finger scroll along an edge never loses its cursor.
+    if dispatchableMatches.contains(where: \.freezesPointer) {
+      pointerFreeze.beginContinuousAdjustment(deviceID: frame.deviceID)
+    }
     for match in dispatchableMatches {
       handle(match)
     }
+    // After the freeze decision, never before: a frame that both steps and reports its
+    // contacts gone has to end released. `isTouching` is the same predicate the engine
+    // uses to pick a session's contacts, so a frame that produced a step always says yes.
+    pointerFreeze.observeFrame(
+      deviceID: frame.deviceID,
+      hasContacts: frame.contacts.contains { $0.state.isTouching }
+    )
     if directive == .complete, clickSuppressionOwnerDeviceID == frame.deviceID {
       clickSuppressionOwnerDeviceID = nil
       if dispatchableMatches.contains(where: \.confirmsSuppressedClick) {
@@ -1380,6 +1412,7 @@ final class TrackpadGestureService: ObservableObject {
     engineQueue.async { [weak self] in
       guard let self, self.activeSettings.isEnabled else { return }
       self.engine.reset()
+      self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
@@ -1394,6 +1427,7 @@ final class TrackpadGestureService: ObservableObject {
     engineQueue.async { [weak self] in
       guard let self else { return }
       self.engine.reset()
+      self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)

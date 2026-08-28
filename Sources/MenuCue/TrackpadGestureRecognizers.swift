@@ -103,6 +103,9 @@ protocol TrackpadRecognizerSessionState: AnyObject {}
 protocol TrackpadGestureRecognizer: AnyObject {
   static var kind: TrackpadGestureKind { get }
   static var suppression: TrackpadInputSuppressionNeed { get }
+  /// Whether the pointer has to hold still from this family's first result until the
+  /// session ends, because the fingers driving the gesture are also driving the cursor.
+  static var freezesPointer: Bool { get }
   /// Finger counts this family can recognize. The rule editor offers exactly this range,
   /// so a count the family would silently ignore cannot be configured.
   static var supportedFingerCounts: ClosedRange<Int> { get }
@@ -128,10 +131,12 @@ protocol TrackpadGestureRecognizer: AnyObject {
 }
 
 extension TrackpadGestureRecognizer {
+  static var freezesPointer: Bool { false }
   static var supportedFingerCounts: ClosedRange<Int> { 1...5 }
 
   var kind: TrackpadGestureKind { Self.kind }
   var suppression: TrackpadInputSuppressionNeed { Self.suppression }
+  var freezesPointer: Bool { Self.freezesPointer }
   var supportedFingerCounts: ClosedRange<Int> { Self.supportedFingerCounts }
 
   func makeSessionState() -> TrackpadRecognizerSessionState? { nil }
@@ -166,10 +171,18 @@ enum TrackpadRecognizerRegistry {
   private static let fingerCountsByKind: [TrackpadGestureKind: ClosedRange<Int>] =
     Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.supportedFingerCounts) })
 
+  private static let pointerFreezeByKind: [TrackpadGestureKind: Bool] =
+    Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.freezesPointer) })
+
   static var registeredKinds: Set<TrackpadGestureKind> { Set(suppressionByKind.keys) }
 
   static func suppression(for kind: TrackpadGestureKind) -> TrackpadInputSuppressionNeed {
     suppressionByKind[kind] ?? TrackpadInputSuppressionNeed.none
+  }
+
+  /// Whether a result from this family holds the pointer still for the rest of the session.
+  static func freezesPointer(for kind: TrackpadGestureKind) -> Bool {
+    pointerFreezeByKind[kind] ?? false
   }
 
   /// What the rule editor may offer for a family, straight from the recognizer that will
@@ -359,6 +372,9 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
 final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
   static let kind = TrackpadGestureKind.edgeContinuous
   static let suppression = TrackpadInputSuppressionNeed.scrollWheel
+  /// The two fingers walking the corridor would otherwise drag the cursor across the screen
+  /// for the length of the adjustment.
+  static let freezesPointer = true
   static let supportedFingerCounts = requiredContactCount...requiredContactCount
 
   private static let requiredContactCount = 2
