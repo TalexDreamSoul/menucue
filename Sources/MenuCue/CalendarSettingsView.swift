@@ -42,6 +42,29 @@ struct CalendarSettingsView: View {
         .font(.caption)
         .foregroundStyle(.secondary)
 
+      Toggle("Show date distance", isOn: model.settingsBinding(\.calendarShowsDateDistance))
+
+      Text("Show how far a date sits from today, both while hovering and for the selected date.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Toggle("Show monthly workdays", isOn: model.settingsBinding(\.calendarShowsMonthStats))
+
+      Text("Count the workdays and days off in the month currently on screen.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Picker("Workday basis", selection: model.settingsBinding(\.calendarWorkdayScheme)) {
+        ForEach(WorkdayScheme.allCases) { scheme in
+          Text(scheme.title).tag(scheme)
+        }
+      }
+      .frame(maxWidth: 320)
+
+      Text("Statutory holidays follow the published Chinese schedule, including the weekends moved to workdays.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
       Divider()
 
       HStack {

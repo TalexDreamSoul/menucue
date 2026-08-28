@@ -130,6 +130,9 @@ struct AppSettings: Equatable {
     var calendarWeekStartDay: WeekStartDay
     var showsLunarCalendar: Bool
     var allDayEventDatePolicy: AllDayEventDatePolicy
+    var calendarShowsDateDistance: Bool
+    var calendarShowsMonthStats: Bool
+    var calendarWorkdayScheme: WorkdayScheme
     var calendarSelectionMode: CalendarSelectionMode
     var selectedCalendarIDs: Set<String>
     var pinnedQuickActions: [QuickActionReference]
@@ -164,6 +167,9 @@ struct AppSettings: Equatable {
         calendarWeekStartDay: WeekStartDay,
         showsLunarCalendar: Bool = false,
         allDayEventDatePolicy: AllDayEventDatePolicy = .preserveSource,
+        calendarShowsDateDistance: Bool = true,
+        calendarShowsMonthStats: Bool = true,
+        calendarWorkdayScheme: WorkdayScheme = .chineseStatutory,
         calendarSelectionMode: CalendarSelectionMode,
         selectedCalendarIDs: Set<String>,
         pinnedQuickActions: [QuickActionReference],
@@ -189,6 +195,9 @@ struct AppSettings: Equatable {
         self.calendarWeekStartDay = calendarWeekStartDay
         self.showsLunarCalendar = showsLunarCalendar
         self.allDayEventDatePolicy = allDayEventDatePolicy
+        self.calendarShowsDateDistance = calendarShowsDateDistance
+        self.calendarShowsMonthStats = calendarShowsMonthStats
+        self.calendarWorkdayScheme = calendarWorkdayScheme
         self.calendarSelectionMode = calendarSelectionMode
         self.selectedCalendarIDs = selectedCalendarIDs
         self.metricsSampling = metricsSampling.normalized

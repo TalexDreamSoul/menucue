@@ -12,6 +12,20 @@ private func gregorianCalendar(for timeZone: TimeZone, weekStartDay: WeekStartDa
   return calendar
 }
 
+/// The published schedule only describes days under the statutory scheme — a plain
+/// Monday–Friday week has nothing to say about a holiday, so it stays unlabelled.
+private func holidayTag(for date: Date, scheme: WorkdayScheme, calendar: Calendar) -> String? {
+  guard scheme == .chineseStatutory,
+    let kind = ChineseHolidaySchedule.kind(of: date, calendar: calendar)
+  else {
+    return nil
+  }
+  switch kind {
+  case .holiday: return L10n.format("%@ · Holiday", kind.name)
+  case .makeupWorkday: return L10n.format("%@ · Makeup workday", kind.name)
+  }
+}
+
 private func eventAccentColor(for event: CalendarEventInfo) -> Color {
   let scalarTotal = event.calendarTitle.unicodeScalars.reduce(0) { $0 + Int($1.value) }
   return eventAccentPalette[scalarTotal % eventAccentPalette.count]
@@ -220,7 +234,10 @@ struct StatusPopoverView: View {
           timeZone: model.settings.overviewTimeZone,
           weekStartDay: model.settings.calendarWeekStartDay,
           showsLunarCalendar: model.settings.showsLunarCalendar,
-          allDayEventDatePolicy: model.settings.allDayEventDatePolicy
+          allDayEventDatePolicy: model.settings.allDayEventDatePolicy,
+          showsDateDistance: model.settings.calendarShowsDateDistance,
+          showsMonthStats: model.settings.calendarShowsMonthStats,
+          workdayScheme: model.settings.calendarWorkdayScheme
         )
         .onAppear {
           model.setVisibleCalendarMonth(visibleMonthDate)
@@ -232,8 +249,11 @@ struct StatusPopoverView: View {
           date: selectedCalendarDate,
           events: model.events,
           timeZone: model.settings.overviewTimeZone,
+          weekStartDay: model.settings.calendarWeekStartDay,
           showsLunarCalendar: model.settings.showsLunarCalendar,
-          allDayEventDatePolicy: model.settings.allDayEventDatePolicy
+          allDayEventDatePolicy: model.settings.allDayEventDatePolicy,
+          showsDateDistance: model.settings.calendarShowsDateDistance,
+          workdayScheme: model.settings.calendarWorkdayScheme
         )
         eventsSection
       }
@@ -336,8 +356,11 @@ private struct CalendarDateDetailCard: View {
   let date: Date
   let events: [CalendarEventInfo]
   let timeZone: TimeZone
+  let weekStartDay: WeekStartDay
   let showsLunarCalendar: Bool
   let allDayEventDatePolicy: AllDayEventDatePolicy
+  let showsDateDistance: Bool
+  let workdayScheme: WorkdayScheme
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -348,6 +371,20 @@ private struct CalendarDateDetailCard: View {
         Text(dateText)
           .font(.caption.weight(.medium))
           .foregroundStyle(.secondary)
+      }
+
+      if showsDateDistance {
+        HStack(spacing: 6) {
+          Label(distanceText, systemImage: "clock.arrow.circlepath")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+          if let holidayText {
+            Text(holidayText)
+              .font(.caption2.weight(.semibold))
+              .foregroundStyle(Color.accentColor)
+          }
+          Spacer(minLength: 0)
+        }
       }
 
       if let lunarInfo {
@@ -396,6 +433,18 @@ private struct CalendarDateDetailCard: View {
 
   private var civilDate: CivilDateKey {
     CivilDateKey(date: date, timeZone: timeZone)
+  }
+
+  private var calendar: Calendar {
+    gregorianCalendar(for: timeZone, weekStartDay: weekStartDay)
+  }
+
+  private var distanceText: String {
+    WorkdayCalculator.distance(from: Date(), to: date, calendar: calendar).localizedDescription
+  }
+
+  private var holidayText: String? {
+    holidayTag(for: date, scheme: workdayScheme, calendar: calendar)
   }
 
   private var lunarInfo: LunarDateInfo? {
@@ -697,6 +746,9 @@ private struct MonthCalendarView: View {
   let weekStartDay: WeekStartDay
   let showsLunarCalendar: Bool
   let allDayEventDatePolicy: AllDayEventDatePolicy
+  let showsDateDistance: Bool
+  let showsMonthStats: Bool
+  let workdayScheme: WorkdayScheme
   @State private var hoveredDate: Date?
 
   private let weekNumberColumnWidth: CGFloat = 22
@@ -834,10 +886,66 @@ private struct MonthCalendarView: View {
       .overlay(monthOutline)
       .animation(motion.navigationAnimation, value: monthStart)
 
+      if showsMonthStats {
+        monthStatsRow
+      }
+
+      if showsDateDistance {
+        dateDistanceRow
+      }
     }
     .padding(10)
     .background(Color.secondary.opacity(0.06))
     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+  }
+
+  /// How much of the visible month is work. Fixed height, like the row below it, so
+  /// neither one makes the card breathe as the pointer crosses the grid.
+  private var monthStatsRow: some View {
+    let stats = WorkdayCalculator.monthStats(
+      month: monthDate,
+      scheme: workdayScheme,
+      calendar: calendar,
+      now: Date()
+    )
+    return HStack(spacing: 6) {
+      Text(stats.localizedSummary)
+        .font(.system(size: 10.5, weight: .medium))
+        .foregroundStyle(.secondary)
+      if stats.isEstimated {
+        Text(L10n.string("Estimated as Mon-Fri"))
+          .font(.system(size: 9.5))
+          .foregroundStyle(.tertiary)
+      }
+      Spacer(minLength: 0)
+    }
+    .lineLimit(1)
+    .frame(height: 13)
+  }
+
+  /// Reads the hovered day when there is one, and falls back to the selected day so the
+  /// row always says something rather than appearing and disappearing under the grid.
+  private var dateDistanceRow: some View {
+    let date = hoveredDate ?? selectedDate
+    return HStack(spacing: 6) {
+      Text(distanceDateText(for: date))
+        .font(.system(size: 10.5, weight: .semibold))
+        .foregroundStyle(hoveredDate == nil ? Color.secondary : Color.primary)
+      Text(
+        WorkdayCalculator.distance(from: Date(), to: date, calendar: calendar)
+          .localizedDescription
+      )
+      .font(.system(size: 10.5))
+      .foregroundStyle(.secondary)
+      Spacer(minLength: 0)
+      if let tag = holidayTag(for: date, scheme: workdayScheme, calendar: calendar) {
+        Text(tag)
+          .font(.system(size: 9.5, weight: .semibold))
+          .foregroundStyle(Color.accentColor)
+      }
+    }
+    .lineLimit(1)
+    .frame(height: 14)
   }
 
   private var calendar: Calendar {
@@ -873,30 +981,12 @@ private struct MonthCalendarView: View {
     return formatter.string(from: selectedDate)
   }
 
-  private var selectedDateRelativeText: String {
-    let now = Date()
-    let todayStart = calendar.startOfDay(for: now)
-    let selectedStart = calendar.startOfDay(for: selectedDate)
-
-    if calendar.isDate(selectedStart, inSameDayAs: todayStart) {
-      let hours = max(0, Int(now.timeIntervalSince(todayStart) / 3600))
-      if hours == 0 {
-        return L10n.string("Less than 1 hour ago")
-      }
-      return hours == 1
-        ? L10n.format("%d hour ago", hours)
-        : L10n.format("%d hours ago", hours)
-    }
-
-    let days = abs(calendar.dateComponents([.day], from: todayStart, to: selectedStart).day ?? 0)
-    if selectedStart < todayStart {
-      return days == 1
-        ? L10n.format("%d day ago", days)
-        : L10n.format("%d days ago", days)
-    }
-    return days == 1
-      ? L10n.format("In %d day", days)
-      : L10n.format("In %d days", days)
+  private func distanceDateText(for date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = .autoupdatingCurrent
+    formatter.timeZone = timeZone
+    formatter.dateFormat = "EEE, MMM d"
+    return formatter.string(from: date)
   }
 
   private var daysInVisibleMonth: Int {

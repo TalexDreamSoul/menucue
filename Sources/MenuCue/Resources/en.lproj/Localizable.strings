@@ -17,15 +17,12 @@
 "%d active" = "%d active";
 "%d cores" = "%d cores";
 "%d dark wakes today" = "%d dark wakes today";
-"%d day ago" = "%d day ago";
 "%d days ago" = "%d days ago";
 "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened." = "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened.";
 "%d earlier wakes are hidden since you cleared history on %@" = "%d earlier wakes are hidden since you cleared history on %@";
 "%d event" = "%d event";
 "%d events" = "%d events";
 "%d fans" = "%d fans";
-"%d hour ago" = "%d hour ago";
-"%d hours ago" = "%d hours ago";
 "%d mounted" = "%d mounted";
 "%d process actions failed." = "%d process actions failed.";
 "%dd %dh %dm" = "%dd %dh %dm";
@@ -246,7 +243,6 @@
 "IPv4" = "IPv4";
 "ISO" = "ISO";
 "Idle" = "Idle";
-"In %d day" = "In %d day";
 "In %d days" = "In %d days";
 "Install Helper" = "Install Helper";
 "Install the privileged Helper to change protected power settings." = "Install the privileged Helper to change protected power settings.";
@@ -271,7 +267,6 @@
 "Last woke at %@" = "Last woke at %@";
 "Launch MenuCue at login" = "Launch MenuCue at login";
 "Launch at Login is available when MenuCue runs from its app bundle." = "Launch at Login is available when MenuCue runs from its app bundle.";
-"Less than 1 hour ago" = "Less than 1 hour ago";
 "Light" = "Light";
 "Links" = "Links";
 "Live CPU, GPU, memory, storage, network, sensor and power readings." = "Live CPU, GPU, memory, storage, network, sensor and power readings.";
@@ -892,15 +887,12 @@
 "Trackpad status: %@" = "Trackpad status: %@";
 "Activates the window under the pointer" = "Activates the window under the pointer";
 "Activate Window Under Pointer" = "Activate Window Under Pointer";
-"%@ → %@" = "%@ → %@";
 "%@, %@" = "%@, %@";
-"Collapse rule editor" = "Collapse rule editor";
 "Edit rule" = "Edit rule";
 "Duplicate Rule" = "Duplicate Rule";
 "Delete Gesture Rule" = "Delete Gesture Rule";
 "Rule actions" = "Rule actions";
 "Actions for %@" = "Actions for %@";
-"Rule Details" = "Rule Details";
 "Name" = "Name";
 "Required modifiers" = "Required modifiers";
 "Trigger" = "Trigger";
@@ -1135,3 +1127,42 @@
 "Not used yet" = "Not used yet";
 "Discovered from Apple Shortcuts on this Mac." = "Discovered from Apple Shortcuts on this Mac.";
 "These run from a trackpad gesture rule, not from a pinned action." = "These run from a trackpad gesture rule, not from a pinned action.";
+
+/* Trackpad rule sheet */
+"Rule" = "Rule";
+"Edit Rule" = "Edit Rule";
+"New Gesture Rule" = "New Gesture Rule";
+"Edit Gesture Rule" = "Edit Gesture Rule";
+"Scope" = "Scope";
+"Edge" = "Edge";
+"%d fingers · %@" = "%d fingers · %@";
+"Finger %d · %@" = "Finger %d · %@";
+
+/* Calendar personalization */
+"Show date distance" = "Show date distance";
+"Show how far a date sits from today, both while hovering and for the selected date." = "Show how far a date sits from today, both while hovering and for the selected date.";
+"Show monthly workdays" = "Show monthly workdays";
+"Count the workdays and days off in the month currently on screen." = "Count the workdays and days off in the month currently on screen.";
+"Workday basis" = "Workday basis";
+"Statutory holidays follow the published Chinese schedule, including the weekends moved to workdays." = "Statutory holidays follow the published Chinese schedule, including the weekends moved to workdays.";
+"Chinese statutory holidays" = "Chinese statutory holidays";
+"Monday to Friday only" = "Monday to Friday only";
+"%1$d workdays · %2$d days off" = "%1$d workdays · %2$d days off";
+"%1$d elapsed · %2$d left" = "%1$d elapsed · %2$d left";
+"Estimated as Mon-Fri" = "Estimated as Mon-Fri";
+"Yesterday" = "Yesterday";
+/* The brackets belong to the translation: Chinese sets them full-width. */
+"%1$@ (%2$@)" = "%1$@ (%2$@)";
+"%d week" = "%d week";
+"%d weeks" = "%d weeks";
+"%d week %d day" = "%d week %d day";
+"%d week %d days" = "%d week %d days";
+"%d weeks %d day" = "%d weeks %d day";
+"%d weeks %d days" = "%d weeks %d days";
+"%@ · Holiday" = "%@ · Holiday";
+"%@ · Makeup workday" = "%@ · Makeup workday";
+"New Year's Day" = "New Year's Day";
+"Qingming Festival" = "Qingming Festival";
+"Labour Day" = "Labour Day";
+"National Day" = "National Day";
+"National Day & Mid-Autumn Festival" = "National Day & Mid-Autumn Festival";

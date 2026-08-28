@@ -17,15 +17,12 @@
 "%d active" = "%d 个活跃";
 "%d cores" = "%d 个核心";
 "%d dark wakes today" = "今天发生 %d 次暗唤醒";
-"%d day ago" = "%d 天前";
 "%d days ago" = "%d 天前";
 "%d earlier records were removed: they described wakes that had been scheduled, not wakes that happened." = "已移除 %d 条早期记录：它们描述的是计划中的唤醒，而非真实发生的唤醒。";
 "%d earlier wakes are hidden since you cleared history on %@" = "已隐藏 %d 条更早的唤醒（记录在 %@ 被清空）";
 "%d event" = "%d 个日程";
 "%d events" = "%d 个日程";
 "%d fans" = "%d 个风扇";
-"%d hour ago" = "%d 小时前";
-"%d hours ago" = "%d 小时前";
 "%d mounted" = "%d 个已挂载";
 "%d process actions failed." = "%d 个进程操作失败。";
 "%dd %dh %dm" = "%d天 %d小时 %d分钟";
@@ -246,7 +243,6 @@
 "IPv4" = "IPv4";
 "ISO" = "ISO";
 "Idle" = "空闲";
-"In %d day" = "%d 天后";
 "In %d days" = "%d 天后";
 "Install Helper" = "安装助手";
 "Install the privileged Helper to change protected power settings." = "安装特权助手以更改受保护的电源设置。";
@@ -271,7 +267,6 @@
 "Last woke at %@" = "上次唤醒于 %@";
 "Launch MenuCue at login" = "登录时启动 MenuCue";
 "Launch at Login is available when MenuCue runs from its app bundle." = "从应用包运行 MenuCue 时才可使用登录时启动。";
-"Less than 1 hour ago" = "不到 1 小时前";
 "Light" = "浅色";
 "Links" = "链接";
 "Live CPU, GPU, memory, storage, network, sensor and power readings." = "实时查看 CPU、GPU、内存、存储、网络、传感器与电源读数。";
@@ -892,15 +887,12 @@
 "Trackpad status: %@" = "触摸板状态：%@";
 "Activates the window under the pointer" = "激活指针下方的窗口";
 "Activate Window Under Pointer" = "激活指针下方的窗口";
-"%@ → %@" = "%@ → %@";
 "%@, %@" = "%@，%@";
-"Collapse rule editor" = "收起规则编辑器";
 "Edit rule" = "编辑规则";
 "Duplicate Rule" = "复制规则";
 "Delete Gesture Rule" = "删除手势规则";
 "Rule actions" = "规则操作";
 "Actions for %@" = "%@ 的操作";
-"Rule Details" = "规则详情";
 "Name" = "名称";
 "Required modifiers" = "所需修饰键";
 "Trigger" = "触发手势";
@@ -1135,3 +1127,42 @@
 "Not used yet" = "尚未被使用";
 "Discovered from Apple Shortcuts on this Mac." = "从本机「快捷指令」App 中发现。";
 "These run from a trackpad gesture rule, not from a pinned action." = "这些操作由触摸板手势规则触发，不能固定到面板。";
+
+/* 触摸板规则弹窗 */
+"Rule" = "规则";
+"Edit Rule" = "编辑规则";
+"New Gesture Rule" = "新建手势规则";
+"Edit Gesture Rule" = "编辑手势规则";
+"Scope" = "生效范围";
+"Edge" = "边缘";
+"%d fingers · %@" = "%d 指 · %@";
+"Finger %d · %@" = "第 %d 指 · %@";
+
+/* 日历个性化 */
+"Show date distance" = "显示日期距离";
+"Show how far a date sits from today, both while hovering and for the selected date." = "悬浮或选中某一天时，显示它距今多久。";
+"Show monthly workdays" = "显示月度工作日";
+"Count the workdays and days off in the month currently on screen." = "统计当前显示月份的工作日与休息日。";
+"Workday basis" = "工作日口径";
+"Statutory holidays follow the published Chinese schedule, including the weekends moved to workdays." = "法定节假日按国务院公布的放假安排计算，含调休上班的周末。";
+"Chinese statutory holidays" = "含法定节假日与调休";
+"Monday to Friday only" = "仅周一至周五";
+"%1$d workdays · %2$d days off" = "%1$d 个工作日 · %2$d 个休息日";
+"%1$d elapsed · %2$d left" = "已过 %1$d · 剩 %2$d";
+"Estimated as Mon-Fri" = "按周一至五估算";
+"Yesterday" = "昨天";
+/* 括号属于译文：中文用全角括号。 */
+"%1$@ (%2$@)" = "%1$@（%2$@）";
+"%d week" = "%d 周";
+"%d weeks" = "%d 周";
+"%d week %d day" = "%d 周 %d 天";
+"%d week %d days" = "%d 周 %d 天";
+"%d weeks %d day" = "%d 周 %d 天";
+"%d weeks %d days" = "%d 周 %d 天";
+"%@ · Holiday" = "%@ · 假期";
+"%@ · Makeup workday" = "%@ · 调休上班";
+"New Year's Day" = "元旦";
+"Qingming Festival" = "清明节";
+"Labour Day" = "劳动节";
+"National Day" = "国庆节";
+"National Day & Mid-Autumn Festival" = "国庆节、中秋节";

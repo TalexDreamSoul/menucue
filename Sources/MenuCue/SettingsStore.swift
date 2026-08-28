@@ -12,6 +12,9 @@ final class SettingsStore {
         static let calendarWeekStartDay = "calendarWeekStartDay"
         static let showsLunarCalendar = "showsLunarCalendar.v1"
         static let allDayEventDatePolicy = "allDayEventDatePolicy.v1"
+        static let calendarShowsDateDistance = "calendarShowsDateDistance.v1"
+        static let calendarShowsMonthStats = "calendarShowsMonthStats.v1"
+        static let calendarWorkdayScheme = "calendarWorkdayScheme.v1"
         static let calendarSelectionMode = "calendarSelectionMode"
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let pinnedQuickActions = "pinnedQuickActions"
@@ -81,6 +84,13 @@ final class SettingsStore {
             calendarWeekStartDay: loadCalendarWeekStartDay(defaultValue: .monday),
             showsLunarCalendar: loadShowsLunarCalendar(),
             allDayEventDatePolicy: loadAllDayEventDatePolicy(),
+            calendarShowsDateDistance: loadBool(
+                forKey: Key.calendarShowsDateDistance, defaultValue: true
+            ),
+            calendarShowsMonthStats: loadBool(
+                forKey: Key.calendarShowsMonthStats, defaultValue: true
+            ),
+            calendarWorkdayScheme: loadWorkdayScheme(),
             calendarSelectionMode: CalendarSelectionMode(
                 rawValue: defaults.string(forKey: Key.calendarSelectionMode) ?? ""
             ) ?? .all,
@@ -117,6 +127,9 @@ final class SettingsStore {
         defaults.set(settings.calendarWeekStartDay.rawValue, forKey: Key.calendarWeekStartDay)
         defaults.set(settings.showsLunarCalendar, forKey: Key.showsLunarCalendar)
         defaults.set(settings.allDayEventDatePolicy.rawValue, forKey: Key.allDayEventDatePolicy)
+        defaults.set(settings.calendarShowsDateDistance, forKey: Key.calendarShowsDateDistance)
+        defaults.set(settings.calendarShowsMonthStats, forKey: Key.calendarShowsMonthStats)
+        defaults.set(settings.calendarWorkdayScheme.rawValue, forKey: Key.calendarWorkdayScheme)
         defaults.set(settings.calendarSelectionMode.rawValue, forKey: Key.calendarSelectionMode)
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
@@ -251,6 +264,22 @@ final class SettingsStore {
             return .preserveSource
         }
         return policy
+    }
+
+    private func loadWorkdayScheme() -> WorkdayScheme {
+        guard let rawValue = defaults.string(forKey: Key.calendarWorkdayScheme),
+              let scheme = WorkdayScheme(rawValue: rawValue)
+        else {
+            return .chineseStatutory
+        }
+        return scheme
+    }
+
+    /// `bool(forKey:)` cannot tell "off" from "never set", which matters for the
+    /// preferences that default to on.
+    private func loadBool(forKey key: String, defaultValue: Bool) -> Bool {
+        guard defaults.object(forKey: key) != nil else { return defaultValue }
+        return defaults.bool(forKey: key)
     }
 
     private func loadCalendarWeekStartDay(defaultValue: WeekStartDay) -> WeekStartDay {

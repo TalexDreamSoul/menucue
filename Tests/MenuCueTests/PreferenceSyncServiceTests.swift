@@ -134,6 +134,60 @@ final class PreferenceSyncServiceTests: XCTestCase {
         )
     }
 
+    /// The calendar personalization preferences travel with the other calendar display
+    /// settings, so each one needs its own envelope and its own place in the settings
+    /// round trip — a field that encodes but never applies would sync silently nowhere.
+    func testCalendarPersonalizationFieldsRoundTripThroughSettingsAndCloud() throws {
+        let fields: [(PortableSettingField, PortableSettingValue)] = [
+            (.calendarShowsDateDistance, .calendarShowsDateDistance(false)),
+            (.calendarShowsMonthStats, .calendarShowsMonthStats(false)),
+            (.calendarWorkdayScheme, .calendarWorkdayScheme(.weekdaysOnly)),
+        ]
+
+        var settings = makeSettings()
+        XCTAssertTrue(settings.calendarShowsDateDistance)
+        XCTAssertTrue(settings.calendarShowsMonthStats)
+        XCTAssertEqual(settings.calendarWorkdayScheme, .chineseStatutory)
+
+        for (field, value) in fields {
+            XCTAssertTrue(settings.applyPortableValue(value, for: field), "\(field) never applied")
+            XCTAssertEqual(settings.portableValue(for: field), value)
+        }
+        XCTAssertFalse(settings.calendarShowsDateDistance)
+        XCTAssertFalse(settings.calendarShowsMonthStats)
+        XCTAssertEqual(settings.calendarWorkdayScheme, .weekdaysOnly)
+
+        let cloud = InMemoryPreferenceCloudStore()
+        let service = entitledService(cloud: cloud)
+        let envelopes = Dictionary(uniqueKeysWithValues: fields.map { field, value in
+            (field, envelope(field: field, date: newDate, value: value))
+        })
+        service.configure(localEnvelopeProvider: { envelopes }, importHandler: { _, _ in })
+        service.start(enabled: false, onboardingCompleted: false, storedIdentityToken: nil)
+        service.completeOnboarding(enable: true)
+
+        for (field, _) in fields {
+            XCTAssertEqual(try storedEnvelope(in: cloud, field: field), envelopes[field])
+        }
+    }
+
+    func testMismatchedCalendarPersonalizationEnvelopesAreRejected() {
+        let mismatched = envelope(
+            field: .calendarShowsDateDistance,
+            date: newDate,
+            value: .calendarShowsMonthStats(false)
+        )
+        XCTAssertFalse(mismatched.isCompatible)
+
+        var settings = makeSettings()
+        XCTAssertFalse(
+            settings.applyPortableValue(
+                .calendarWorkdayScheme(.weekdaysOnly), for: .calendarShowsMonthStats
+            )
+        )
+        XCTAssertTrue(settings.calendarShowsMonthStats)
+    }
+
     func testDisablementPreservesCloudDataAndStopsFurtherUploads() throws {
         let cloud = InMemoryPreferenceCloudStore()
         let service = entitledService(cloud: cloud)
@@ -239,6 +293,20 @@ final class PreferenceSyncServiceTests: XCTestCase {
             notificationCenter: notificationCenter,
             isEntitled: true,
             identityTokenDataProvider: { self.token }
+        )
+    }
+
+    private func makeSettings() -> AppSettings {
+        AppSettings(
+            statusBarSwitchIntervalSeconds: 5,
+            appearanceMode: .system,
+            appearanceTimeZoneID: "UTC",
+            appliesSystemAppearance: false,
+            overviewTimeZoneID: "UTC",
+            calendarWeekStartDay: .monday,
+            calendarSelectionMode: .all,
+            selectedCalendarIDs: [],
+            pinnedQuickActions: []
         )
     }
 

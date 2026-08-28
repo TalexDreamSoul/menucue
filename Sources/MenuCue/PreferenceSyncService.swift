@@ -10,6 +10,9 @@ enum PortableSettingField: String, CaseIterable, Codable, Hashable {
     case calendarWeekStartDay
     case showsLunarCalendar
     case allDayEventDatePolicy
+    case calendarShowsDateDistance
+    case calendarShowsMonthStats
+    case calendarWorkdayScheme
     case appearanceMode
 }
 
@@ -21,6 +24,9 @@ enum PortableSettingValue: Codable, Equatable {
     case calendarWeekStartDay(WeekStartDay)
     case showsLunarCalendar(Bool)
     case allDayEventDatePolicy(AllDayEventDatePolicy)
+    case calendarShowsDateDistance(Bool)
+    case calendarShowsMonthStats(Bool)
+    case calendarWorkdayScheme(WorkdayScheme)
     case appearanceMode(AppearanceMode)
 }
 
@@ -56,6 +62,9 @@ struct PortableSettingEnvelope: Codable, Equatable {
              (.calendarWeekStartDay, .calendarWeekStartDay),
              (.showsLunarCalendar, .showsLunarCalendar),
              (.allDayEventDatePolicy, .allDayEventDatePolicy),
+             (.calendarShowsDateDistance, .calendarShowsDateDistance),
+             (.calendarShowsMonthStats, .calendarShowsMonthStats),
+             (.calendarWorkdayScheme, .calendarWorkdayScheme),
              (.appearanceMode, .appearanceMode):
             return true
         default:
@@ -497,6 +506,11 @@ extension AppSettings {
         case .calendarWeekStartDay: return .calendarWeekStartDay(calendarWeekStartDay)
         case .showsLunarCalendar: return .showsLunarCalendar(showsLunarCalendar)
         case .allDayEventDatePolicy: return .allDayEventDatePolicy(allDayEventDatePolicy)
+        case .calendarShowsDateDistance:
+            return .calendarShowsDateDistance(calendarShowsDateDistance)
+        case .calendarShowsMonthStats:
+            return .calendarShowsMonthStats(calendarShowsMonthStats)
+        case .calendarWorkdayScheme: return .calendarWorkdayScheme(calendarWorkdayScheme)
         case .appearanceMode: return .appearanceMode(appearanceMode)
         }
     }
@@ -523,6 +537,12 @@ extension AppSettings {
             showsLunarCalendar = isEnabled
         case let (.allDayEventDatePolicy, .allDayEventDatePolicy(policy)):
             allDayEventDatePolicy = policy
+        case let (.calendarShowsDateDistance, .calendarShowsDateDistance(isEnabled)):
+            calendarShowsDateDistance = isEnabled
+        case let (.calendarShowsMonthStats, .calendarShowsMonthStats(isEnabled)):
+            calendarShowsMonthStats = isEnabled
+        case let (.calendarWorkdayScheme, .calendarWorkdayScheme(scheme)):
+            calendarWorkdayScheme = scheme
         case let (.appearanceMode, .appearanceMode(mode)):
             appearanceMode = mode
         default:
