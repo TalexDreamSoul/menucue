@@ -68,3 +68,4 @@
 - **并行分派基建发现**（重要，未来多代理并行必读）：① trellis hook 把「当前活动任务」上下文注入**所有**子代理——与 dispatch 首行 Active task 不一致时会串台，代理必须按首行路径自行 Read；② 共享 `.build` 下并行构建会互踩（"input file modified during build" / SwiftPM 锁），单次失败先重试再下结论；③ 并行期间 LocalizationCoverageTests 可能因对方半成品暂红，合流后自愈。
 - 实机待确认追加：触控板行尾 controlsWidth=58 在不可用徽标出现时约差 1pt（真机看后再调 62）；sheet 560pt 三段式滚动高度；月历悬浮距离条与统计行的视觉密度。
 - **触控板反馈与灵敏度修复**（实机反馈驱动）：HUD 固定屏底+多屏适配（visibleFrame 纯函数布局+6 单测）、tipTap 按住连发（每完整点按一次，0.12s 防抖；check 另修「抹动点按连累下一次」缺陷）、边缘响应参数提升、徽标文案修正。遗留：持锚停顿 >0.65s 后首次点按被超时丢弃（PRD 保持约束不变，实机若觉得"停顿后第一下不灵"即此处）；bottomInset=96 待实机校准。
+- **边缘手势指针锁**：PointerFreezing 协议 + 冻结协调器（四路径成对 + 注入时钟看门狗 + 变异验证）。实机悬念两条记录在任务 notes：CGAssociate 文档限前台（LSUIElement 可能不生效→备选 warp 回弹只换封装类）；退出时解冻块可能排不空。R4（sheet Esc）调查结论：cancelAction 自始就在，疑焦点吞键，判别实验交用户。
