@@ -206,7 +206,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
         },
         openQuickActionSettings: { [weak self] in
           Task { @MainActor in
-            self?.showSettingsWindow(initialPane: .quickActions)
+            self?.showSettingsWindow(initialPane: .actionCenter)
           }
         },
         openDashboard: { [weak self] section in
@@ -720,7 +720,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
 
   @MainActor
   private func showSettingsWindow(
-    initialPane: SettingsPane = .overview,
+    initialPane: SettingsPane = .menuBar,
     dashboardSection: DashboardSection = .cpu
   ) {
     popover.performClose(nil)

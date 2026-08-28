@@ -1178,3 +1178,17 @@
 "Only %d applications" = "仅 %d 个应用";
 "All except %d applications" = "除 %d 个应用外全部";
 "%.2f s" = "%.2f 秒";
+
+/* Settings information architecture */
+"User Interface" = "界面";
+"Input" = "输入";
+"Panel" = "面板";
+"Action Center" = "操作中心";
+"Alerts" = "提醒规则";
+"General" = "通用";
+"Menu-bar clock format, the clock carousel, and time zones." = "菜单栏时钟格式、时钟轮播与时区。";
+"Popover tab order, sampling behavior, and animation effects." = "弹出面板的页签顺序、采样行为与动画效果。";
+"Event sources, month-view layout, and calendar access." = "事件来源、月历布局与日历访问权限。";
+"Every action MenuCue can run, and where it appears." = "MenuCue 可运行的全部操作，以及它们出现的位置。";
+"Power Helper, system power settings, and wake history." = "电源助手、系统电源设置与唤醒历史。";
+"Startup, updates, appearance, language, and iCloud sync." = "启动、更新、外观、语言与 iCloud 同步。";

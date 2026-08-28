@@ -30,8 +30,12 @@ final class DashboardSectionTests: XCTestCase {
     XCTAssertTrue(DashboardSection.allCases.contains(.gpu))
   }
 
-  func testDashboardIsTheFirstSettingsPane() {
-    XCTAssertEqual(SettingsPane.allCases.first, .dashboard)
+  /// The Dashboard holds no settings, so it sits last — and only until Stage B moves
+  /// it out of the settings window entirely. Menu Bar leads, and is what a bare
+  /// `showSettingsWindow()` opens on.
+  func testDashboardIsTheLastSettingsPane() {
+    XCTAssertEqual(SettingsPane.allCases.first, .menuBar)
+    XCTAssertEqual(SettingsPane.allCases.last, .dashboard)
   }
 
   func testEachTabOnlyRequestsTheProbesItRenders() {

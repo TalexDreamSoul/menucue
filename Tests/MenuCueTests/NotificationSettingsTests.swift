@@ -53,10 +53,11 @@ final class NotificationSettingsPersistenceTests: XCTestCase {
     XCTAssertEqual(sanitized.channels, [.bark])
   }
 
-  func testSettingsPaneRoutesToNotifications() {
-    XCTAssertTrue(SettingsPane.allCases.contains(.notifications))
-    XCTAssertEqual(SettingsPane.notifications.title, L10n.string("Notifications"))
-    XCTAssertEqual(SettingsPane.notifications.systemImage, "bell.badge")
+  func testSettingsPaneRoutesToAlerts() {
+    XCTAssertTrue(SettingsPane.allCases.contains(.alerts))
+    XCTAssertEqual(SettingsPane.alerts.title, L10n.string("Alerts"))
+    XCTAssertEqual(SettingsPane.alerts.systemImage, "bell.badge")
+    XCTAssertEqual(SettingsPane.migrating(rawValue: "notifications"), .alerts)
   }
 
   func testDeviceNameOverrideTrimResetAndFallback() {

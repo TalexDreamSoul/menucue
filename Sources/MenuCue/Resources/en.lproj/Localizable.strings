@@ -1178,3 +1178,17 @@
 "Only %d applications" = "Only %d applications";
 "All except %d applications" = "All except %d applications";
 "%.2f s" = "%.2f s";
+
+/* Settings information architecture */
+"User Interface" = "Interface";
+"Input" = "Input";
+"Panel" = "Panel";
+"Action Center" = "Action Center";
+"Alerts" = "Alerts";
+"General" = "General";
+"Menu-bar clock format, the clock carousel, and time zones." = "Menu-bar clock format, the clock carousel, and time zones.";
+"Popover tab order, sampling behavior, and animation effects." = "Popover tab order, sampling behavior, and animation effects.";
+"Event sources, month-view layout, and calendar access." = "Event sources, month-view layout, and calendar access.";
+"Every action MenuCue can run, and where it appears." = "Every action MenuCue can run, and where it appears.";
+"Power Helper, system power settings, and wake history." = "Power Helper, system power settings, and wake history.";
+"Startup, updates, appearance, language, and iCloud sync." = "Startup, updates, appearance, language, and iCloud sync.";

@@ -3,7 +3,7 @@
   "name": "settings-ia-reorg",
   "title": "设置信息架构重组",
   "description": "10 平级分区→3 组 9 项；取消概览、瘦身关于、新增电源分区、补电源监控开关。按 design/menucue-redesign.pen 画板 A/B 落地。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
