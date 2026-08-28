@@ -930,6 +930,11 @@
 "Minimum drawing match" = "最低绘图匹配度";
 "A drawing trigger runs the selected action directly. It replaces the cross-module normal-mouse drawing bridge with an equivalent editable rule." = "绘图触发会直接执行所选操作；它用等价的可编辑规则替代跨模块的普通鼠标绘图桥接。";
 "Invert edge direction" = "反转边缘方向";
+"Slide axis" = "滑动轴向";
+"Vertical" = "垂直";
+"Horizontal" = "水平";
+"The other fingers must stay inside the movement tolerance. Keeping the step distance larger than that tolerance is what separates this gesture from an ordinary two-finger scroll." = "其余手指必须保持在移动容差内。把每步距离设得大于该容差，正是本手势与普通双指滚动的区别所在。";
+"Uses the global sensitivity of %@." = "使用全局灵敏度 %@。";
 "Distance per action step" = "每步操作距离";
 "Uses the global edge width of %@ and sensitivity of %@." = "使用全局边缘宽度 %@ 和灵敏度 %@。";
 "Maximum duration" = "最长持续时间";
@@ -939,10 +944,12 @@
 "System control" = "系统控制";
 "No Quick Actions are currently available." = "当前没有可用的快捷操作。";
 "Quick Action" = "快捷操作";
-"Characters" = "字符";
-"Optional display characters" = "可选显示字符";
-"Key code" = "键码";
-"Shortcut modifiers" = "快捷键修饰键";
+"Shortcut" = "快捷键";
+"Click to record" = "点击录制";
+"Press a shortcut…" = "请按下快捷键…";
+"Click, then press the shortcut you want this gesture to send." = "点击后按下你希望该手势发送的快捷键。";
+"Keyboard shortcut" = "键盘快捷键";
+"Clear" = "清除";
 "Mouse action" = "鼠标操作";
 "Scroll direction" = "滚动方向";
 "Scroll actions use a bounded step and do not add momentum." = "滚动操作使用受限步长，不会增加惯性。";
@@ -978,6 +985,7 @@
 "Right finger tap · Volume Down" = "右指轻点 · 调低音量";
 "Left edge · Volume" = "左边缘 · 音量";
 "Right edge · Brightness" = "右边缘 · 亮度";
+"Two-finger hold · Left slide · Volume" = "双指按住 · 左指滑动 · 音量";
 "Function" = "功能键";
 "Shift" = "Shift";
 "Control" = "Control";
@@ -997,6 +1005,7 @@
 "Selected-finger Swipe" = "指定手指轻扫";
 "Drawing" = "绘图";
 "Continuous Edge" = "连续边缘";
+"Anchored Slide" = "锚定滑动";
 "Tap" = "轻点";
 "Double Tap" = "轻点两下";
 "Click" = "点按";
@@ -1065,6 +1074,7 @@
 "%d-finger %@ edge entry" = "%d 指从%@边缘进入";
 "%d-finger pinch %@" = "%d 指%@捏合";
 "Finger %d tip-tap" = "第 %d 指轻点";
+"%1$d-finger anchored slide · Finger %2$d" = "%1$d 指锚定滑动 · 第 %2$d 指";
 "Finger %d swipe %@" = "第 %d 指向%@轻扫";
 "Drawing · %@" = "绘图 · %@";
 "%d-finger continuous %@ edge" = "%d 指%@边缘连续手势";
@@ -1139,6 +1149,9 @@
 "Finger %d · %@" = "第 %d 指 · %@";
 "Finger %d taps" = "第 %d 指点按";
 "Finger %d taps · %@" = "第 %d 指点按 · %@";
+"%1$d fingers · Finger %2$d %3$@" = "%1$d 指 · 第 %2$d 指%3$@";
+"up and down" = "上下滑动";
+"left and right" = "左右滑动";
 "Left edge" = "左边缘";
 "Right edge" = "右边缘";
 "Top edge" = "上边缘";

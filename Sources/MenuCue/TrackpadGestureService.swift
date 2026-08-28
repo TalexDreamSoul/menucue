@@ -166,19 +166,74 @@ struct TrackpadClickSuppressionPolicy {
   }
 }
 
-struct TrackpadEdgeScrollSuppressionDecision: Equatable {
+/// What the scroll tap should be doing, from whichever ownership path decided it.
+struct TrackpadScrollSuppressionDecision: Equatable {
   let isSuppressing: Bool
   let drainsMomentum: Bool
+
+  /// Two ownership paths, one tap: either may suppress, and a drain only survives if
+  /// nothing is still holding the trackpad.
+  func merged(with other: TrackpadScrollSuppressionDecision) -> TrackpadScrollSuppressionDecision {
+    let isSuppressing = self.isSuppressing || other.isSuppressing
+    return TrackpadScrollSuppressionDecision(
+      isSuppressing: isSuppressing,
+      drainsMomentum: (drainsMomentum || other.drainsMomentum) && !isSuppressing
+    )
+  }
+}
+
+/// Native-scroll ownership for a family the raw frames cannot announce in advance. Its own
+/// first result takes the trackpad and holds it until that device's contacts end — the same
+/// lifetime the pointer freeze uses, for the same reason: until the gesture happens, it
+/// looks exactly like ordinary movement.
+struct TrackpadSessionScrollSuppressionPolicy {
+  private var owningDeviceID: UInt64?
+
+  var isSuppressing: Bool { owningDeviceID != nil }
+
+  @discardableResult
+  mutating func consume(
+    deviceID: UInt64,
+    claims: Bool,
+    hasContacts: Bool
+  ) -> TrackpadScrollSuppressionDecision {
+    if claims { owningDeviceID = deviceID }
+    guard owningDeviceID == deviceID else { return decision(drainsMomentum: false) }
+    guard hasContacts else {
+      owningDeviceID = nil
+      // The gesture is over but its scrolling is not: macOS keeps sending momentum for a
+      // moment after the fingers leave, which is the tail this drains.
+      return TrackpadScrollSuppressionDecision(isSuppressing: false, drainsMomentum: true)
+    }
+    return decision(drainsMomentum: false)
+  }
+
+  /// For every path that abandons a session without a final frame. Without it a stale owner
+  /// would go on swallowing the user's scrolling with no gesture left to justify it.
+  @discardableResult
+  mutating func reset(deviceID: UInt64? = nil) -> TrackpadScrollSuppressionDecision {
+    if deviceID == nil || deviceID == owningDeviceID { owningDeviceID = nil }
+    return decision(drainsMomentum: false)
+  }
+
+  private func decision(drainsMomentum: Bool) -> TrackpadScrollSuppressionDecision {
+    TrackpadScrollSuppressionDecision(
+      isSuppressing: isSuppressing,
+      drainsMomentum: drainsMomentum
+    )
+  }
 }
 
 enum TrackpadMatchDispatchPolicy {
   /// A gesture that only works because native scrolling is being consumed may act only
-  /// while it actually owns that suppression.
+  /// while that suppression is actually in place. For a family armed from the raw frames
+  /// that means the service has to have granted it already; a family that takes the
+  /// trackpad with its own first result is granting it here, in this result.
   static func shouldDispatch(
     _ match: TrackpadGestureMatch,
     edgeGestureOwned: Bool
   ) -> Bool {
-    match.suppressionNeed != .scrollWheel || edgeGestureOwned
+    match.suppressionNeed != .scrollWheel || edgeGestureOwned || match.claimsScrollSuppression
   }
 }
 
@@ -240,7 +295,7 @@ struct TrackpadEdgeScrollSuppressionPolicy {
     frame: TrackpadFrame,
     settings: TrackpadGestureSettings,
     context: TrackpadGestureContext
-  ) -> TrackpadEdgeScrollSuppressionDecision {
+  ) -> TrackpadScrollSuppressionDecision {
     let contacts = frame.contacts.filter(\.state.isTouching)
     let frameContactIDs = frame.contacts.map(\.id)
     let contactIDs = Set(contacts.map(\.id))
@@ -286,7 +341,6 @@ struct TrackpadEdgeScrollSuppressionPolicy {
           Set(frameContactIDs).isSubset(of: contactIDs)
         {
           let heldPoints = contacts.filter { session.contactIDs.contains($0.id) }.map(\.position)
-          let addedPoints = contacts.filter { !session.contactIDs.contains($0.id) }.map(\.position)
           let heldEdges = Self.matchingEdges(
             frame: frame,
             points: heldPoints,
@@ -294,16 +348,20 @@ struct TrackpadEdgeScrollSuppressionPolicy {
             context: context,
             useExpandedCorridor: true
           )
-          let addedEdges = Self.matchingEdges(
+          // The finger that just landed is judged as part of the pair, never on its own:
+          // the whole point of the second finger is that it may sit outside the corridor,
+          // so asking it to satisfy the corridor by itself would refuse every posture but
+          // the stacked one.
+          let pairEdges = Self.matchingEdges(
             frame: frame,
-            points: addedPoints,
+            points: contacts.map(\.position),
             settings: settings,
             context: context,
             useExpandedCorridor: false
           )
           session.contactIDs = contactIDs
           session.edges = session.edges.filter {
-            heldEdges.contains($0) && addedEdges.contains($0)
+            heldEdges.contains($0) && pairEdges.contains($0)
           }
           states[frame.deviceID] = session.edges.isEmpty
             ? .blockedUntilContactsEnd
@@ -365,7 +423,7 @@ struct TrackpadEdgeScrollSuppressionPolicy {
   }
 
   @discardableResult
-  mutating func invalidate(deviceID: UInt64) -> TrackpadEdgeScrollSuppressionDecision {
+  mutating func invalidate(deviceID: UInt64) -> TrackpadScrollSuppressionDecision {
     states[deviceID] = .blockedUntilContactsEnd
     if states.count > 1 {
       for activeDeviceID in Array(states.keys) {
@@ -376,7 +434,7 @@ struct TrackpadEdgeScrollSuppressionPolicy {
   }
 
   @discardableResult
-  mutating func reset(deviceID: UInt64? = nil) -> TrackpadEdgeScrollSuppressionDecision {
+  mutating func reset(deviceID: UInt64? = nil) -> TrackpadScrollSuppressionDecision {
     if let deviceID {
       states.removeValue(forKey: deviceID)
     } else {
@@ -387,13 +445,13 @@ struct TrackpadEdgeScrollSuppressionPolicy {
 
   private mutating func updateSuppressionState(
     drainsMomentum: Bool
-  ) -> TrackpadEdgeScrollSuppressionDecision {
+  ) -> TrackpadScrollSuppressionDecision {
     if states.count == 1, let state = states.values.first, case .owner = state {
       isSuppressing = true
     } else {
       isSuppressing = false
     }
-    return TrackpadEdgeScrollSuppressionDecision(
+    return TrackpadScrollSuppressionDecision(
       isSuppressing: isSuppressing,
       drainsMomentum: drainsMomentum && !isSuppressing
     )
@@ -422,7 +480,7 @@ struct TrackpadEdgeScrollSuppressionPolicy {
       let trigger = rule.trigger.normalized
       return trigger.kind == .edgeContinuous
         && trigger.fingerCount == 2
-        && points.allSatisfy { TrackpadGeometry.edgeContains(trigger.edge, point: $0, width: width) }
+        && TrackpadGeometry.edgeAdmits(trigger.edge, points: points, width: width)
     }.map(\.trigger.edge)
   }
 }
@@ -1021,6 +1079,7 @@ final class TrackpadGestureService: ObservableObject {
   private var activeSettings: TrackpadGestureSettings
   private var clickSuppressionPolicy = TrackpadClickSuppressionPolicy()
   private var edgeScrollSuppressionPolicy = TrackpadEdgeScrollSuppressionPolicy()
+  private var sessionScrollSuppressionPolicy = TrackpadSessionScrollSuppressionPolicy()
   private var clickSuppressionOwnerDeviceID: UInt64?
   private var clickSuppressionConflictedDeviceIDs = Set<UInt64>()
   private var wakeObserver: NSObjectProtocol?
@@ -1044,7 +1103,7 @@ final class TrackpadGestureService: ObservableObject {
       guard let self else { return }
       self.engine.reset(deviceID: deviceID)
       self.pointerFreeze.release()
-      let edgeDecision: TrackpadEdgeScrollSuppressionDecision
+      let edgeDecision: TrackpadScrollSuppressionDecision
       switch reason {
       case .deviceRemoved:
         self.clickSuppressionPolicy.reset(deviceID: deviceID)
@@ -1054,9 +1113,14 @@ final class TrackpadGestureService: ObservableObject {
         self.clickSuppressionPolicy.invalidate(deviceID: deviceID)
         edgeDecision = self.edgeScrollSuppressionPolicy.invalidate(deviceID: deviceID)
       }
+      // A device that lost its frames cannot report the lift that would have released its
+      // session ownership, so this is the release.
+      let scrollDecision = edgeDecision.merged(
+        with: self.sessionScrollSuppressionPolicy.reset(deviceID: deviceID)
+      )
       self.edgeScrollSuppressor.setGestureActive(
-        edgeDecision.isSuppressing,
-        drainMomentum: edgeDecision.drainsMomentum,
+        scrollDecision.isSuppressing,
+        drainMomentum: scrollDecision.drainsMomentum,
         cancelMomentumDrain: true
       )
       if self.clickSuppressionOwnerDeviceID == deviceID {
@@ -1134,6 +1198,7 @@ final class TrackpadGestureService: ObservableObject {
       self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
+      self.sessionScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
       self.clickSuppressionOwnerDeviceID = nil
       self.clickSuppressionConflictedDeviceIDs.removeAll()
@@ -1157,6 +1222,7 @@ final class TrackpadGestureService: ObservableObject {
       self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
+      self.sessionScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
       self.clickSuppressionOwnerDeviceID = nil
       self.clickSuppressionConflictedDeviceIDs.removeAll()
@@ -1210,6 +1276,7 @@ final class TrackpadGestureService: ObservableObject {
       self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
+      self.sessionScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
       self.clickSuppressionOwnerDeviceID = nil
       self.clickSuppressionConflictedDeviceIDs.removeAll()
@@ -1227,10 +1294,6 @@ final class TrackpadGestureService: ObservableObject {
       frame: frame,
       settings: activeSettings,
       context: context
-    )
-    edgeScrollSuppressor.setGestureActive(
-      edgeDecision.isSuppressing,
-      drainMomentum: edgeDecision.drainsMomentum
     )
     let hasActiveContacts = frame.contacts.contains { $0.state.isActive }
     if !clickSuppressionConflictedDeviceIDs.isEmpty {
@@ -1279,6 +1342,20 @@ final class TrackpadGestureService: ObservableObject {
         edgeGestureOwned: edgeDecision.isSuppressing
       )
     }
+    // Told after recognition rather than before it, because the second ownership path only
+    // exists once a result has claimed it. Both paths still reach the tap on the frame that
+    // decided them.
+    let scrollDecision = edgeDecision.merged(
+      with: sessionScrollSuppressionPolicy.consume(
+        deviceID: frame.deviceID,
+        claims: dispatchableMatches.contains(where: \.claimsScrollSuppression),
+        hasContacts: frame.contacts.contains { $0.state.isTouching }
+      )
+    )
+    edgeScrollSuppressor.setGestureActive(
+      scrollDecision.isSuppressing,
+      drainMomentum: scrollDecision.drainsMomentum
+    )
     // The pointer is frozen by the first continuous step, not by entry into the corridor,
     // so an ordinary two-finger scroll along an edge never loses its cursor.
     if dispatchableMatches.contains(where: \.freezesPointer) {
@@ -1321,7 +1398,7 @@ final class TrackpadGestureService: ObservableObject {
         feedbackHUDEnabled: feedbackHUDEnabled,
         hapticFeedbackEnabled: hapticFeedbackEnabled,
         continuous: continuous,
-        continuousDelta: match.continuousDelta
+        continuousTravel: match.continuousTravel
       )
     }
   }
@@ -1415,6 +1492,7 @@ final class TrackpadGestureService: ObservableObject {
       self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
+      self.sessionScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
       self.clickSuppressionOwnerDeviceID = nil
       self.clickSuppressionConflictedDeviceIDs.removeAll()
@@ -1430,6 +1508,7 @@ final class TrackpadGestureService: ObservableObject {
       self.pointerFreeze.release()
       self.clickSuppressionPolicy.reset()
       self.edgeScrollSuppressionPolicy.reset()
+      self.sessionScrollSuppressionPolicy.reset()
       self.edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
       self.clickSuppressionOwnerDeviceID = nil
       self.clickSuppressionConflictedDeviceIDs.removeAll()

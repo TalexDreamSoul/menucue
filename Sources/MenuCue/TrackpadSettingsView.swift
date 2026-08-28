@@ -960,6 +960,13 @@ enum TrackpadRuleSummary {
         "Finger %d · %@", trigger.selectedFingerIndex + 1, trigger.direction.settingsTitle)
     case .drawing:
       return trigger.drawingActivation.settingsTitle
+    case .anchoredSlide:
+      return L10n.format(
+        "%1$d fingers · Finger %2$d %3$@",
+        trigger.fingerCount,
+        trigger.selectedFingerIndex + 1,
+        trigger.slideAxis.badgeTitle
+      )
     }
   }
 }
@@ -1029,6 +1036,12 @@ extension TrackpadGestureTrigger {
       return L10n.format("Drawing · %@", drawingActivation.settingsTitle)
     case .edgeContinuous:
       return L10n.format("%d-finger continuous %@ edge", fingerCount, edge.settingsTitle)
+    case .anchoredSlide:
+      return L10n.format(
+        "%1$d-finger anchored slide · Finger %2$d",
+        fingerCount,
+        selectedFingerIndex + 1
+      )
     }
   }
 }
@@ -1042,14 +1055,7 @@ extension TrackpadGestureAction {
       return QuickActionReference(storageValue: quickActionStorageValue)?.displayTitle
         ?? L10n.string("Quick Action")
     case .keyboardShortcut:
-      let key = keyboardShortcut.characters.isEmpty
-        ? L10n.format("key code %d", keyboardShortcut.keyCode)
-        : keyboardShortcut.characters
-      let modifiers = keyboardShortcut.modifiers
-        .sorted { $0.settingsSortIndex < $1.settingsSortIndex }
-        .map(\.symbol)
-        .joined()
-      return modifiers + key
+      return keyboardShortcut.displayText
     case .mouse:
       return mouseAction.settingsTitle
     case .scroll:
@@ -1165,6 +1171,25 @@ extension TrackpadGestureKind {
     case .fingerSwipe: return L10n.string("Selected-finger Swipe")
     case .drawing: return L10n.string("Drawing")
     case .edgeContinuous: return L10n.string("Continuous Edge")
+    case .anchoredSlide: return L10n.string("Anchored Slide")
+    }
+  }
+}
+
+extension TrackpadSlideAxis {
+  var settingsTitle: String {
+    switch self {
+    case .vertical: return L10n.string("Vertical")
+    case .horizontal: return L10n.string("Horizontal")
+    }
+  }
+
+  /// A badge stands alone, where "Vertical" describes the axis rather than what the finger
+  /// does along it.
+  var badgeTitle: String {
+    switch self {
+    case .vertical: return L10n.string("up and down")
+    case .horizontal: return L10n.string("left and right")
     }
   }
 }

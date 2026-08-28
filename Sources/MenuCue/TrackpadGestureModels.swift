@@ -114,6 +114,7 @@ enum TrackpadGestureKind: String, CaseIterable, Codable, Identifiable {
   case fingerSwipe
   case drawing
   case edgeContinuous
+  case anchoredSlide
 
   var id: String { rawValue }
 }
@@ -185,6 +186,14 @@ enum TrackpadDrawingActivation: String, CaseIterable, Codable, Identifiable {
   var id: String { rawValue }
 }
 
+/// Which way a nominated finger has to travel for its motion to count.
+enum TrackpadSlideAxis: String, CaseIterable, Codable, Identifiable {
+  case vertical
+  case horizontal
+
+  var id: String { rawValue }
+}
+
 struct TrackpadGestureTrigger: Codable, Equatable {
   var kind: TrackpadGestureKind
   var fingerCount: Int
@@ -198,6 +207,7 @@ struct TrackpadGestureTrigger: Codable, Equatable {
   var pinchDirection: TrackpadPinchDirection
   var drawingActivation: TrackpadDrawingActivation
   var drawingTemplate: [TrackpadPoint]
+  var slideAxis: TrackpadSlideAxis
   var isInverted: Bool
   var holdDuration: TimeInterval
   var maximumDuration: TimeInterval
@@ -218,6 +228,7 @@ struct TrackpadGestureTrigger: Codable, Equatable {
     pinchDirection: TrackpadPinchDirection = .inward,
     drawingActivation: TrackpadDrawingActivation = .modifier,
     drawingTemplate: [TrackpadPoint] = [],
+    slideAxis: TrackpadSlideAxis = .vertical,
     isInverted: Bool = false,
     holdDuration: TimeInterval = 0.22,
     maximumDuration: TimeInterval = 0.6,
@@ -237,6 +248,7 @@ struct TrackpadGestureTrigger: Codable, Equatable {
     self.pinchDirection = pinchDirection
     self.drawingActivation = drawingActivation
     self.drawingTemplate = drawingTemplate
+    self.slideAxis = slideAxis
     self.isInverted = isInverted
     self.holdDuration = holdDuration
     self.maximumDuration = maximumDuration
@@ -244,6 +256,53 @@ struct TrackpadGestureTrigger: Codable, Equatable {
     self.minimumDistance = minimumDistance
     self.minimumVelocity = minimumVelocity
     self.minimumDrawingScore = minimumDrawingScore
+  }
+
+  /// A rule set written before a field existed still has to decode: a trigger that throws
+  /// takes the user's whole rule list down with it. Every field falls back to what the
+  /// memberwise initializer would have given it, so adding one stays a non-event on disk.
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let kind = try container.decode(TrackpadGestureKind.self, forKey: .kind)
+    let fallback = TrackpadGestureTrigger(kind: kind)
+    self.init(
+      kind: kind,
+      fingerCount: try container.decodeIfPresent(Int.self, forKey: .fingerCount)
+        ?? fallback.fingerCount,
+      contactGesture: try container.decodeIfPresent(
+        TrackpadContactGesture.self, forKey: .contactGesture) ?? fallback.contactGesture,
+      direction: try container.decodeIfPresent(TrackpadDirection.self, forKey: .direction)
+        ?? fallback.direction,
+      edge: try container.decodeIfPresent(TrackpadEdge.self, forKey: .edge) ?? fallback.edge,
+      region: try container.decodeIfPresent(TrackpadGestureRegion.self, forKey: .region)
+        ?? fallback.region,
+      selectedFingerIndex: try container.decodeIfPresent(Int.self, forKey: .selectedFingerIndex)
+        ?? fallback.selectedFingerIndex,
+      tapSpacing: try container.decodeIfPresent(TrackpadTapSpacing.self, forKey: .tapSpacing)
+        ?? fallback.tapSpacing,
+      pinchDirection: try container.decodeIfPresent(
+        TrackpadPinchDirection.self, forKey: .pinchDirection) ?? fallback.pinchDirection,
+      drawingActivation: try container.decodeIfPresent(
+        TrackpadDrawingActivation.self, forKey: .drawingActivation) ?? fallback.drawingActivation,
+      drawingTemplate: try container.decodeIfPresent(
+        [TrackpadPoint].self, forKey: .drawingTemplate) ?? fallback.drawingTemplate,
+      slideAxis: try container.decodeIfPresent(TrackpadSlideAxis.self, forKey: .slideAxis)
+        ?? fallback.slideAxis,
+      isInverted: try container.decodeIfPresent(Bool.self, forKey: .isInverted)
+        ?? fallback.isInverted,
+      holdDuration: try container.decodeIfPresent(TimeInterval.self, forKey: .holdDuration)
+        ?? fallback.holdDuration,
+      maximumDuration: try container.decodeIfPresent(TimeInterval.self, forKey: .maximumDuration)
+        ?? fallback.maximumDuration,
+      movementTolerance: try container.decodeIfPresent(Double.self, forKey: .movementTolerance)
+        ?? fallback.movementTolerance,
+      minimumDistance: try container.decodeIfPresent(Double.self, forKey: .minimumDistance)
+        ?? fallback.minimumDistance,
+      minimumVelocity: try container.decodeIfPresent(Double.self, forKey: .minimumVelocity)
+        ?? fallback.minimumVelocity,
+      minimumDrawingScore: try container.decodeIfPresent(
+        Double.self, forKey: .minimumDrawingScore) ?? fallback.minimumDrawingScore
+    )
   }
 
   var normalized: TrackpadGestureTrigger {
@@ -509,6 +568,20 @@ struct TrackpadGestureSettings: Codable, Equatable {
       ),
       action: .system(.continuousBrightness)
     ),
+    // A step deliberately coarser than the anchor tolerance: two fingers scrolling together
+    // reach the tolerance and cancel the rule long before either covers a whole step.
+    TrackpadGestureRule(
+      name: "Two-finger hold · Left slide · Volume",
+      trigger: TrackpadGestureTrigger(
+        kind: .anchoredSlide,
+        fingerCount: 2,
+        selectedFingerIndex: 0,
+        slideAxis: .vertical,
+        movementTolerance: 0.025,
+        minimumDistance: 0.05
+      ),
+      action: .system(.continuousVolume)
+    ),
   ]
 
   var normalized: TrackpadGestureSettings {
@@ -631,6 +704,9 @@ struct TrackpadGestureMatch: Equatable, Identifiable {
   var activatesWindowUnderPointer: Bool
   /// What this gesture family needs suppressed, so dispatch never re-reads the trigger.
   var suppressionNeed: TrackpadInputSuppressionNeed
+  /// True when this result is itself what takes the suppressed input, because its family
+  /// leaves nothing in a raw frame for the service to have armed it from beforehand.
+  var claimsScrollSuppression: Bool
   /// True when the pointer must stay put from this result until the session ends.
   var freezesPointer: Bool
   /// True when this is the ordinary contact tap the click suppressor is waiting on before
@@ -639,6 +715,9 @@ struct TrackpadGestureMatch: Equatable, Identifiable {
   var direction: TrackpadDirection?
   /// Signed quantized movement for continuous actions. Discrete actions use zero.
   var continuousDelta: Double
+  /// Signed, sensitivity-scaled distance behind `continuousDelta`. This is what decides how
+  /// far a continuous action moves its value; the step count only paces the emissions.
+  var continuousTravel: Double
   var timestamp: TimeInterval
 
   /// Projects a matched rule into an execution intent. This is the only place a rule
@@ -648,6 +727,7 @@ struct TrackpadGestureMatch: Equatable, Identifiable {
     rule: TrackpadGestureRule,
     direction: TrackpadDirection?,
     continuousDelta: Double,
+    continuousTravel: Double = 0,
     timestamp: TimeInterval
   ) {
     self.id = id
@@ -656,10 +736,13 @@ struct TrackpadGestureMatch: Equatable, Identifiable {
     action = rule.action
     activatesWindowUnderPointer = rule.activatesWindowUnderPointer
     suppressionNeed = TrackpadRecognizerRegistry.suppression(for: rule.trigger.kind)
+    claimsScrollSuppression = suppressionNeed == .scrollWheel
+      && TrackpadRecognizerRegistry.suppressionOwnership(for: rule.trigger.kind) == .activeSession
     freezesPointer = TrackpadRecognizerRegistry.freezesPointer(for: rule.trigger.kind)
     confirmsSuppressedClick = rule.trigger.kind == .contact && rule.trigger.contactGesture == .tap
     self.direction = direction
     self.continuousDelta = continuousDelta
+    self.continuousTravel = continuousTravel
     self.timestamp = timestamp
   }
 }

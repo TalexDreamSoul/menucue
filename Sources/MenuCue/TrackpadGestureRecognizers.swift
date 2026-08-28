@@ -78,6 +78,11 @@ struct TrackpadRecognizedGesture {
   let rule: TrackpadGestureRule
   var direction: TrackpadDirection?
   var continuousDelta: Double = 0
+  /// How far the fingers actually travelled to earn `continuousDelta`, scaled by
+  /// sensitivity: 1.0 is a full pass of the trackpad at sensitivity 1. Step count alone
+  /// cannot say how much to adjust, because a step is worth whatever the rule's
+  /// `minimumDistance` says it is.
+  var continuousTravel: Double = 0
   /// A discrete result closes the session: no completion family may fire afterwards and
   /// the same rule cannot fire twice.
   var isDiscrete: Bool = false
@@ -94,6 +99,18 @@ enum TrackpadInputSuppressionNeed: String, CaseIterable, Hashable {
   case optInLeftClick
 }
 
+/// When a family that needs an input suppressed comes to own it. The service reads this
+/// instead of asking which family it is looking at.
+enum TrackpadInputSuppressionOwnership: String, CaseIterable, Hashable {
+  /// The service decides from the raw contacts, before recognition: the family's geometry
+  /// is visible in the frame itself, so suppression is in place before the first result and
+  /// a result that arrives without it is not the gesture the user meant.
+  case rawFrameGeometry
+  /// The family's own first result takes the input and holds it until the contacts end,
+  /// because a raw frame cannot tell the gesture from ordinary movement until it happens.
+  case activeSession
+}
+
 /// Mutable state one family keeps for the length of a session. Reference semantics keep
 /// the engine's session value cheap to copy and free of per-frame boxing.
 protocol TrackpadRecognizerSessionState: AnyObject {}
@@ -103,6 +120,9 @@ protocol TrackpadRecognizerSessionState: AnyObject {}
 protocol TrackpadGestureRecognizer: AnyObject {
   static var kind: TrackpadGestureKind { get }
   static var suppression: TrackpadInputSuppressionNeed { get }
+  /// How this family comes to own what it suppresses. Only meaningful alongside a
+  /// `suppression` other than `.none`.
+  static var suppressionOwnership: TrackpadInputSuppressionOwnership { get }
   /// Whether the pointer has to hold still from this family's first result until the
   /// session ends, because the fingers driving the gesture are also driving the cursor.
   static var freezesPointer: Bool { get }
@@ -131,11 +151,13 @@ protocol TrackpadGestureRecognizer: AnyObject {
 }
 
 extension TrackpadGestureRecognizer {
+  static var suppressionOwnership: TrackpadInputSuppressionOwnership { .rawFrameGeometry }
   static var freezesPointer: Bool { false }
   static var supportedFingerCounts: ClosedRange<Int> { 1...5 }
 
   var kind: TrackpadGestureKind { Self.kind }
   var suppression: TrackpadInputSuppressionNeed { Self.suppression }
+  var suppressionOwnership: TrackpadInputSuppressionOwnership { Self.suppressionOwnership }
   var freezesPointer: Bool { Self.freezesPointer }
   var supportedFingerCounts: ClosedRange<Int> { Self.supportedFingerCounts }
 
@@ -156,6 +178,7 @@ enum TrackpadRecognizerRegistry {
     [
       TrackpadTipTapRecognizer(),
       TrackpadEdgeContinuousRecognizer(),
+      TrackpadAnchoredSlideRecognizer(),
       TrackpadContactRecognizer(),
       TrackpadSwipeRecognizer(),
       TrackpadEdgeEntrySwipeRecognizer(),
@@ -168,6 +191,9 @@ enum TrackpadRecognizerRegistry {
   private static let suppressionByKind: [TrackpadGestureKind: TrackpadInputSuppressionNeed] =
     Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.suppression) })
 
+  private static let ownershipByKind: [TrackpadGestureKind: TrackpadInputSuppressionOwnership] =
+    Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.suppressionOwnership) })
+
   private static let fingerCountsByKind: [TrackpadGestureKind: ClosedRange<Int>] =
     Dictionary(uniqueKeysWithValues: makeRecognizers().map { ($0.kind, $0.supportedFingerCounts) })
 
@@ -178,6 +204,14 @@ enum TrackpadRecognizerRegistry {
 
   static func suppression(for kind: TrackpadGestureKind) -> TrackpadInputSuppressionNeed {
     suppressionByKind[kind] ?? TrackpadInputSuppressionNeed.none
+  }
+
+  /// Whether the service arms this family's suppression from the raw frames or the family
+  /// takes it with its own first result.
+  static func suppressionOwnership(
+    for kind: TrackpadGestureKind
+  ) -> TrackpadInputSuppressionOwnership {
+    ownershipByKind[kind] ?? .rawFrameGeometry
   }
 
   /// Whether a result from this family holds the pointer still for the rest of the session.
@@ -248,12 +282,30 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
     // family exists so a held hand can keep tapping without lifting off.
     guard Self.supportedFingerCounts.contains(session.maxContactCount) else { return [] }
 
+    // A pending gap is a claim about the hand: these fingers are resting, that one lifted.
+    // Another finger leaving, or an anchor going up, makes it a claim about a hand that is
+    // no longer on the trackpad. Dropping it here is what lets the next lift arm on this
+    // same frame: while a stale gap survived, every lift that was not the recontact it was
+    // waiting for fell through to nothing, and the arming branch below could not run because
+    // a pending was still set — so a hand that had tapped once could only ever tap again
+    // with the same finger.
+    if let pending = state.pending,
+      !pending.anchorIDs.isSubset(of: session.activeIDs)
+        || input.endedIDs.contains(where: { $0 != pending.recontactID })
+    {
+      state.pending = nil
+    }
+
     if state.pending == nil,
       input.endedIDs.count == 1,
       let endedID = input.endedIDs.first,
-      let selectedIndex = session.initialOrder.firstIndex(of: endedID),
       let history = session.histories[endedID],
-      session.activeIDs.count == session.maxContactCount - 1
+      session.activeIDs.count == session.maxContactCount - 1,
+      let selectedIndex = Self.fingerIndex(
+        of: history,
+        restingOn: session.activeIDs,
+        in: session
+      )
     {
       state.pending = SessionState.Pending(
         selectedFingerIndex: selectedIndex,
@@ -310,6 +362,11 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
     )
 
     let tapDuration = session.lastTimestamp - recontactStart
+    let hand = Self.orderedHand(
+      including: history,
+      restingOn: pending.anchorIDs,
+      in: session
+    )
     let eligible = input.eligibleRules.filter {
       $0.trigger.kind == .tipTap
         && $0.trigger.fingerCount == session.maxContactCount
@@ -328,11 +385,7 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
         history.maxTravel <= trigger.movementTolerance,
         anchorsStayedStill
       else { return false }
-      return spacingMatches(
-        trigger.tapSpacing,
-        session: session,
-        selectedIndex: pending.selectedFingerIndex
-      )
+      return spacingMatches(trigger.tapSpacing, hand: hand, selectedID: history.id)
     }) else { return [] }
 
     if let lastEmittedAt = state.lastEmittedAt,
@@ -345,18 +398,42 @@ final class TrackpadTipTapRecognizer: TrackpadGestureRecognizer {
     return [TrackpadRecognizedGesture(rule: rule, isDiscrete: true)]
   }
 
+  /// The hand on the trackpad right now — the finger doing the tapping plus the ones
+  /// resting — ordered left to right by where each contact landed.
+  ///
+  /// Read from the landings rather than from the session's opening line-up, because a
+  /// finger that has already tapped comes back under a new identity. Asking the session's
+  /// first contacts to place it yields nothing, and a lift that cannot be numbered cannot
+  /// arm.
+  private static func orderedHand(
+    including tapping: TrackpadContactHistory,
+    restingOn anchorIDs: Set<Int32>,
+    in session: TrackpadSessionSnapshot
+  ) -> [TrackpadContactHistory] {
+    ([tapping] + anchorIDs.compactMap { session.histories[$0] }).sorted {
+      if $0.start.x == $1.start.x { return $0.id < $1.id }
+      return $0.start.x < $1.start.x
+    }
+  }
+
+  private static func fingerIndex(
+    of lifted: TrackpadContactHistory,
+    restingOn anchorIDs: Set<Int32>,
+    in session: TrackpadSessionSnapshot
+  ) -> Int? {
+    orderedHand(including: lifted, restingOn: anchorIDs, in: session)
+      .firstIndex { $0.id == lifted.id }
+  }
+
   private func spacingMatches(
     _ spacing: TrackpadTapSpacing,
-    session: TrackpadSessionSnapshot,
-    selectedIndex: Int
+    hand: [TrackpadContactHistory],
+    selectedID: Int32
   ) -> Bool {
-    guard session.initialOrder.indices.contains(selectedIndex),
-      let selected = session.histories[session.initialOrder[selectedIndex]]
-    else { return false }
-    let nearest = session.initialOrder.enumerated().compactMap { index, id -> Double? in
-      guard index != selectedIndex, let history = session.histories[id] else { return nil }
-      return selected.start.distance(to: history.start)
-    }.min() ?? 0
+    guard let selected = hand.first(where: { $0.id == selectedID }) else { return false }
+    let nearest = hand.filter { $0.id != selectedID }
+      .map { selected.start.distance(to: $0.start) }
+      .min() ?? 0
     switch spacing {
     case .near: return nearest <= Self.nearSpacing
     case .normal: return true
@@ -380,7 +457,14 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
   private static let requiredContactCount = 2
   private static let minimumStep = 0.004
   private static let cooldown: TimeInterval = 0.035
-  private static let maximumStepsPerFrame = 4
+  /// Only has to keep one emission from carrying an unbounded backlog. How far the value
+  /// may move in a single step is the executor's ceiling, not this one, so this can be
+  /// loose enough that a fast flick drains within a couple of cooldowns instead of
+  /// trailing the fingers.
+  /// Capped so the factory preset's largest burst (steps x minimum distance) stays inside
+  /// the executor's 0.2 per-emission clamp; 12 x 0.018 = 0.216 silently truncated travel,
+  /// which is exactly what travel-faithful adjustment is meant to rule out.
+  static let maximumStepsPerFrame = 11
 
   final class SessionState: TrackpadRecognizerSessionState {
     var remainders: [UUID: Double] = [:]
@@ -425,14 +509,21 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
     for rule in edgeRules {
       guard !state.cancelledRuleIDs.contains(rule.id) else { continue }
       let trigger = rule.trigger.normalized
-      guard activeHistories.allSatisfy({ pair in
-        TrackpadGeometry.edgeContains(trigger.edge, point: pair.history.start, width: input.edgeWidth)
-          && TrackpadGeometry.edgeContains(
-            trigger.edge,
-            point: pair.contact.position,
-            width: TrackpadGeometry.edgeCorridorWidth(input.edgeWidth, expanded: true)
-          )
-      }) else {
+      // The hand has to have started at the edge and still be there. Judged over both
+      // fingers together rather than one at a time, so the finger further in is measured
+      // against its partner's reach instead of having to sit in the corridor itself.
+      guard
+        TrackpadGeometry.edgeAdmits(
+          trigger.edge,
+          points: activeHistories.map { $0.history.start },
+          width: input.edgeWidth
+        ),
+        TrackpadGeometry.edgeAdmits(
+          trigger.edge,
+          points: activeHistories.map { $0.contact.position },
+          width: TrackpadGeometry.edgeCorridorWidth(input.edgeWidth, expanded: true)
+        )
+      else {
         state.cancelledRuleIDs.insert(rule.id)
         state.remainders.removeValue(forKey: rule.id)
         state.lastPositions.removeValue(forKey: rule.id)
@@ -473,7 +564,8 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
             forSignedDelta: Double(signedSteps),
             vertical: trigger.edge == .left || trigger.edge == .right
           ),
-          continuousDelta: Double(signedSteps)
+          continuousDelta: Double(signedSteps),
+          continuousTravel: Double(signedSteps) * threshold * input.sensitivity
         )
       )
       break
@@ -487,6 +579,137 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
       state.remainders.removeValue(forKey: rule.id)
       state.lastPositions.removeValue(forKey: rule.id)
     }
+  }
+}
+
+// MARK: - Anchored slide
+
+/// A hand rests on the pad and one nominated finger slides along an axis while the rest
+/// hold still, quantized into repeated steps for as long as that posture lasts.
+///
+/// The anchors are the whole gesture. Fingers that all travel together are a two-finger
+/// scroll, so a rule whose anchor tolerance is looser than its step size cannot tell the
+/// two apart — which is why the shipped preset keeps the step comfortably the larger of
+/// the two, and why the editor says so.
+final class TrackpadAnchoredSlideRecognizer: TrackpadGestureRecognizer {
+  static let kind = TrackpadGestureKind.anchoredSlide
+  static let suppression = TrackpadInputSuppressionNeed.scrollWheel
+  /// Fingers resting still and fingers about to be still look identical in a raw frame, so
+  /// there is no geometry to arm from: the first step is what takes native scrolling.
+  static let suppressionOwnership = TrackpadInputSuppressionOwnership.activeSession
+  /// The sliding finger would otherwise drag the cursor across the screen for the length of
+  /// the adjustment, exactly as the two edge fingers do.
+  static let freezesPointer = true
+  /// A fifth contact is a resting hand, not anchors plus one finger doing the work.
+  static let supportedFingerCounts = 2...4
+
+  private static let minimumStep = 0.004
+  private static let cooldown: TimeInterval = 0.035
+  /// One finger's travel between two frames, so a frame that arrives late cannot honestly
+  /// have covered much ground; a tighter cap than the edge family's keeps a dropped frame
+  /// from lurching the value.
+  static let maximumStepsPerFrame = 4
+
+  final class SessionState: TrackpadRecognizerSessionState {
+    var remainders: [UUID: Double] = [:]
+    var lastFire: [UUID: TimeInterval] = [:]
+    var lastPositions: [UUID: TrackpadPoint] = [:]
+    var cancelledRuleIDs = Set<UUID>()
+  }
+
+  func makeSessionState() -> TrackpadRecognizerSessionState? { SessionState() }
+
+  func consume(_ input: TrackpadRecognizerInput) -> [TrackpadRecognizedGesture] {
+    guard let state = input.state as? SessionState else { return [] }
+    let session = input.session
+    guard Self.supportedFingerCounts.contains(session.maxContactCount) else { return [] }
+    let slideRules = input.eligibleRules.filter {
+      $0.trigger.kind == Self.kind && $0.trigger.fingerCount == session.maxContactCount
+    }
+    guard !slideRules.isEmpty else { return [] }
+
+    // Left to right by where each finger landed, over the contacts that are down right now.
+    // A neighbour that lifts and comes back is a tip tap, not the end of this gesture, so
+    // the numbering is re-read every frame rather than latched for the session.
+    let landed = input.activeContacts.compactMap {
+      contact -> (contact: TrackpadContact, history: TrackpadContactHistory)? in
+      guard let history = session.histories[contact.id] else { return nil }
+      return (contact, history)
+    }.sorted {
+      if $0.history.start.x == $1.history.start.x { return $0.contact.id < $1.contact.id }
+      return $0.history.start.x < $1.history.start.x
+    }
+    // A posture that is momentarily short a finger only suspends the gesture. Forgetting
+    // where the slider was is what keeps the frame it returns on from counting the gap as
+    // travel.
+    guard landed.count == session.maxContactCount else {
+      state.lastPositions.removeAll()
+      return []
+    }
+
+    var gestures: [TrackpadRecognizedGesture] = []
+    for rule in slideRules {
+      guard !state.cancelledRuleIDs.contains(rule.id) else { continue }
+      let trigger = rule.trigger.normalized
+      guard landed.indices.contains(trigger.selectedFingerIndex) else { continue }
+      let selected = landed[trigger.selectedFingerIndex]
+      let anchorsHeld = landed.enumerated().allSatisfy { index, entry in
+        index == trigger.selectedFingerIndex || entry.history.maxTravel <= trigger.movementTolerance
+      }
+      // An anchor that has already wandered cannot come back: whatever the hand is doing,
+      // it stopped being this gesture, and resuming would let a drifting scroll finish the
+      // adjustment it started.
+      guard anchorsHeld else {
+        state.cancelledRuleIDs.insert(rule.id)
+        state.remainders.removeValue(forKey: rule.id)
+        state.lastPositions.removeValue(forKey: rule.id)
+        continue
+      }
+
+      guard let previousPosition = state.lastPositions[rule.id] else {
+        state.lastPositions[rule.id] = selected.contact.position
+        continue
+      }
+      state.lastPositions[rule.id] = selected.contact.position
+      let isVertical = trigger.slideAxis == .vertical
+      let delta = isVertical
+        ? selected.contact.position.y - previousPosition.y
+        : selected.contact.position.x - previousPosition.x
+      var remainder = state.remainders[rule.id, default: 0]
+      // Turning around is an instruction, not a correction. Whatever the finger was still
+      // owed in the old direction is dropped, so the first step back arrives as soon as the
+      // finger has earned it rather than after it has paid off the backlog.
+      if delta != 0, remainder != 0, (delta > 0) != (remainder > 0) { remainder = 0 }
+      remainder += delta
+      let threshold = max(Self.minimumStep, trigger.minimumDistance / input.sensitivity)
+      let availableSteps = Int(abs(remainder) / threshold)
+      guard availableSteps > 0 else {
+        state.remainders[rule.id] = remainder
+        continue
+      }
+      let lastFire = state.lastFire[rule.id] ?? -.greatestFiniteMagnitude
+      guard session.lastTimestamp - lastFire >= Self.cooldown else {
+        state.remainders[rule.id] = remainder
+        continue
+      }
+      let signedSteps = (remainder > 0 ? 1 : -1) * min(Self.maximumStepsPerFrame, availableSteps)
+      remainder -= Double(signedSteps) * threshold
+      state.remainders[rule.id] = remainder
+      state.lastFire[rule.id] = session.lastTimestamp
+      gestures.append(
+        TrackpadRecognizedGesture(
+          rule: rule,
+          direction: TrackpadGeometry.direction(
+            forSignedDelta: Double(signedSteps),
+            vertical: isVertical
+          ),
+          continuousDelta: Double(signedSteps),
+          continuousTravel: Double(signedSteps) * threshold * input.sensitivity
+        )
+      )
+      break
+    }
+    return gestures
   }
 }
 

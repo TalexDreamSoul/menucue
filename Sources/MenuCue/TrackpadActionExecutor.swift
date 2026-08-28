@@ -9,39 +9,77 @@ struct TrackpadActionExecutionResult: Equatable {
   let isFailure: Bool
   /// Where the user can fix this failure, when it is one they are allowed to fix.
   let settingsURL: URL?
+  /// 0...1 for an action that left a control at a readable level. A continuous adjustment
+  /// reports one so the HUD can draw where the value landed; a number changing dozens of
+  /// times a second is not something the eye can follow.
+  let level: Double?
+  /// The SF Symbol that names the control being adjusted, so the readout says which one it
+  /// is without spending a line of text on it.
+  let symbolName: String?
 
-  static func success(_ message: String) -> Self {
-    Self(message: L10n.string(message), isFailure: false, settingsURL: nil)
+  static func success(_ message: String, level: Double? = nil, symbolName: String? = nil) -> Self {
+    Self(
+      message: L10n.string(message),
+      isFailure: false,
+      settingsURL: nil,
+      level: level,
+      symbolName: symbolName
+    )
   }
 
   /// A failure this file words itself: the literal is a catalog key and is translated on
   /// the way out.
   static func failure(key: String, settingsURL: URL? = nil) -> Self {
-    Self(message: L10n.string(key), isFailure: true, settingsURL: settingsURL)
+    Self(
+      message: L10n.string(key),
+      isFailure: true,
+      settingsURL: settingsURL,
+      level: nil,
+      symbolName: nil
+    )
   }
 
   /// A failure another layer already worded — AppleScript's error, the workspace opener's
   /// message. It is passed through untranslated, because it is a sentence, not a key.
   static func failure(message: String, settingsURL: URL? = nil) -> Self {
-    Self(message: message, isFailure: true, settingsURL: settingsURL)
+    Self(
+      message: message,
+      isFailure: true,
+      settingsURL: settingsURL,
+      level: nil,
+      symbolName: nil
+    )
   }
 
   static func unavailable(_ availability: ActionAvailability, fallbackReason: String) -> Self {
     Self(
       message: availability.reason ?? L10n.string(fallbackReason),
       isFailure: true,
-      settingsURL: availability.settingsURL
+      settingsURL: availability.settingsURL,
+      level: nil,
+      symbolName: nil
     )
   }
 }
 
+enum TrackpadVolumePolicy {
+  /// An adjustment that leaves the output above zero also takes it off mute, the way the
+  /// volume keys do. Without this a muted output stays muted however far the gesture pushes
+  /// the level: the adjustment is inaudible, and the readout reports muted no matter how
+  /// far it goes, with no way back from the trackpad.
+  static func shouldUnmute(wasMuted: Bool, resultingScalar: Float32) -> Bool {
+    wasMuted && resultingScalar > 0
+  }
+}
+
 enum TrackpadFeedbackPolicy {
-  static func shouldShowHUD(
-    isEnabled: Bool,
-    isContinuous: Bool,
-    isFailure: Bool
-  ) -> Bool {
-    isEnabled && (!isContinuous || isFailure)
+  /// Continuous adjustments used to be excluded here, on the assumption that the system's
+  /// own bezel would report them. It never does: volume and brightness are set through
+  /// their frameworks rather than through the media keys the bezel watches for, so the
+  /// exclusion left a whole adjustment with no feedback at all. The switch in settings is
+  /// now the only thing that decides.
+  static func shouldShowHUD(isEnabled: Bool) -> Bool {
+    isEnabled
   }
 }
 
@@ -134,12 +172,12 @@ final class TrackpadActionExecutor {
     feedbackHUDEnabled: Bool,
     hapticFeedbackEnabled: Bool,
     continuous: Bool,
-    continuousDelta: Double = 0
+    continuousTravel: Double = 0
   ) -> TrackpadActionExecutionResult {
     let result: TrackpadActionExecutionResult
     switch action.kind {
     case .systemControl:
-      result = executeSystemControl(action.systemControl, continuousDelta: continuousDelta)
+      result = executeSystemControl(action.systemControl, continuousTravel: continuousTravel)
     case .quickAction:
       result = performQuickAction(storageValue: action.quickActionStorageValue)
     case .keyboardShortcut:
@@ -171,7 +209,7 @@ final class TrackpadActionExecutor {
 
   private func executeSystemControl(
     _ control: TrackpadSystemControl,
-    continuousDelta: Double
+    continuousTravel: Double
   ) -> TrackpadActionExecutionResult {
     switch control {
     case .volumeUp:
@@ -185,15 +223,32 @@ final class TrackpadActionExecutor {
     case .brightnessDown:
       return adjustBrightness(.decrement(0.05))
     case .continuousVolume:
-      return adjustVolume(continuousAdjustment(for: continuousDelta))
+      return adjustVolume(continuousAdjustment(for: continuousTravel))
     case .continuousBrightness:
-      return adjustBrightness(continuousAdjustment(for: continuousDelta))
+      return adjustBrightness(continuousAdjustment(for: continuousTravel))
     }
   }
 
-  private func continuousAdjustment(for delta: Double) -> TrackpadDirectAdjustment {
-    let amount = max(0.01, min(0.2, abs(delta) * 0.035))
-    return delta < 0 ? .decrement(amount) : .increment(amount)
+  /// One full pass of the trackpad at sensitivity 1 covers the control's whole range, so
+  /// the fingers map onto the value the way a physical slider would. Sensitivity is the
+  /// gain on that mapping; the rule's `minimumDistance` decides only how finely the travel
+  /// is quantized, which is why it must not appear here.
+  private static let continuousRangeGain = 1.0
+  /// A step the user can feel but that still resolves; without a floor a fine rule could
+  /// emit adjustments too small for the control to register, which reads as a dead edge.
+  static let minimumContinuousAmount = 0.002
+  /// No single emission may throw the value across the range, however large a backlog the
+  /// cooldown handed it.
+  /// Shared ceiling for one continuous emission; recognizers keep their per-frame step
+  /// caps inside it so quantized travel is never silently truncated (tested).
+  static let maximumContinuousAmount = 0.2
+
+  private func continuousAdjustment(for travel: Double) -> TrackpadDirectAdjustment {
+    let amount = min(
+      Self.maximumContinuousAmount,
+      max(Self.minimumContinuousAmount, abs(travel) * Self.continuousRangeGain)
+    )
+    return travel < 0 ? .decrement(amount) : .increment(amount)
   }
 
   private func eventFlags(for modifiers: Set<TrackpadModifier>) -> CGEventFlags {
@@ -367,7 +422,13 @@ final class TrackpadActionExecutor {
   private func adjustVolume(_ adjustment: TrackpadDirectAdjustment) -> TrackpadActionExecutionResult {
     switch CoreAudioOutputController.apply(adjustment) {
     case .success(let observed):
-      return .success(observed.message)
+      // A muted output reads as empty however loud it is set, which is what the user is
+      // looking at.
+      return .success(
+        observed.message,
+        level: observed.muted ? 0 : Double(observed.scalar),
+        symbolName: observed.muted ? "speaker.slash.fill" : "speaker.wave.2.fill"
+      )
     case .failure(let reasonKey):
       return .failure(key: reasonKey)
     }
@@ -376,7 +437,7 @@ final class TrackpadActionExecutor {
   private func adjustBrightness(_ adjustment: TrackpadDirectAdjustment) -> TrackpadActionExecutionResult {
     switch brightnessController.apply(adjustment) {
     case .success(let observed):
-      return .success(observed.message)
+      return .success(observed.message, level: Double(observed.value), symbolName: "sun.max.fill")
     case .failure(let reasonKey):
       return .failure(key: reasonKey)
     }
@@ -484,12 +545,13 @@ final class TrackpadActionExecutor {
     hapticFeedbackEnabled: Bool,
     continuous: Bool
   ) {
-    if TrackpadFeedbackPolicy.shouldShowHUD(
-      isEnabled: feedbackHUDEnabled,
-      isContinuous: continuous,
-      isFailure: result.isFailure
-    ) {
-      feedbackHUD.show(result.message, isFailure: result.isFailure)
+    if TrackpadFeedbackPolicy.shouldShowHUD(isEnabled: feedbackHUDEnabled) {
+      feedbackHUD.show(
+        result.message,
+        isFailure: result.isFailure,
+        level: result.level,
+        symbolName: result.symbolName
+      )
     }
     guard hapticFeedbackEnabled, !result.isFailure else { return }
     let now = ProcessInfo.processInfo.systemUptime
@@ -715,7 +777,13 @@ private enum CoreAudioOutputController {
       guard let observed = setVolume(requested, device: device) else {
         return .failure(key: "macOS did not apply the requested volume.")
       }
-      return .success(ObservedVolume(scalar: observed, muted: readMute(device: device) ?? false))
+      var muted = readMute(device: device) ?? false
+      if TrackpadVolumePolicy.shouldUnmute(wasMuted: muted, resultingScalar: observed),
+        setMute(false, device: device)
+      {
+        muted = readMute(device: device) ?? false
+      }
+      return .success(ObservedVolume(scalar: observed, muted: muted))
     }
   }
 

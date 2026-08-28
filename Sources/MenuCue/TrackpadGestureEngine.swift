@@ -288,6 +288,7 @@ final class TrackpadGestureEngine {
       rule: gesture.rule,
       direction: gesture.direction,
       continuousDelta: gesture.continuousDelta,
+      continuousTravel: gesture.continuousTravel,
       timestamp: timestamp
     )
   }

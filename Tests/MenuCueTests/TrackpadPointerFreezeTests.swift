@@ -250,6 +250,73 @@ final class TrackpadPointerFreezeCoordinatorTests: XCTestCase {
     XCTAssertTrue(harness.freezer.isPairedAndReleased)
   }
 
+  /// The other tests drive the coordinator by hand. This one drives it the way the service
+  /// does — from what the engine actually recognized — so the newest family declaring
+  /// `freezesPointer` is proved to reach the freeze and, more importantly, the release.
+  func testAnAnchoredSlideSessionFreezesOnItsFirstStepAndReleasesOnLiftOff() {
+    let harness = PointerFreezeHarness()
+    let engine = TrackpadGestureEngine(
+      settings: TrackpadGestureSettings(
+        isEnabled: true,
+        rules: [
+          TrackpadGestureRule(
+            name: "Anchored slide",
+            trigger: TrackpadGestureTrigger(
+              kind: .anchoredSlide,
+              fingerCount: 2,
+              selectedFingerIndex: 0,
+              slideAxis: .vertical,
+              movementTolerance: 0.03,
+              minimumDistance: 0.05
+            ),
+            action: .system(.continuousVolume)
+          )
+        ]
+      )
+    )
+    let slide: [(timestamp: TimeInterval, state: TrackpadContactState, y: Double)] = [
+      (0, .touch, 0.50),
+      (0.10, .touch, 0.59),
+      (0.20, .touch, 0.68),
+      (0.30, .out, 0.68),
+    ]
+
+    var steps = 0
+    for (index, step) in slide.enumerated() {
+      let contacts = [
+        TrackpadContact(id: 1, state: step.state, position: TrackpadPoint(x: 0.30, y: step.y)),
+        TrackpadContact(
+          id: 2,
+          state: step.state,
+          position: TrackpadPoint(x: 0.70, y: 0.50)
+        ),
+      ]
+      let matches = engine.consume(
+        frame: TrackpadFrame(
+          deviceID: deviceID,
+          isBuiltIn: true,
+          timestamp: step.timestamp,
+          frameNumber: Int32(index + 1),
+          contacts: contacts
+        ),
+        context: TrackpadGestureContext(bundleIdentifier: "com.example.editor")
+      )
+      steps += matches.count
+      if matches.contains(where: \.freezesPointer) {
+        harness.coordinator.beginContinuousAdjustment(deviceID: deviceID)
+      }
+      harness.coordinator.observeFrame(
+        deviceID: deviceID,
+        hasContacts: contacts.contains { $0.state.isTouching }
+      )
+    }
+
+    XCTAssertEqual(steps, 2, "the session has to have adjusted something to be worth freezing")
+    XCTAssertEqual(harness.freezer.calls, [.freeze, .unfreeze])
+    XCTAssertFalse(harness.coordinator.isFrozen)
+    XCTAssertTrue(harness.freezer.isPairedAndReleased)
+  }
+
   func testEverySessionAfterAReleaseFreezesAgain() {
     let harness = PointerFreezeHarness()
 

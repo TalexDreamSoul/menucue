@@ -34,7 +34,7 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
 
     XCTAssertEqual(
       Set(stateful),
-      [.tipTap, .edgeContinuous],
+      [.tipTap, .edgeContinuous, .anchoredSlide],
       "a family that judges only completed sessions reads contact histories, not scratch space"
     )
   }
@@ -43,6 +43,7 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
     let expected: [TrackpadGestureKind: TrackpadInputSuppressionNeed] = [
       .contact: .optInLeftClick,
       .edgeContinuous: .scrollWheel,
+      .anchoredSlide: .scrollWheel,
       .swipe: .none,
       .edgeEntrySwipe: .none,
       .pinch: .none,
@@ -60,12 +61,13 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
     }
   }
 
-  /// Only the family whose fingers drag the cursor may hold it still, and the declaration
-  /// has to survive projection into a match, which is all the dispatcher ever reads.
-  func testOnlyTheContinuousEdgeFamilyFreezesThePointer() {
+  /// Only the families whose fingers drag the cursor may hold it still, and the
+  /// declaration has to survive projection into a match, which is all the dispatcher reads.
+  func testOnlyTheContinuousFamiliesFreezeThePointer() {
     let expected: [TrackpadGestureKind: Bool] = [
       .contact: false,
       .edgeContinuous: true,
+      .anchoredSlide: true,
       .swipe: false,
       .edgeEntrySwipe: false,
       .pinch: false,
@@ -89,6 +91,34 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
           timestamp: 0
         ).freezesPointer,
         expected[kind],
+        kind.rawValue
+      )
+    }
+  }
+
+  /// Two families need the same input consumed and come by it differently: one is armed
+  /// from the raw contacts before it fires, the other takes it with its own first result.
+  /// The dispatcher reads this declaration instead of asking which family it is looking at.
+  func testEveryKindDeclaresHowItComesToOwnWhatItSuppresses() {
+    let selfClaiming: Set<TrackpadGestureKind> = [.anchoredSlide]
+
+    for kind in TrackpadGestureKind.allCases {
+      let expected: TrackpadInputSuppressionOwnership =
+        selfClaiming.contains(kind) ? .activeSession : .rawFrameGeometry
+      XCTAssertEqual(
+        TrackpadRecognizerRegistry.suppressionOwnership(for: kind),
+        expected,
+        kind.rawValue
+      )
+      XCTAssertEqual(
+        TrackpadGestureMatch(
+          id: 1,
+          rule: rule(kind: kind),
+          direction: nil,
+          continuousDelta: 0,
+          timestamp: 0
+        ).claimsScrollSuppression,
+        selfClaiming.contains(kind),
         kind.rawValue
       )
     }
@@ -131,6 +161,7 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
       .fingerSwipe: 2...5,
       .drawing: 1...5,
       .edgeContinuous: 2...2,
+      .anchoredSlide: 2...4,
     ]
 
     for kind in TrackpadGestureKind.allCases {
@@ -160,6 +191,15 @@ final class TrackpadRecognizerRegistryTests: XCTestCase {
         .suppressionNeeds(for: TrackpadGestureSettings.presetRules)
         .contains(.scrollWheel),
       "the shipped continuous-edge presets are what install the scroll tap on first enable"
+    )
+  }
+
+  /// The tap is installed from the enabled rules, not from the shipped presets, so a user
+  /// who deletes both edge rules and keeps an anchored slide still gets it.
+  func testAnAnchoredSlideAloneStillInstallsTheScrollTap() {
+    XCTAssertEqual(
+      TrackpadRecognizerRegistry.suppressionNeeds(for: [rule(kind: .anchoredSlide)]),
+      [.scrollWheel]
     )
   }
 

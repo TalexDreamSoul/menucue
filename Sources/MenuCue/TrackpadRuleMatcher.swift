@@ -103,17 +103,43 @@ enum TrackpadGeometry {
     min(maximumEdgeCorridorWidth, configuredWidth + (expanded ? edgeCorridorSlack : 0))
   }
 
+  /// How far past the corridor the second finger of an edge gesture may sit. A corridor is
+  /// narrower than the gap between two fingers laid side by side, so without this the only
+  /// posture that works is both fingers stacked inside the strip — which is not how a hand
+  /// rests on an edge.
+  static let edgeCompanionReach = 0.14
+
+  /// Distance from the named edge, so every edge test is the same comparison with a
+  /// different axis rather than four transcriptions of it.
+  static func edgeDepth(_ edge: TrackpadEdge, point: TrackpadPoint) -> Double {
+    switch edge {
+    case .left: return point.x
+    case .right: return 1 - point.x
+    case .top: return 1 - point.y
+    case .bottom: return point.y
+    }
+  }
+
   static func edgeContains(
     _ edge: TrackpadEdge,
     point: TrackpadPoint,
     width: Double
   ) -> Bool {
-    switch edge {
-    case .left: return point.x <= width
-    case .right: return point.x >= 1 - width
-    case .top: return point.y >= 1 - width
-    case .bottom: return point.y <= width
-    }
+    edgeDepth(edge, point: point) <= width
+  }
+
+  /// Whether a hand is working this edge. The finger nearest the edge has to be inside the
+  /// corridor; its partner only has to be within reach of it. That admits the postures
+  /// people actually use — stacked along the edge, laid across it side by side, or at any
+  /// angle between — while still taking a deliberate placement at the edge to start.
+  static func edgeAdmits(
+    _ edge: TrackpadEdge,
+    points: [TrackpadPoint],
+    width: Double
+  ) -> Bool {
+    let depths = points.map { edgeDepth(edge, point: $0) }
+    guard let nearest = depths.min() else { return false }
+    return nearest <= width && depths.allSatisfy { $0 <= width + edgeCompanionReach }
   }
 
   static func regionMatches(_ region: TrackpadGestureRegion, point: TrackpadPoint) -> Bool {

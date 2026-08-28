@@ -142,6 +142,154 @@ final class TrackpadGestureEngineTests: XCTestCase {
     XCTAssertEqual(matches.map(\.timestamp), [0.32, 0.82])
   }
 
+  /// The two shipped tip-tap presets are one gesture with two fingers, and a hand that has
+  /// tapped with one of them is exactly the hand that will try the other next. Both rules
+  /// are enabled here because with only one in the list nothing can be shadowed.
+  func testEitherFingerKeepsTappingWhileTheHandStaysDown() {
+    let engine = makeEngine(rules: [
+      tipTapRule(selectedFingerIndex: 0, action: .volumeUp),
+      tipTapRule(selectedFingerIndex: 1, action: .volumeDown),
+    ])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      // The left finger taps.
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      // It comes back down to rest, and the right finger takes its turn.
+      frame(5, 0.50, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.50)]),
+      frame(6, 0.70, [contact(4, .touch, 0.30, 0.50), contact(2, .out, 0.70, 0.50)]),
+      frame(7, 0.75, [contact(4, .touch, 0.30, 0.50), contact(5, .touch, 0.70, 0.50)]),
+      frame(8, 0.82, [contact(4, .touch, 0.30, 0.50), contact(5, .out, 0.70, 0.50)]),
+      // And back to the left finger, which by now is a contact the session never saw land.
+      frame(9, 1.00, [contact(4, .touch, 0.30, 0.50), contact(6, .touch, 0.70, 0.50)]),
+      frame(10, 1.20, [contact(4, .out, 0.30, 0.50), contact(6, .touch, 0.70, 0.50)]),
+      frame(11, 1.25, [contact(6, .touch, 0.70, 0.50), contact(7, .touch, 0.30, 0.50)]),
+      frame(12, 1.32, [contact(6, .touch, 0.70, 0.50), contact(7, .out, 0.30, 0.50)]),
+      frame(13, 1.40, [contact(6, .out, 0.70, 0.50)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map { $0.action.systemControl },
+      [.volumeUp, .volumeDown, .volumeUp],
+      "a hand that tapped once must not be locked to the finger that tapped"
+    )
+  }
+
+  /// The same hand, one session each. Nothing a session learned may outlive it.
+  func testAFingerThatTappedInOneSessionDoesNotShadowTheOtherInTheNext() {
+    let engine = makeEngine(rules: [
+      tipTapRule(selectedFingerIndex: 0, action: .volumeUp),
+      tipTapRule(selectedFingerIndex: 1, action: .volumeDown),
+    ])
+
+    let first = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      frame(5, 0.40, [contact(2, .out, 0.70, 0.50)]),
+    ])
+    let second = consume(engine, [
+      frame(6, 1.00, [contact(4, .touch, 0.30, 0.50), contact(5, .touch, 0.70, 0.50)]),
+      frame(7, 1.20, [contact(4, .touch, 0.30, 0.50), contact(5, .out, 0.70, 0.50)]),
+      frame(8, 1.25, [contact(4, .touch, 0.30, 0.50), contact(6, .touch, 0.70, 0.50)]),
+      frame(9, 1.32, [contact(4, .touch, 0.30, 0.50), contact(6, .out, 0.70, 0.50)]),
+      frame(10, 1.40, [contact(4, .out, 0.30, 0.50)]),
+    ])
+
+    XCTAssertEqual(first.map { $0.action.systemControl }, [.volumeUp])
+    XCTAssertEqual(second.map { $0.action.systemControl }, [.volumeDown])
+  }
+
+  /// Arming has to read the finger that actually lifted, not the first rule in the list.
+  func testTheFirstLiftOfASessionMayBeEitherFingerWithBothRulesEnabled() {
+    let engine = makeEngine(rules: [
+      tipTapRule(selectedFingerIndex: 0, action: .volumeUp),
+      tipTapRule(selectedFingerIndex: 1, action: .volumeDown),
+    ])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .touch, 0.30, 0.50), contact(2, .out, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(1, .touch, 0.30, 0.50), contact(3, .touch, 0.70, 0.50)]),
+      frame(4, 0.32, [contact(1, .touch, 0.30, 0.50), contact(3, .out, 0.70, 0.50)]),
+      frame(5, 0.40, [contact(1, .out, 0.30, 0.50)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map { $0.action.systemControl },
+      [.volumeDown],
+      "the rule that fires is the one naming the finger that tapped"
+    )
+  }
+
+  /// Spacing is measured over the hand that is on the trackpad at the moment of the tap,
+  /// not over where the session opened. The two disagree as soon as a finger has tapped
+  /// once, because it comes back down under a new identity and, on these frames,
+  /// somewhere else — a hand that opened wide is narrow by the time it taps.
+  func testTapSpacingIsMeasuredWhereTheHandIsWhenItTaps() {
+    let cases: [(
+      name: String,
+      anchorX: Double,
+      recontactX: Double,
+      near: [TrackpadSystemControl],
+      far: [TrackpadSystemControl]
+    )] = [
+      (
+        name: "the tapping finger comes back close to the anchor",
+        anchorX: 0.70,
+        recontactX: 0.49,
+        near: [.volumeUp],
+        far: []
+      ),
+      (
+        name: "the tapping finger stays a hand's width from the anchor",
+        anchorX: 0.85,
+        recontactX: 0.30,
+        near: [],
+        far: [.volumeUp]
+      ),
+    ]
+
+    for testCase in cases {
+      for (spacing, expected) in [
+        (TrackpadTapSpacing.near, testCase.near),
+        (TrackpadTapSpacing.far, testCase.far),
+      ] {
+        let engine = makeEngine(rules: [
+          tipTapRule(selectedFingerIndex: 0, action: .volumeUp, tapSpacing: spacing)
+        ])
+
+        let matches = consume(engine, [
+          frame(1, 0, [
+            contact(1, .touch, 0.30, 0.50),
+            contact(2, .touch, testCase.anchorX, 0.50),
+          ]),
+          frame(2, 0.20, [
+            contact(1, .out, 0.30, 0.50),
+            contact(2, .touch, testCase.anchorX, 0.50),
+          ]),
+          frame(3, 0.25, [
+            contact(2, .touch, testCase.anchorX, 0.50),
+            contact(3, .touch, testCase.recontactX, 0.50),
+          ]),
+          frame(4, 0.32, [
+            contact(2, .touch, testCase.anchorX, 0.50),
+            contact(3, .out, testCase.recontactX, 0.50),
+          ]),
+        ])
+
+        XCTAssertEqual(
+          matches.map { $0.action.systemControl },
+          expected,
+          "\(testCase.name), spacing \(spacing.rawValue)"
+        )
+      }
+    }
+  }
+
   func testTwoFingerScrollAndSimultaneousLiftDoNotRecognizeTipTap() {
     let rule = tipTapRule(selectedFingerIndex: 0, action: .volumeUp)
 
@@ -403,14 +551,16 @@ final class TrackpadGestureEngineTests: XCTestCase {
       ),
       action: .system(.continuousVolume)
     )
+    // Far enough in that no partner could reach it: a finger inside the companion reach is
+    // a posture, not an escape.
     let escapedCases: [(name: String, contacts: [TrackpadContact])] = [
       ("first finger", [
-        contact(1, .touch, 0.16, 0.55),
+        contact(1, .touch, 0.35, 0.55),
         contact(2, .touch, 0.04, 0.57),
       ]),
       ("second finger", [
         contact(1, .touch, 0.04, 0.55),
-        contact(2, .touch, 0.16, 0.57),
+        contact(2, .touch, 0.35, 0.57),
       ]),
     ]
 
@@ -456,9 +606,372 @@ final class TrackpadGestureEngineTests: XCTestCase {
       ]),
     ])
 
+    // A flick wide enough that the per-emission cap, not the backlog, decides the count.
+    let afterFlick = consume(rateLimitedEngine, [
+      frame(5, 0.30, [
+        contact(1, .touch, 0.02, 0.935),
+        contact(2, .touch, 0.04, 0.955),
+      ]),
+    ])
+
     XCTAssertEqual(first.map(\.continuousDelta), [2], "two-finger centroid distance must quantize into bounded steps")
     XCTAssertTrue(duringCooldown.isEmpty, "continuous actions must not emit during the cooldown")
-    XCTAssertEqual(afterCooldown.map(\.continuousDelta), [4], "a delayed two-finger backlog is capped to four steps")
+    XCTAssertEqual(
+      afterCooldown.map(\.continuousDelta),
+      [4],
+      "the movement withheld during the cooldown is released in the next emission"
+    )
+    XCTAssertEqual(
+      afterFlick.map(\.continuousDelta),
+      [11],
+      "one emission may not carry an unbounded backlog, however far the flick went"
+    )
+  }
+
+  /// The complaint this guards against is an adjustment that crosses its whole range in a
+  /// centimetre. How far the value moves has to follow the distance the fingers covered,
+  /// so a rule's step size may change how finely the travel is quantized and nothing else.
+  func testContinuousTravelFollowsDistanceRatherThanStepSize() {
+    func travelled(minimumDistance: Double, sensitivity: Double) -> Double {
+      let rule = TrackpadGestureRule(
+        name: "Left edge volume",
+        trigger: TrackpadGestureTrigger(
+          kind: .edgeContinuous,
+          fingerCount: 2,
+          edge: .left,
+          minimumDistance: minimumDistance
+        ),
+        action: .system(.continuousVolume)
+      )
+      let engine = makeEngine(rules: [rule], sensitivity: sensitivity)
+      // 0.20 of the trackpad, spread over frames far enough apart that the cooldown never
+      // withholds any of it.
+      let matches = consume(engine, (0...4).map { index in
+        let y = 0.30 + 0.05 * Double(index)
+        return frame(
+          Int32(index + 1),
+          0.10 * Double(index),
+          [contact(1, .touch, 0.02, y - 0.01), contact(2, .touch, 0.04, y + 0.01)]
+        )
+      })
+      return matches.reduce(0) { $0 + $1.continuousTravel }
+    }
+
+    let fineSteps = travelled(minimumDistance: 0.01, sensitivity: 1)
+    let coarseSteps = travelled(minimumDistance: 0.04, sensitivity: 1)
+
+    XCTAssertEqual(fineSteps, 0.20, accuracy: 0.01, "travel is the distance the fingers covered")
+    XCTAssertEqual(
+      coarseSteps,
+      fineSteps,
+      accuracy: 0.04,
+      "a four times coarser step must not adjust four times as far"
+    )
+    XCTAssertEqual(
+      travelled(minimumDistance: 0.04, sensitivity: 2),
+      2 * coarseSteps,
+      accuracy: 0.04,
+      "sensitivity is the gain on that distance, which is the only knob that scales it"
+    )
+  }
+
+  // MARK: - Anchored slide
+
+  func testAnchoredSlideQuantizesTheNominatedFingerAlongItsAxisAndHonorsSensitivity() {
+    let cases: [(
+      name: String,
+      axis: TrackpadSlideAxis,
+      sensitivity: Double,
+      endX: Double,
+      endY: Double,
+      expectedDelta: Double,
+      expectedDirection: TrackpadDirection
+    )] = [
+      ("vertical upward", .vertical, 1, 0.30, 0.59, 1, .up),
+      ("vertical downward", .vertical, 1, 0.30, 0.41, -1, .down),
+      ("horizontal rightward", .horizontal, 1, 0.39, 0.50, 1, .right),
+      ("horizontal leftward", .horizontal, 1, 0.21, 0.50, -1, .left),
+      ("higher sensitivity applies more steps to the same travel", .vertical, 2, 0.30, 0.59, 3, .up),
+    ]
+
+    for testCase in cases {
+      let engine = makeEngine(
+        rules: [anchoredSlideRule(slideAxis: testCase.axis)],
+        sensitivity: testCase.sensitivity
+      )
+
+      let matches = consume(engine, [
+        frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+        frame(2, 0.10, [
+          contact(1, .touch, testCase.endX, testCase.endY),
+          contact(2, .touch, 0.70, 0.50),
+        ]),
+      ])
+
+      XCTAssertEqual(
+        matches.map { $0.action.systemControl }, [.continuousVolume], testCase.name)
+      XCTAssertEqual(matches.map(\.continuousDelta), [testCase.expectedDelta], testCase.name)
+      XCTAssertEqual(matches.compactMap(\.direction), [testCase.expectedDirection], testCase.name)
+    }
+  }
+
+  /// Turning the finger around is a new instruction. Paying off the travel owed in the old
+  /// direction first would make the value keep climbing while the finger already descends.
+  func testAnchoredSlideAnswersAReversalWithoutSpendingTheOldBacklog() {
+    let engine = makeEngine(rules: [anchoredSlideRule()])
+
+    _ = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+    ])
+    let upward = consume(engine, [
+      frame(2, 0.10, [contact(1, .touch, 0.30, 0.59), contact(2, .touch, 0.70, 0.50)]),
+    ])
+    let reversed = consume(engine, [
+      frame(3, 0.20, [contact(1, .touch, 0.30, 0.53), contact(2, .touch, 0.70, 0.50)]),
+    ])
+
+    XCTAssertEqual(upward.map(\.continuousDelta), [1])
+    XCTAssertEqual(
+      reversed.map(\.continuousDelta),
+      [-1],
+      "one step back down has to arrive on the frame that earned it"
+    )
+    XCTAssertEqual(reversed.compactMap(\.direction), [.down])
+  }
+
+  /// The anchors are the gesture. Once one has wandered, the hand is doing something else,
+  /// and letting it resume would hand a drifting two-finger scroll the rest of the
+  /// adjustment it accidentally started.
+  func testAnchorMovementCancelsTheSlideForTheRestOfTheSession() {
+    let engine = makeEngine(rules: [anchoredSlideRule()])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.10, [contact(1, .touch, 0.30, 0.59), contact(2, .touch, 0.70, 0.55)]),
+      frame(3, 0.20, [contact(1, .touch, 0.30, 0.70), contact(2, .touch, 0.70, 0.50)]),
+      frame(4, 0.30, [contact(1, .touch, 0.30, 0.80), contact(2, .touch, 0.70, 0.50)]),
+    ])
+
+    XCTAssertTrue(
+      matches.isEmpty,
+      "an anchor outside its tolerance cancels the rule, and returning it does not rearm"
+    )
+  }
+
+  func testAnchoredSlideRateLimitsItsStepsAndReleasesTheWithheldTravel() {
+    let engine = makeEngine(rules: [anchoredSlideRule()])
+
+    _ = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+    ])
+    let first = consume(engine, [
+      frame(2, 0.10, [contact(1, .touch, 0.30, 0.59), contact(2, .touch, 0.70, 0.50)]),
+    ])
+    let duringCooldown = consume(engine, [
+      frame(3, 0.12, [contact(1, .touch, 0.30, 0.70), contact(2, .touch, 0.70, 0.50)]),
+    ])
+    let afterCooldown = consume(engine, [
+      frame(4, 0.20, [contact(1, .touch, 0.30, 0.72), contact(2, .touch, 0.70, 0.50)]),
+    ])
+    let afterFlick = consume(engine, [
+      frame(5, 0.40, [contact(1, .touch, 0.30, 0.05), contact(2, .touch, 0.70, 0.50)]),
+    ])
+
+    XCTAssertEqual(first.map(\.continuousDelta), [1])
+    XCTAssertTrue(duringCooldown.isEmpty, "continuous actions must not emit during the cooldown")
+    XCTAssertEqual(
+      afterCooldown.map(\.continuousDelta),
+      [3],
+      "the travel withheld during the cooldown is released in the next emission"
+    )
+    XCTAssertEqual(
+      afterFlick.map(\.continuousDelta),
+      [-4],
+      "one finger cannot honestly have covered more than a few steps between two frames"
+    )
+  }
+
+  func testAnchoredSlideNeedsExactlyTheConfiguredFingersForTheWholeSession() {
+    let engine = makeEngine(rules: [anchoredSlideRule()])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.10, [contact(1, .touch, 0.30, 0.59), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.20, [
+        contact(1, .touch, 0.30, 0.59),
+        contact(2, .touch, 0.70, 0.50),
+        contact(3, .touch, 0.50, 0.50),
+      ]),
+      frame(4, 0.30, [
+        contact(1, .touch, 0.30, 0.75),
+        contact(2, .touch, 0.70, 0.50),
+        contact(3, .touch, 0.50, 0.50),
+      ]),
+    ])
+
+    XCTAssertEqual(
+      matches.map(\.continuousDelta),
+      [1],
+      "a third finger makes the hand a three-finger hand for the rest of the session"
+    )
+  }
+
+  func testAThreeFingerSlideCanNominateTheRightmostFinger() {
+    let engine = makeEngine(rules: [
+      anchoredSlideRule(fingerCount: 3, selectedFingerIndex: 2)
+    ])
+
+    let matches = consume(engine, [
+      frame(1, 0, [
+        contact(1, .touch, 0.30, 0.50),
+        contact(2, .touch, 0.50, 0.50),
+        contact(3, .touch, 0.70, 0.50),
+      ]),
+      frame(2, 0.10, [
+        contact(1, .touch, 0.30, 0.50),
+        contact(2, .touch, 0.50, 0.50),
+        contact(3, .touch, 0.70, 0.59),
+      ]),
+      frame(3, 0.20, [
+        contact(1, .touch, 0.30, 0.59),
+        contact(2, .touch, 0.50, 0.50),
+        contact(3, .touch, 0.70, 0.59),
+      ]),
+    ])
+
+    XCTAssertEqual(
+      matches.map(\.continuousDelta),
+      [1],
+      "the nominated finger earns the step; the same travel by an anchor cancels the rule"
+    )
+  }
+
+  /// Both families are the same posture — a hand down, one finger doing something — so the
+  /// only thing telling them apart is what that finger does. Enabling both must not make
+  /// either one unreachable.
+  func testTipTapAndAnchoredSlideBothFireInOneSessionWithoutTriggeringEachOther() {
+    let engine = makeEngine(rules: [
+      tipTapRule(selectedFingerIndex: 0, action: .volumeUp),
+      anchoredSlideRule(),
+    ])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.20, [contact(1, .out, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.25, [contact(2, .touch, 0.70, 0.50), contact(3, .touch, 0.30, 0.50)]),
+      frame(4, 0.32, [contact(2, .touch, 0.70, 0.50), contact(3, .out, 0.30, 0.50)]),
+      frame(5, 0.50, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.50)]),
+      frame(6, 0.60, [contact(2, .touch, 0.70, 0.50), contact(4, .touch, 0.30, 0.59)]),
+      frame(7, 0.70, [contact(2, .out, 0.70, 0.50), contact(4, .out, 0.30, 0.59)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map { $0.action.systemControl },
+      [.volumeUp, .continuousVolume],
+      "the tap is a tap and the slide that follows it on the same hand is a slide"
+    )
+  }
+
+  func testAnchoredSlideMotionIsNeverReadAsATipTap() {
+    let engine = makeEngine(rules: [
+      tipTapRule(selectedFingerIndex: 0, action: .volumeUp),
+      anchoredSlideRule(),
+    ])
+
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.30, 0.50), contact(2, .touch, 0.70, 0.50)]),
+      frame(2, 0.10, [contact(1, .touch, 0.30, 0.59), contact(2, .touch, 0.70, 0.50)]),
+      frame(3, 0.20, [contact(1, .touch, 0.30, 0.68), contact(2, .touch, 0.70, 0.50)]),
+      frame(4, 0.30, [contact(1, .out, 0.30, 0.68), contact(2, .out, 0.70, 0.50)]),
+    ])
+
+    XCTAssertEqual(
+      matches.map { $0.action.systemControl },
+      [.continuousVolume, .continuousVolume],
+      "a finger that slid instead of tapping owes the tip-tap rule nothing"
+    )
+  }
+
+  // MARK: - Session-driven scroll suppression
+
+  /// The edge family is armed from the raw frames before it fires. This one cannot be: two
+  /// fingers about to hold still look exactly like two fingers scrolling, so its own first
+  /// step is what takes native scrolling, and the lift is what gives it back.
+  func testAnActiveSlideOwnsNativeScrollingFromItsFirstStepUntilTheContactsEnd() {
+    var policy = TrackpadSessionScrollSuppressionPolicy()
+
+    let beforeFirstStep = policy.consume(deviceID: 1, claims: false, hasContacts: true)
+    let firstStep = policy.consume(deviceID: 1, claims: true, hasContacts: true)
+    let betweenSteps = policy.consume(deviceID: 1, claims: false, hasContacts: true)
+    let liftOff = policy.consume(deviceID: 1, claims: false, hasContacts: false)
+    let afterLiftOff = policy.consume(deviceID: 1, claims: false, hasContacts: true)
+
+    XCTAssertFalse(beforeFirstStep.isSuppressing, "an unclaimed session leaves scrolling alone")
+    XCTAssertTrue(firstStep.isSuppressing)
+    XCTAssertTrue(betweenSteps.isSuppressing, "the claim holds for the rest of the session")
+    XCTAssertFalse(liftOff.isSuppressing)
+    XCTAssertTrue(
+      liftOff.drainsMomentum,
+      "macOS keeps sending momentum after the fingers leave, and it belongs to this gesture"
+    )
+    XCTAssertFalse(afterLiftOff.isSuppressing, "a released session does not claim itself back")
+    XCTAssertFalse(afterLiftOff.drainsMomentum)
+  }
+
+  func testAnotherDevicesFramesNeitherReleaseNorDrainTheOwningSlide() {
+    var policy = TrackpadSessionScrollSuppressionPolicy()
+    _ = policy.consume(deviceID: 1, claims: true, hasContacts: true)
+
+    let otherDevice = policy.consume(deviceID: 2, claims: false, hasContacts: false)
+
+    XCTAssertTrue(otherDevice.isSuppressing, "the owner is still holding the trackpad")
+    XCTAssertFalse(
+      otherDevice.drainsMomentum,
+      "a device that owns nothing must not manufacture a lift-off"
+    )
+    XCTAssertTrue(
+      policy.reset(deviceID: 2).isSuppressing,
+      "resetting an unrelated device must not release the owner"
+    )
+    XCTAssertFalse(policy.reset(deviceID: 1).isSuppressing)
+  }
+
+  /// Every path that abandons a session without a lift-off frame has to reach the release,
+  /// or the user is left unable to scroll with no gesture left to explain it.
+  func testResettingReleasesASlideThatNeverReportedItsLiftOff() {
+    var policy = TrackpadSessionScrollSuppressionPolicy()
+    _ = policy.consume(deviceID: 1, claims: true, hasContacts: true)
+
+    XCTAssertFalse(policy.reset().isSuppressing)
+    XCTAssertFalse(policy.isSuppressing)
+  }
+
+  func testDispatchLetsASelfClaimingFamilyActWhileStillGatingTheArmedOne() {
+    let slide = TrackpadGestureMatch(
+      id: 1,
+      rule: anchoredSlideRule(),
+      direction: .up,
+      continuousDelta: 1,
+      timestamp: 0
+    )
+    let edge = TrackpadGestureMatch(
+      id: 2,
+      rule: edgeContinuousRule(),
+      direction: .up,
+      continuousDelta: 1,
+      timestamp: 0
+    )
+
+    XCTAssertTrue(slide.claimsScrollSuppression)
+    XCTAssertFalse(edge.claimsScrollSuppression)
+    XCTAssertTrue(
+      TrackpadMatchDispatchPolicy.shouldDispatch(slide, edgeGestureOwned: false),
+      "the result is what takes the trackpad, so waiting for an owner would drop every step"
+    )
+    XCTAssertFalse(
+      TrackpadMatchDispatchPolicy.shouldDispatch(edge, edgeGestureOwned: false),
+      "a family the service arms from the raw frames still may not act without that grant"
+    )
   }
 
   func testSpecificApplicationRuleWinsOverAllApplicationsRule() {
@@ -555,6 +1068,74 @@ final class TrackpadGestureEngineTests: XCTestCase {
     XCTAssertTrue(matches.isEmpty, "a moved anchor must invalidate the selected-finger tip-tap")
   }
 
+  /// The corridor is narrower than two fingers laid side by side, so requiring both of them
+  /// inside it left exactly one workable posture: stacked along the edge. A hand rests on an
+  /// edge at whatever angle it likes, and all of those have to drive the adjustment.
+  func testContinuousEdgeAcceptsStackedParallelAndDiagonalPostures() {
+    let rule = TrackpadGestureRule(
+      name: "Left edge volume",
+      trigger: TrackpadGestureTrigger(
+        kind: .edgeContinuous,
+        fingerCount: 2,
+        edge: .left,
+        minimumDistance: 0.02
+      ),
+      action: .system(.continuousVolume)
+    )
+    // Second finger offsets, measured from the finger on the edge: along it, across it, and
+    // between the two.
+    let postures: [(name: String, secondX: Double, secondY: Double)] = [
+      ("stacked along the edge", 0.04, 0.06),
+      ("side by side across the edge", 0.14, 0.00),
+      ("diagonal", 0.11, 0.05),
+    ]
+
+    for posture in postures {
+      let engine = makeEngine(rules: [rule])
+      let matches = consume(engine, [
+        frame(1, 0, [
+          contact(1, .touch, 0.02, 0.40),
+          contact(2, .touch, posture.secondX, 0.40 + posture.secondY),
+        ]),
+        frame(2, 0.10, [
+          contact(1, .touch, 0.02, 0.50),
+          contact(2, .touch, posture.secondX, 0.50 + posture.secondY),
+        ]),
+      ])
+
+      XCTAssertEqual(
+        matches.map { $0.action.systemControl },
+        [.continuousVolume],
+        posture.name
+      )
+      XCTAssertEqual(matches.compactMap(\.direction), [.up], posture.name)
+    }
+  }
+
+  /// The reach that admits a partner finger is not a second corridor: the pair still has to
+  /// have someone on the edge, and a hand in the middle of the trackpad is a scroll.
+  func testContinuousEdgeStillRequiresAFingerOnTheEdgeItself() {
+    let rule = TrackpadGestureRule(
+      name: "Left edge volume",
+      trigger: TrackpadGestureTrigger(
+        kind: .edgeContinuous,
+        fingerCount: 2,
+        edge: .left,
+        minimumDistance: 0.02
+      ),
+      action: .system(.continuousVolume)
+    )
+    let engine = makeEngine(rules: [rule])
+
+    // Both inside the companion reach of each other, neither inside the corridor.
+    let matches = consume(engine, [
+      frame(1, 0, [contact(1, .touch, 0.12, 0.40), contact(2, .touch, 0.20, 0.42)]),
+      frame(2, 0.10, [contact(1, .touch, 0.12, 0.50), contact(2, .touch, 0.20, 0.52)]),
+    ])
+
+    XCTAssertTrue(matches.isEmpty, "an ordinary two-finger scroll near an edge is not an adjustment")
+  }
+
   func testContinuousEdgeRequiresBothFingerOriginsAndPositionsInsideTheSameCorridor() {
     let rule = TrackpadGestureRule(
       name: "Left edge volume",
@@ -571,7 +1152,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
     let matches = consume(engine, [
       frame(1, 0, [
         contact(1, .touch, 0.02, 0.50),
-        contact(2, .touch, 0.10, 0.52),
+        contact(2, .touch, 0.30, 0.52),
       ]),
       frame(2, 0.10, [
         contact(1, .touch, 0.02, 0.55),
@@ -609,7 +1190,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
       ]),
       frame(2, 0.10, [
         contact(1, .touch, 0.04, 0.55),
-        contact(2, .touch, 0.16, 0.57),
+        contact(2, .touch, 0.35, 0.57),
       ]),
       frame(3, 0.20, [
         contact(1, .touch, 0.02, 0.65),
@@ -1048,12 +1629,12 @@ final class TrackpadGestureEngineTests: XCTestCase {
     let outsideSecondDecision = outsideSecondPolicy.consume(
       frame: frame(2, 0.01, [
         contact(1, .touch, 0.04, 0.50),
-        contact(2, .touch, 0.10, 0.52),
+        contact(2, .touch, 0.30, 0.52),
       ]),
       settings: settings,
       context: editorContext
     )
-    XCTAssertFalse(outsideSecondDecision.isSuppressing, "a second finger that starts outside the rule corridor must leave native scrolling alone")
+    XCTAssertFalse(outsideSecondDecision.isSuppressing, "a second finger too far in to be part of the same hand must leave native scrolling alone")
     XCTAssertFalse(outsideSecondDecision.drainsMomentum)
 
     var nonContinuousRule = edgeContinuousRule()
@@ -1083,6 +1664,41 @@ final class TrackpadGestureEngineTests: XCTestCase {
       ).isSuppressing,
       "only a configured continuous edge rule may suppress native scrolling"
     )
+  }
+
+  /// The companion reach has to reach the ownership policy, not only the recognizer. The
+  /// two answer the same question from different places — one decides whether the gesture
+  /// happened, the other whether it may act — and a reach that only one of them knows about
+  /// is the worst of both: the fingers are recognized, native scrolling is never taken, and
+  /// every step is dropped for want of an owner. This is the posture that tells them apart,
+  /// because the second finger sits outside the corridor it would have had to share before.
+  func testEdgeScrollSuppressionGrantsOwnershipToAPartnerWithinReachOfTheCorridor() {
+    let settings = edgeScrollSuppressionSettings(
+      isEnabled: true,
+      edgeWidth: 0.08,
+      rules: [edgeContinuousRule()]
+    )
+
+    var policy = TrackpadEdgeScrollSuppressionPolicy()
+    _ = policy.consume(
+      frame: frame(1, 0, [contact(1, .touch, 0.04, 0.50)]),
+      settings: settings,
+      context: editorContext
+    )
+    let joined = policy.consume(
+      frame: frame(2, 0.01, [
+        contact(1, .touch, 0.04, 0.50),
+        contact(2, .touch, 0.18, 0.52),
+      ]),
+      settings: settings,
+      context: editorContext
+    )
+
+    XCTAssertTrue(
+      joined.isSuppressing,
+      "a hand laid across the edge owns native scrolling as surely as one stacked along it"
+    )
+    XCTAssertFalse(joined.drainsMomentum, "joining a valid pair must not drain native momentum")
   }
 
   func testEdgeScrollSuppressionRequiresEnabledAppModifierAndDeviceScopedRule() {
@@ -1190,12 +1806,12 @@ final class TrackpadGestureEngineTests: XCTestCase {
     )
     let escapedCases: [(name: String, contacts: [TrackpadContact])] = [
       ("first finger", [
-        contact(1, .touch, 0.15, 0.60),
+        contact(1, .touch, 0.35, 0.60),
         contact(2, .touch, 0.05, 0.62),
       ]),
       ("second finger", [
         contact(1, .touch, 0.07, 0.60),
-        contact(2, .touch, 0.15, 0.62),
+        contact(2, .touch, 0.35, 0.62),
       ]),
     ]
 
@@ -1567,6 +2183,27 @@ final class TrackpadGestureEngineTests: XCTestCase {
     )
   }
 
+  /// A step comfortably larger than the anchor tolerance, which is what keeps two fingers
+  /// scrolling together from earning a step before the tolerance cancels them.
+  private func anchoredSlideRule(
+    fingerCount: Int = 2,
+    selectedFingerIndex: Int = 0,
+    slideAxis: TrackpadSlideAxis = .vertical
+  ) -> TrackpadGestureRule {
+    TrackpadGestureRule(
+      name: "Anchored slide",
+      trigger: TrackpadGestureTrigger(
+        kind: .anchoredSlide,
+        fingerCount: fingerCount,
+        selectedFingerIndex: selectedFingerIndex,
+        slideAxis: slideAxis,
+        movementTolerance: 0.03,
+        minimumDistance: 0.05
+      ),
+      action: .system(.continuousVolume)
+    )
+  }
+
   private func makeEngine(
     rules: [TrackpadGestureRule],
     edgeWidth: Double = 0.08,
@@ -1613,7 +2250,8 @@ final class TrackpadGestureEngineTests: XCTestCase {
 
   private func tipTapRule(
     selectedFingerIndex: Int,
-    action: TrackpadSystemControl
+    action: TrackpadSystemControl,
+    tapSpacing: TrackpadTapSpacing = .normal
   ) -> TrackpadGestureRule {
     TrackpadGestureRule(
       name: "Selected finger tap",
@@ -1621,6 +2259,7 @@ final class TrackpadGestureEngineTests: XCTestCase {
         kind: .tipTap,
         fingerCount: 2,
         selectedFingerIndex: selectedFingerIndex,
+        tapSpacing: tapSpacing,
         holdDuration: 0.18,
         maximumDuration: 0.65,
         movementTolerance: 0.035
@@ -1805,7 +2444,7 @@ final class TrackpadGestureSettingsPersistenceTests: XCTestCase {
   func testPresetCatalogCoversTheRequestedTipTapAndEdgeActions() throws {
     let presets = TrackpadGestureSettings.presetRules
 
-    XCTAssertEqual(presets.count, 4)
+    XCTAssertEqual(presets.count, 5)
 
     let leftTipTap = try XCTUnwrap(presets.first {
       $0.trigger.kind == .tipTap && $0.trigger.selectedFingerIndex == 0
@@ -1826,6 +2465,81 @@ final class TrackpadGestureSettingsPersistenceTests: XCTestCase {
     XCTAssertEqual(rightEdge.action.systemControl, .continuousBrightness)
     XCTAssertEqual(leftEdge.trigger.fingerCount, 2, "the default left continuous-edge rule must require a deliberate two-finger gesture")
     XCTAssertEqual(rightEdge.trigger.fingerCount, 2, "the default right continuous-edge rule must require a deliberate two-finger gesture")
+  }
+
+  /// The preset is the first anchored slide most users will meet, so its two thresholds
+  /// have to be the pair that tells the gesture from an ordinary two-finger scroll: fingers
+  /// travelling together reach the anchor tolerance well before either earns a step.
+  func testTheShippedAnchoredSlidePresetKeepsItsStepAheadOfItsAnchorTolerance() throws {
+    let preset = try XCTUnwrap(
+      TrackpadGestureSettings.presetRules.first { $0.trigger.kind == .anchoredSlide }
+    )
+
+    XCTAssertEqual(preset.action.systemControl, .continuousVolume)
+    XCTAssertEqual(preset.trigger.fingerCount, 2)
+    XCTAssertEqual(preset.trigger.selectedFingerIndex, 0)
+    XCTAssertEqual(preset.trigger.slideAxis, .vertical)
+    XCTAssertGreaterThan(preset.trigger.minimumDistance, preset.trigger.movementTolerance)
+  }
+
+  /// A rule set on disk predates every field added after it. Decoding has to survive that,
+  /// because a trigger that throws takes the user's entire rule list with it.
+  func testARuleStoredBeforeTheSlideAxisExistedStillDecodes() throws {
+    let stored = """
+      {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "name": "Legacy edge rule",
+        "note": "",
+        "isEnabled": true,
+        "requiredModifiers": [],
+        "applicationScope": { "mode": "allApplications", "applications": [] },
+        "deviceScope": "allSupported",
+        "activatesWindowUnderPointer": false,
+        "trigger": {
+          "kind": "edgeContinuous",
+          "fingerCount": 2,
+          "contactGesture": "tap",
+          "direction": "up",
+          "edge": "left",
+          "region": "anywhere",
+          "selectedFingerIndex": 0,
+          "tapSpacing": "normal",
+          "pinchDirection": "inward",
+          "drawingActivation": "modifier",
+          "drawingTemplate": [],
+          "isInverted": false,
+          "holdDuration": 0.22,
+          "maximumDuration": 0.6,
+          "movementTolerance": 0.035,
+          "minimumDistance": 0.018,
+          "minimumVelocity": 0,
+          "minimumDrawingScore": 0.72
+        },
+        "action": { "kind": "systemControl", "systemControl": "continuousVolume", "quickActionStorageValue": "", "keyboardShortcut": { "keyCode": 0, "characters": "", "modifiers": [] }, "mouseAction": "leftClick", "scrollDirection": "down", "openTargetKind": "application", "target": "", "appleScript": "", "windowAction": "center" }
+      }
+      """
+
+    let decoded = try JSONDecoder().decode(
+      TrackpadGestureRule.self,
+      from: Data(stored.utf8)
+    )
+
+    XCTAssertEqual(decoded.name, "Legacy edge rule")
+    XCTAssertEqual(decoded.trigger.kind, .edgeContinuous)
+    XCTAssertEqual(decoded.trigger.minimumDistance, 0.018, accuracy: 0.000_001)
+    XCTAssertEqual(
+      decoded.trigger.slideAxis,
+      .vertical,
+      "a field the stored rule never heard of takes the default it would have been given"
+    )
+    XCTAssertEqual(
+      try JSONDecoder().decode(
+        TrackpadGestureTrigger.self,
+        from: try JSONEncoder().encode(decoded.trigger)
+      ),
+      decoded.trigger,
+      "and a trigger written today still round-trips unchanged"
+    )
   }
 
   func testContinuousEdgeNormalizesEveryConfiguredFingerCountToTwo() {

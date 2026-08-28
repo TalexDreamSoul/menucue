@@ -370,6 +370,38 @@ private struct TrackpadTriggerEditor: View {
       .font(.caption)
       .foregroundStyle(.secondary)
       .fixedSize(horizontal: false, vertical: true)
+
+    case .anchoredSlide:
+      selectedFingerStepper
+      LabeledContent("Slide axis") {
+        Picker("Slide axis", selection: binding(\.slideAxis)) {
+          ForEach(TrackpadSlideAxis.allCases) { axis in
+            Text(axis.settingsTitle).tag(axis)
+          }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 260)
+      }
+      distanceSlider(title: L10n.string("Distance per action step"))
+      movementToleranceSlider
+      Text("Finger positions are assigned left to right when the gesture arms.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      Text("The other fingers must stay inside the movement tolerance. Keeping the step distance larger than that tolerance is what separates this gesture from an ordinary two-finger scroll.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      Label(
+        L10n.format(
+          "Uses the global sensitivity of %@.",
+          TrackpadUIFormat.multiplier(sensitivity)
+        ),
+        systemImage: "slider.horizontal.3"
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .fixedSize(horizontal: false, vertical: true)
     }
   }
 
@@ -563,19 +595,8 @@ private struct TrackpadActionEditor: View {
       }
 
     case .keyboardShortcut:
-      LabeledContent("Characters") {
-        TextField("Optional display characters", text: binding(\.keyboardShortcut.characters))
-          .textFieldStyle(.roundedBorder)
-          .frame(maxWidth: 220)
-      }
-      LabeledContent("Key code") {
-        TextField("Key code", text: keyCodeTextBinding)
-          .textFieldStyle(.roundedBorder)
-          .frame(width: 100)
-          .accessibilityValue(String(action.keyboardShortcut.keyCode))
-      }
-      LabeledContent("Shortcut modifiers") {
-        TrackpadModifierSelector(selection: binding(\.keyboardShortcut.modifiers))
+      LabeledContent("Shortcut") {
+        TrackpadShortcutRecorder(shortcut: binding(\.keyboardShortcut))
       }
 
     case .mouse:
@@ -766,20 +787,6 @@ private struct TrackpadActionEditor: View {
         {
           next.quickActionStorageValue = first.reference.storageValue
         }
-        action = next
-      }
-    )
-  }
-
-  private var keyCodeTextBinding: Binding<String> {
-    Binding(
-      get: { String(action.keyboardShortcut.keyCode) },
-      set: { value in
-        guard let code = UInt16(value.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-          return
-        }
-        var next = action
-        next.keyboardShortcut.keyCode = code
         action = next
       }
     )

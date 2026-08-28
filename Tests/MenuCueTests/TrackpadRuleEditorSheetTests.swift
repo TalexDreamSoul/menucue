@@ -116,7 +116,36 @@ final class TrackpadRuleEditorSheetTests: XCTestCase {
       L10n.format("Finger %d taps", 2),
       L10n.format("%d fingers · %@", 2, L10n.string("Left edge")),
       L10n.format("%d fingers · %@", 2, L10n.string("Right edge")),
+      L10n.format(
+        "%1$d fingers · Finger %2$d %3$@", 2, 1, L10n.string("up and down")),
     ])
+  }
+
+  /// Which finger does the sliding and which way it goes are the only things separating two
+  /// anchored-slide rules, so a badge that dropped either would leave two rows reading alike.
+  func testAnchoredSlideBadgesNameTheSlidingFingerAndItsAxis() {
+    let leftVertical = TrackpadGestureTrigger(
+      kind: .anchoredSlide,
+      fingerCount: 2,
+      selectedFingerIndex: 0,
+      slideAxis: .vertical
+    )
+    let rightHorizontal = TrackpadGestureTrigger(
+      kind: .anchoredSlide,
+      fingerCount: 2,
+      selectedFingerIndex: 1,
+      slideAxis: .horizontal
+    )
+
+    let badges = TrackpadRuleSummary.triggerBadges(for: leftVertical)
+
+    XCTAssertEqual(badges.count, 2)
+    XCTAssertEqual(badges[0], L10n.string("Anchored Slide"))
+    XCTAssertEqual(
+      badges[1],
+      L10n.format("%1$d fingers · Finger %2$d %3$@", 2, 1, L10n.string("up and down"))
+    )
+    XCTAssertNotEqual(badges[1], TrackpadRuleSummary.triggerBadges(for: rightHorizontal)[1])
   }
 
   func testSwipeBadgesNameTheFamilyAndTheDirection() {
