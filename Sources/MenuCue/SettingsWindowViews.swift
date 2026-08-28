@@ -206,7 +206,7 @@ private struct SettingsContentView: View {
     case .calendar:
       CalendarSettingsView(model: model)
     case .actionCenter:
-      QuickActionSettingsView(model: model)
+      ActionCenterSettingsView(model: model)
     case .trackpad:
       TrackpadSettingsView(model: model)
     case .alerts:

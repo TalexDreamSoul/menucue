@@ -264,7 +264,7 @@ struct PopoverFooter: View {
 
       Menu {
         Button("New Event…", action: newEvent)
-        Button("Quick Actions…", action: openQuickActionSettings)
+        Button("Manage Actions…", action: openQuickActionSettings)
         Divider()
         Button("Settings…", action: openSettings)
         Divider()

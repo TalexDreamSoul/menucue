@@ -14,8 +14,16 @@ struct TrackpadActionExecutionResult: Equatable {
     Self(message: L10n.string(message), isFailure: false, settingsURL: nil)
   }
 
-  static func failure(_ message: String, settingsURL: URL? = nil) -> Self {
-    Self(message: L10n.string(message), isFailure: true, settingsURL: settingsURL)
+  /// A failure this file words itself: the literal is a catalog key and is translated on
+  /// the way out.
+  static func failure(key: String, settingsURL: URL? = nil) -> Self {
+    Self(message: L10n.string(key), isFailure: true, settingsURL: settingsURL)
+  }
+
+  /// A failure another layer already worded — AppleScript's error, the workspace opener's
+  /// message. It is passed through untranslated, because it is a sentence, not a key.
+  static func failure(message: String, settingsURL: URL? = nil) -> Self {
+    Self(message: message, isFailure: true, settingsURL: settingsURL)
   }
 
   static func unavailable(_ availability: ActionAvailability, fallbackReason: String) -> Self {
@@ -46,7 +54,9 @@ private enum TrackpadDirectAdjustment {
 
 private enum TrackpadBackendResult<Value> {
   case success(Value)
-  case failure(String)
+  /// A catalog key worded in this file, not a message from CoreAudio or DisplayServices —
+  /// neither of those hands back anything a user could read.
+  case failure(key: String)
 }
 
 private enum TrackpadWindowPlacementCommand {
@@ -85,21 +95,36 @@ final class TrackpadActionExecutor {
   /// Whether an action could run right now, in the shape the Quick Actions panel already
   /// reports. Callers that only need to explain a failure read `reason` and `settingsURL`.
   func availability(for action: TrackpadGestureAction) -> ActionAvailability {
+    availability(for: action, accessibilityStatus: accessibilityPermissionRequester.status)
+  }
+
+  /// The same answer for a whole rule list, reading the permission state once instead of
+  /// once per rule. The settings pane asks on every frame it redraws.
+  func availabilities(for actions: [TrackpadGestureAction]) -> [ActionAvailability] {
+    let status = accessibilityPermissionRequester.status
+    return actions.map { availability(for: $0, accessibilityStatus: status) }
+  }
+
+  private func availability(
+    for action: TrackpadGestureAction,
+    accessibilityStatus: AccessibilityPermissionStatus
+  ) -> ActionAvailability {
     guard action.kind != .quickAction else {
       guard let reference = QuickActionReference(storageValue: action.quickActionStorageValue) else {
         return .unavailable(L10n.string("The selected Quick Action is no longer available."))
       }
       return quickActionService.item(for: reference).state.availability
     }
-    return availability(forActionKind: action.kind)
+    return availability(forActionKind: action.kind, accessibilityStatus: accessibilityStatus)
   }
 
   private func availability(
-    forActionKind kind: TrackpadGestureActionKind
+    forActionKind kind: TrackpadGestureActionKind,
+    accessibilityStatus: AccessibilityPermissionStatus
   ) -> ActionAvailability {
     ActionCatalog.availability(
       for: ActionCatalog.requirement(forActionKind: kind),
-      accessibilityStatus: accessibilityPermissionRequester.status,
+      accessibilityStatus: accessibilityStatus,
       accessibilitySettingsURL: accessibilityPermissionRequester.accessibilitySettingsURL
     )
   }
@@ -133,7 +158,7 @@ final class TrackpadActionExecutor {
     case .window:
       result = executeWindowAction(action.windowAction)
     case .none:
-      result = .failure("This gesture has no action assigned.")
+      result = .failure(key: "This gesture has no action assigned.")
     }
     present(
       result,
@@ -233,7 +258,7 @@ final class TrackpadActionExecutor {
 
   func performQuickAction(storageValue: String) -> TrackpadActionExecutionResult {
     guard let reference = QuickActionReference(storageValue: storageValue) else {
-      return .failure("The selected Quick Action is no longer available.")
+      return .failure(key: "The selected Quick Action is no longer available.")
     }
     let item = quickActionService.item(for: reference)
     guard item.state.availability.isAvailable else {
@@ -255,7 +280,7 @@ final class TrackpadActionExecutor {
       let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: true),
       let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: false)
     else {
-      return .failure("macOS could not create the keyboard shortcut event.")
+      return .failure(key: "macOS could not create the keyboard shortcut event.")
     }
     keyDown.flags = modifiers
     keyUp.flags = modifiers
@@ -284,7 +309,7 @@ final class TrackpadActionExecutor {
       let mouseDown = CGEvent(mouseEventSource: nil, mouseType: downType, mouseCursorPosition: point, mouseButton: button),
       let mouseUp = CGEvent(mouseEventSource: nil, mouseType: upType, mouseCursorPosition: point, mouseButton: button)
     else {
-      return .failure("macOS could not create the mouse click event.")
+      return .failure(key: "macOS could not create the mouse click event.")
     }
     mouseDown.post(tap: .cghidEventTap)
     mouseUp.post(tap: .cghidEventTap)
@@ -301,7 +326,7 @@ final class TrackpadActionExecutor {
       wheel2: deltaX,
       wheel3: 0
     ) else {
-      return .failure("macOS could not create the scroll event.")
+      return .failure(key: "macOS could not create the scroll event.")
     }
     event.post(tap: .cghidEventTap)
     return .success("Sent mouse scroll.")
@@ -312,7 +337,7 @@ final class TrackpadActionExecutor {
     case .success:
       return .success("Ran AppleScript.")
     case .failure(let failure):
-      return .failure(failure.message)
+      return .failure(message: failure.message)
     }
   }
 
@@ -335,7 +360,7 @@ final class TrackpadActionExecutor {
     case .success(let name):
       return .success(L10n.format("Opened %@.", name))
     case .failure(let failure):
-      return .failure(failure.message)
+      return .failure(message: failure.message)
     }
   }
 
@@ -343,8 +368,8 @@ final class TrackpadActionExecutor {
     switch CoreAudioOutputController.apply(adjustment) {
     case .success(let observed):
       return .success(observed.message)
-    case .failure(let message):
-      return .failure(message)
+    case .failure(let reasonKey):
+      return .failure(key: reasonKey)
     }
   }
 
@@ -352,8 +377,8 @@ final class TrackpadActionExecutor {
     switch brightnessController.apply(adjustment) {
     case .success(let observed):
       return .success(observed.message)
-    case .failure(let message):
-      return .failure(message)
+    case .failure(let reasonKey):
+      return .failure(key: reasonKey)
     }
   }
 
@@ -363,7 +388,7 @@ final class TrackpadActionExecutor {
     let point = CGPoint(x: cocoaPoint.x, y: desktopTop - cocoaPoint.y)
     let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
     guard let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
-      return .failure("macOS could not inspect windows under the pointer.")
+      return .failure(key: "macOS could not inspect windows under the pointer.")
     }
 
     let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -386,22 +411,22 @@ final class TrackpadActionExecutor {
       let name = application.localizedName ?? L10n.string("the window under the pointer")
       return .success(L10n.format("Activated %@.", name))
     }
-    return .failure("No activatable window is under the pointer.")
+    return .failure(key: "No activatable window is under the pointer.")
   }
 
   private func placeFocusedWindow(_ placement: TrackpadWindowPlacementCommand) -> TrackpadActionExecutionResult {
     if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow() else {
-      return .failure("macOS could not find a focused window to place.")
+      return .failure(key: "macOS could not find a focused window to place.")
     }
     guard let currentFrame = focused.frame else {
-      return .failure("macOS could not read the focused window frame.")
+      return .failure(key: "macOS could not read the focused window frame.")
     }
     let identity = AXWindowIdentity(pid: focused.pid, window: focused.window)
 
     if placement == .restore {
       guard let restored = restoredWindowFrames[identity] else {
-        return .failure("No previous window placement is available to restore.")
+        return .failure(key: "No previous window placement is available to restore.")
       }
       let result = setWindowFrame(restored, for: focused.window)
       restoredWindowFrames.removeValue(forKey: identity)
@@ -409,7 +434,7 @@ final class TrackpadActionExecutor {
     }
 
     guard let screen = screenUnderPointer() else {
-      return .failure("No supported display is under the pointer.")
+      return .failure(key: "No supported display is under the pointer.")
     }
     restoredWindowFrames[identity] = currentFrame
     let target = targetFrame(for: placement, visibleFrame: screen.visibleFrame, current: currentFrame)
@@ -423,13 +448,13 @@ final class TrackpadActionExecutor {
   private func moveFocusedWindowToNextDisplay() -> TrackpadActionExecutionResult {
     if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow(), let currentFrame = focused.frame else {
-      return .failure("macOS could not read the focused window frame.")
+      return .failure(key: "macOS could not read the focused window frame.")
     }
     let screens = NSScreen.screens.sorted { lhs, rhs in
       lhs.frame.minX == rhs.frame.minX ? lhs.frame.minY < rhs.frame.minY : lhs.frame.minX < rhs.frame.minX
     }
     guard screens.count > 1 else {
-      return .failure("No second display is connected.")
+      return .failure(key: "No second display is connected.")
     }
     let pointer = NSEvent.mouseLocation
     let currentIndex = screens.firstIndex { $0.frame.contains(pointer) } ?? 0
@@ -479,7 +504,10 @@ final class TrackpadActionExecutor {
   private func accessibilityDenial(
     for kind: TrackpadGestureActionKind
   ) -> TrackpadActionExecutionResult? {
-    let availability = availability(forActionKind: kind)
+    let availability = availability(
+      forActionKind: kind,
+      accessibilityStatus: accessibilityPermissionRequester.status
+    )
     guard !availability.isAvailable else { return nil }
     return .unavailable(availability, fallbackReason: "This action is unavailable.")
   }
@@ -554,7 +582,7 @@ final class TrackpadActionExecutor {
       let observed = windowFrame(for: window),
       observed.matches(frame)
     else {
-      return .failure("macOS did not apply the requested window placement.")
+      return .failure(key: "macOS did not apply the requested window placement.")
     }
     return .success("Placed focused window.")
   }
@@ -652,26 +680,26 @@ private enum CoreAudioOutputController {
 
   static func apply(_ adjustment: TrackpadDirectAdjustment) -> TrackpadBackendResult<ObservedVolume> {
     guard let device = defaultOutputDevice() else {
-      return .failure("macOS could not find a default audio output device.")
+      return .failure(key: "macOS could not find a default audio output device.")
     }
 
     switch adjustment {
     case .toggleMute:
       guard let muted = readMute(device: device) else {
-        return .failure("The default audio output does not expose a mute control.")
+        return .failure(key: "The default audio output does not expose a mute control.")
       }
       guard setMute(!muted, device: device), let observed = readMute(device: device) else {
-        return .failure("macOS did not apply the requested mute state.")
+        return .failure(key: "macOS did not apply the requested mute state.")
       }
       let scalar = readVolume(device: device) ?? 0
       return .success(ObservedVolume(scalar: scalar, muted: observed))
 
     case .increment(let amount), .decrement(let amount), .set(let amount):
       guard amount.isFinite else {
-        return .failure("The requested volume value is invalid.")
+        return .failure(key: "The requested volume value is invalid.")
       }
       guard let current = readVolume(device: device) else {
-        return .failure("The default audio output does not expose a master volume control.")
+        return .failure(key: "The default audio output does not expose a master volume control.")
       }
       let requested: Float32
       switch adjustment {
@@ -685,7 +713,7 @@ private enum CoreAudioOutputController {
         requested = current
       }
       guard let observed = setVolume(requested, device: device) else {
-        return .failure("macOS did not apply the requested volume.")
+        return .failure(key: "macOS did not apply the requested volume.")
       }
       return .success(ObservedVolume(scalar: observed, muted: readMute(device: device) ?? false))
     }
@@ -861,40 +889,40 @@ private final class DisplayBrightnessController {
     guard case .toggleMute = adjustment else {
       return applyBrightness(adjustment)
     }
-    return .failure("Mute is not a display brightness action.")
+    return .failure(key: "Mute is not a display brightness action.")
   }
 
   private func applyBrightness(_ adjustment: TrackpadDirectAdjustment) -> TrackpadBackendResult<ObservedBrightness> {
     guard let displayID = displayUnderPointer() else {
-      return .failure("No supported display is under the pointer.")
+      return .failure(key: "No supported display is under the pointer.")
     }
     guard let symbols = loadSymbols() else {
-      return .failure("Display brightness control is unavailable on this Mac.")
+      return .failure(key: "Display brightness control is unavailable on this Mac.")
     }
     guard let current = symbols.brightness(displayID) else {
-      return .failure("The display under the pointer does not expose brightness control.")
+      return .failure(key: "The display under the pointer does not expose brightness control.")
     }
 
     let requested: Float
     switch adjustment {
     case .increment(let amount):
-      guard amount.isFinite else { return .failure("The requested brightness value is invalid.") }
+      guard amount.isFinite else { return .failure(key: "The requested brightness value is invalid.") }
       requested = min(1, current + Float(abs(amount)))
     case .decrement(let amount):
-      guard amount.isFinite else { return .failure("The requested brightness value is invalid.") }
+      guard amount.isFinite else { return .failure(key: "The requested brightness value is invalid.") }
       requested = max(0, current - Float(abs(amount)))
     case .set(let amount):
-      guard amount.isFinite else { return .failure("The requested brightness value is invalid.") }
+      guard amount.isFinite else { return .failure(key: "The requested brightness value is invalid.") }
       requested = Float(min(max(amount, 0), 1))
     case .toggleMute:
-      return .failure("Mute is not a display brightness action.")
+      return .failure(key: "Mute is not a display brightness action.")
     }
 
     guard symbols.setBrightness(requested, displayID: displayID), let observed = symbols.brightness(displayID) else {
-      return .failure("macOS did not apply the requested display brightness.")
+      return .failure(key: "macOS did not apply the requested display brightness.")
     }
     guard abs(observed - requested) <= 0.02 else {
-      return .failure("The display reported a different brightness after the change.")
+      return .failure(key: "The display reported a different brightness after the change.")
     }
     return .success(ObservedBrightness(value: observed))
   }

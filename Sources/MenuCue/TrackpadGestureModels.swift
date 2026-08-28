@@ -414,6 +414,13 @@ struct TrackpadGestureRule: Codable, Equatable, Identifiable {
     self.action = action
   }
 
+  /// Preset rules ship with English names in storage, so only those are translated; a
+  /// name the user typed is shown exactly as typed.
+  var settingsDisplayName: String {
+    let presetNames = Set(TrackpadGestureSettings.presetRules.map(\.name))
+    return presetNames.contains(name) ? L10n.string(name) : name
+  }
+
   var normalized: TrackpadGestureRule {
     var result = self
     result.name = name.trimmingCharacters(in: .whitespacesAndNewlines)

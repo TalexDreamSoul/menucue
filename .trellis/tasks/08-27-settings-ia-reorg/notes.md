@@ -144,5 +144,95 @@
 复核未处理（记录，非缺陷）：
 
 1. 重开窗口时 contentViewController 整体重建，`DashboardView` 的 `@StateObject metrics`（120 点历史）随之清空。这正是 section 深链每次都生效的机制，与 Stage A 设置窗口一致；要两者兼得需把 section 提成外部可观察状态，属子任务 4 的导航状态范围。
-2. `powerModeText` 在 PowerTabView 与 PowerSettingsView 各存一份（各自 private，弹窗版仍带 9/10pt 字号）。8 行重复，可在 Stage C 合并为 `PowerMode` 的共享格式化。
+2. `powerModeText` 在 PowerTabView 与 PowerSettingsView 各存一份（各自 private，弹窗版仍带 9/10pt 字号）。8 行重复，可在 Stage C 合并为 `PowerMode` 的共享格式化。**Stage C 未做**：两处属电源分区，与本阶段（操作中心/弹窗操作页/触控板可用性）无交集，合并需同时改两个视图的字号约定，留给后续电源相关任务。
+
+## Stage C（操作中心与弹窗操作页）
+
+### 步骤 9：操作中心（设置 > 操作中心）
+
+- **文件拆分**：`QuickActionSettingsView` → 新文件 `ActionCenterView.swift` 的 `ActionCenterSettingsView`（命名与其余分区 `<Pane>SettingsView` 对齐；`SettingsWindowViews.swift:209` 是唯一调用点）。QuickActionViews.swift 只留弹窗侧（网格 + 分组行 + 磁贴），469 → 约 430 行。design.md 表格写「QuickActionViews.swift 内重构」，此处偏差为拆文件，理由与 Stage A 拆 SettingsWindowViews.swift 一致。
+- **数据来源**：`ActionCatalog.allItems(shortcuts:)`（新增；`items(surface:)` 改为它的 filter），因此三段来源全部目录驱动：
+  | 段 | 来源 | 条目数 |
+  |---|---|---|
+  | 内置 Built-in | `builtInQuickActions` | 14 |
+  | 快捷指令 Shortcuts | `shortcutActions(service.shortcuts)` | 运行时发现 |
+  | 触摸板原生 Trackpad Native | `trackpadNativeActions` | 30（7 系统控制 + 12 窗口 + 3 鼠标 + 4 滚动 + 键盘/打开/AppleScript 各 1 + 指针窗口 1） |
+  `ActionCatalogItem` 新增 `source: ActionSource`，分段不靠视图猜。分段选择器为「全部/内置/快捷指令/触摸板原生」。
+- **点行不执行**：行不是 Button，只有图钉与「运行」两个显式控件；`Empty Trash` 走 confirmationDialog（与弹窗一致）。触控板原生行**不给运行/图钉**——它们只能由手势触发，段落说明一次而不是每行重复。
+- **被引用**：`ActionCatalog.references(of:pinned:rules:)` 纯函数，返回 `[ActionReference]`（`.pinned` / `.gestureRule(name:)`）。**签名偏差**：design.md 写 `(item, settings)`，实现改为传 `pinned` + `rules` 两个集合，避免把 `AppSettings` 拖进目录层，且单测无需构造整个 AppSettings。
+- **规则 → 目录条目的反查**：新增 `ActionCatalog.itemID(for: TrackpadGestureAction)`，与 `trackpadNativeActions` 的注册共用同一个 id 构造器（原先 id 在注册处硬编码字符串）。`activatesWindowUnderPointer == true` 的规则算作引用 `trackpad:pointerWindow`。
+- **单测**（ActionCatalogTests +5）：
+  1. `testEveryTrackpadEntryIsFoundAgainFromTheActionARuleStores` — 30 个触控板条目里带 `.trackpad` route 的 29 个 round-trip（注册 id == itemID(for: route 里的 action)），防注册与反查漂移；指针窗口条目走 `.trackpadPointerWindow` route，由第 4 条单测覆盖。
+  2. `testAnActionReportsBeingPinnedAndEveryRuleThatSelectsIt` — 固定 + 两条规则引用同一 Quick Action，顺序为 pinned 在前；另一动作被固定时返回空。
+  3. `testATrackpadEntryReportsTheRulesThatSelectedIt` — volumeUp 命中、leftHalf 不误命中（防「整段点亮」）。
+  4. `testThePointerWindowEntryIsReferencedByTheRulesThatRunItFirst`。
+  5. `testEveryBuiltInActionIsInExactlyOneCategory` — 14 项分类无遗漏无重复。
+- **性能**：`entries` 每次 body 只算一遍（`catalogGroup` 里 `let entries = self.entries`），触控板可用性走新的批量入口 `availabilities(for:)`（整段一次 `AXIsProcessTrusted`，而不是每行一次）。`ActionCenterSettingsView` **不** `@ObservedObject` TrackpadGestureService——可用性不来自它的 @Published 状态，订阅只会被 30 Hz 的 liveContacts 白白重绘。
+
+### 步骤 10：弹窗操作页
+
+- 顶部固定搜索行（在 PopoverHapticScrollView 之外，不随内容滚走）+ 右侧「编辑」图标按钮 → 操作中心（design.md 画板 E 的「编辑」入口）；底栏「管理操作…」保留，两处同一目的地。
+- 已固定网格保留（磁贴仍点击即执行——弹窗是执行面）。其余动作按内置类别 + 快捷指令分组，组头即折叠开关；**快捷指令组默认折叠**，内置三组默认展开；查询非空时**强制展开全部**并隐藏空组，无命中时显示占位句。
+- 行内不可用徽标 `ActionUnavailableBadge`（`QuickActionAvailability.reason` 作 tooltip/accessibility；带 settingsURL 时徽标本身就是「打开系统设置」按钮）。不可用行**仍可点**，`service.perform` 会解释原因并跳系统设置——与旧磁贴行为一致，未收紧。
+- 内置 14 项分类（`BuiltInQuickActionID.category`，与 implement.md 附录逐项核对一致）：
+  - 显示与屏幕（7）：keepScreenOn / turnOffDisplays / screenSaver / darkMode / hideNotch / autoHideMenuBar / hideDesktopIcons
+  - 系统操作（5）：lockScreen / lowPowerMode / preventLidSleep / autoHideDock / emptyTrash
+  - 清洁（2）：cleanScreen / cleanKeyboard
+- `QuickActionTileStyle` 删除：`.catalog` 样式的唯一使用者是旧设置页磁贴，随重构消失，`QuickActionTile` 只剩弹窗紧凑形态（原 `.compact` 数值内联）。
+
+### 步骤 11：承接子任务 2 遗留
+
+a) **可用性数据接 UI**（此前 `executor.availability(for:)` 无生产消费者）：
+- `TrackpadGestureService.availability(for:)` / `availabilities(for:)` 转发 executor（不新开单例，走既有服务链路）。
+- 规则列表行：动作不可用时显示橙色徽标，tooltip 是原因；有 settingsURL 时徽标即「打开系统设置」按钮。整列表一次权限读取。
+- 规则编辑器：新增 `availabilityNotice`（真实可用性 → 橙色原因 + 「打开系统设置」按钮，按钮目标来自 `availability.settingsURL`）。原先 keyboardShortcut/mouse/scroll/window 分支**无条件**显示的「打开系统设置」按钮删除（权限已授予时它是噪音），静态说明文案保留；`.quickAction` 分支原先自己拼的不可用文案与按钮也删除，统一由 notice 承担。
+- **执行侧仍未消费 settingsURL**：HUD 只显示 message（TrackpadFeedbackHUD 无按钮）。HUD 是短暂无交互浮层，加按钮属新交互形态，未做。
+
+b) **`failure` 拆分**：`failure(key:)`（本文件写的英文字面量 = 目录键，出口 `L10n.string`）与 `failure(message:)`（下层已成句：AppleScriptRunner / WorkspaceOpener 的 `failure.message`，原样透传，不再二次查表）。调用点归类：14 处 key（无动作/QuickAction 失效/事件创建失败/窗口放置全家族），2 处 message（AppleScript、opened()），2 处转发 `TrackpadBackendResult`（CoreAudio/DisplayServices 的字面量 → key）。`TrackpadBackendResult.failure` 的载荷同步改为 `failure(key:)` 并加注释说明它是键不是系统消息。
+- **未拆 `success(_:)`**：同样的含糊在成功路径存在（`success("Sent mouse click.")` 是键，`success(L10n.format("Ran %@.", title))` 是成句，后者被二次查表——查不到即原样返回，行为无害）。步骤 11 只点名 failure，未扩大改动面；如需对称，是一个同形状的小改动。
+
+### 步骤 12：本地化
+
+- 新增 20 键 × 2 语言（`/* Action Center and the popover actions page */` / `/* 操作中心与面板操作页 */` 段）：Built-in / Shortcuts / Trackpad Native / Display & Screen / System Actions / Cleaning / Search actions / Clear search / Collapse group / Expand group / No action matches this search. / Manage Actions… / Source / Run / Run %@ / Run an action with its Run button.… / No actions are registered here yet. / Not used yet / Discovered from Apple Shortcuts on this Mac. / These run from a trackpad gesture rule… （zh 沿用既有「触摸板」译法，不引入「触控板」）。
+- **删除 95 行 = 84 个孤儿键 + 11 个重复键**。判定方法（脚本，非人工挑选）：把 `Sources/MenuCue/*.swift` 全文拼接，逐键检查字面量 `"key"` 是否出现；未出现即孤儿。旁证：`Sources/MenuCueHelper` 与 `Sources/MenuCueHelperProtocol` 不引用 L10n/Localizable（grep 为空），Tests 对这 84 键的字面量引用也为空（脚本核对），故删除不会破坏测试或另一 target。动态查表点（`L10n.string(变量)`）的取值全部来自源码内字面量或系统运行时文本（sensor label / metric rawValue / pmset 文本 / helper 消息），与孤儿集无交集。
+  - 本阶段新产生的孤儿 5 个（对 eab1616 逐键 `git grep` 核定）：`Manage in Settings`、`Quick Actions…`、`More Actions`、`Every available action is pinned.`、`Click a tile to run it now. Use the pin button to show it in the menu-bar popover.`。（`More Quick Actions` 在 Stage C 之前就已无引用，归入下面两类。）
+  - Stage A/B 产生的孤儿：旧分区标题与副标题（Overview / Notifications / Language / Language & Region / Date & Time / Date & Events / Calendars / Calendar access / System Time Zone / Menu Bar & Display 及各自副标题）、`Clear local history`（Stage B 已记录）、`Currently on` / `No toggles are currently on.` / `Last reading` / `No reading cached yet.…` / `Manage`（概览只读块）。
+  - 更早的历史死键：`Daily Guide` 整族 21 个（Focus / Rest / Travel / Exercise / Learning / Socializing / Reflection / Planning / Organizing / Communication / Distraction / Procrastination / Avoid / Good for / Hasty decisions / Impulse spending / Overcommitting / Risk-taking / Sitting too long / Staying up late / Forcing outcomes + 说明句）、相对时间族（`Just now` / `%@ ago` / `up %@` / `in the last 30 days`）、`%@ RPM`（AlertMetricProvider.swift:440 现在直接插值 `"\(Int(...)) RPM"`，未本地化——**旁路发现，未修**）、旧快捷操作窗族（`Open Quick Actions Window` / `Open all Quick Actions` / `All Quick Actions…` / `MenuCue Quick Actions` / `Available actions` / `Arguments`）等。
+- **重复键 11 组**（不是 10 组）：Action / Add / Alert / Critical / Enabled / Normal / Preview / Rule name / System / Warning / "macOS denied the requested Automation action."。CFPropertyList 对重复键取**最后一个**（已用 Swift 脚本实测确认）。除 `Alert` 外 10 组两处译文相同 → 删后一处、保留字母序正文那条，行为零变化。
+  - **`Alert` 是真冲突**：line 75 = 「提醒」（StatusPopoverView:568 日程编辑器的提醒设置），line 681 = 「告警」（NotificationSettingsView:515 的告警状态）。当前生效值是「告警」，故删掉「提醒」那条以保持现状。**遗留问题（未修，需产品决策）**：日程编辑器里那个 Picker 中文显示为「告警」，语义错误；正解是给日程那处换一个独立键（如 `Event Alert` = 「提醒」）。改可见文案超出「废键清理」范围，故只记录。
+- spec 漂移：`.trellis/spec/frontend/state-management.md` 的「hide sync pane」改为「hide the iCloud group inside the General pane」。
+
+### 步骤 13：验证
+
+命令结果（全部在最终代码上重跑）：
+- `swift build`：Build complete，零 error 零 warning。
+- `swift test`：538 XCTest 通过（1 skipped，既有环境跳过）+ 5 swift-testing 通过，0 失败。
+- `swift test --filter Localization`：7 通过（LocalizationCoverageTests 3 + LocalizationResourceTests 4）。
+- `./scripts/verify-localizations.swift …`：`Verified 1117 localization keys.`（基线 1192 行 − 删 95 行 + 新增 20 键 = 1117；按去重后的唯一键算是 1181 − 84 孤儿 + 20 新键）。
+
+核对清单（**代码路径核验**，非 GUI 实机点击——本会话无法观察 GUI）：
+
+| 项 | 结论 | 证据 |
+|---|---|---|
+| 设置页无「点击即执行」入口 | ✅ | ActionCenterView 中行体不是 Button；`service.perform` 的调用点只有 `run(_:)`，其唯一触发者是「运行」按钮（destructive 走确认框） |
+| 弹窗保留点击执行 | ✅ | PinnedQuickActionGrid / ActionsTabView 磁贴与分组行均为 Button → `service.perform` |
+| 操作中心三段可达且目录驱动 | ✅ | `ActionCatalog.allItems` + `source` 分段；`items(surface:)` 改为其 filter，ActionCatalogTests 仍保证 panel 段内容与顺序不变 |
+| 被引用徽标 | ✅ | 5 条单测覆盖 pinned / 多规则 / 不误命中 / pointerWindow / 分类完备 |
+| 弹窗搜索过滤全部来源 | ✅ | `matching(_:)` 同时作用于已固定网格与全部分组；非空查询强制展开、隐藏空组 |
+| 「管理操作…」与「编辑」跳操作中心 | ✅ | 均调 `openSettings` 闭包 → StatusBarController:210 `showSettingsWindow(initialPane: .actionCenter)` |
+| 底栏溢出菜单措辞 | ✅ | PopoverComponents.swift:267 「Quick Actions…」→「Manage Actions…」，目标不变 |
+| 触控板规则不可用提示 | ✅ | 规则行徽标 + 编辑器 notice，二者都读 `service.availability(...)`；settingsURL 存在时才给按钮 |
+| 电源监控开关（Stage B） | ✅ 未回归 | 本阶段未触碰 AppModel/PowerSettingsView |
+
+需人工实机确认（无法在此会话验证）：
+1. 弹窗搜索框获得焦点后，左右方向键是编辑光标还是切 tab（`menuCueHorizontalArrowNavigation` 挂在容器上，SwiftUI 应先给焦点 TextField，未实测）。
+2. 操作中心「全部」段一次列出 44+ 行（14 内置 + 快捷指令 + 30 触控板原生），滚动长度是否可接受；若过长，分段选择器默认值可改为「内置」。
+3. 分段选择器 + 三段标题的中文排版宽度（560pt SettingsGroup 内）。
+
+### Stage C 旁路发现（未处理）
+
+1. `QuickActionService.openRemediation(for:)` 无任何调用点（Stage C 之前就已如此，非本阶段造成）。低电量模式/合盖不休眠不可用时的补救入口现在只有设置 > 电源里的助手安装流程，语义上正确，故未强行给操作中心接回去。
+2. `AlertMetricProvider.swift:440` 的 `"\(Int(number.rounded())) RPM"` 未本地化（对应键 `%@ RPM` 已随废键删除）。
+3. `TrackpadSettingsView` 里 `Text("Edge")`（区域选择器标签）在两份 catalog 中都没有条目，中文界面会显示英文 "Edge"。属既有缺口，不在本阶段改动面内。
+4. `ActionCatalog.trackpadItem` 的 `id: itemID(for: action) ?? action.kind.rawValue` 有一个理论上到不了的兜底分支（只有 `.none`/空 quickAction 才会走到，而那两者从不注册）；round-trip 单测覆盖了真实分支。
 

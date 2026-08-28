@@ -17,6 +17,32 @@ enum KeyboardEventBlockerStartResult: Equatable {
 }
 
 
+/// How the built-in actions are grouped where they are listed rather than gridded. Twelve
+/// tiles in one run are scannable; twelve rows are not.
+enum BuiltInQuickActionCategory: String, CaseIterable, Identifiable {
+  case display
+  case system
+  case cleaning
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .display: return L10n.string("Display & Screen")
+    case .system: return L10n.string("System Actions")
+    case .cleaning: return L10n.string("Cleaning")
+    }
+  }
+
+  var systemImage: String {
+    switch self {
+    case .display: return "display"
+    case .system: return "gearshape"
+    case .cleaning: return "sparkles"
+    }
+  }
+}
+
 enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
   case turnOffDisplays
   case lowPowerMode
@@ -82,6 +108,18 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
       return .button
     case .cleanScreen, .cleanKeyboard:
       return .mode
+    }
+  }
+
+  var category: BuiltInQuickActionCategory {
+    switch self {
+    case .keepScreenOn, .turnOffDisplays, .screenSaver, .darkMode, .hideNotch,
+      .autoHideMenuBar, .hideDesktopIcons:
+      return .display
+    case .lockScreen, .lowPowerMode, .preventLidSleep, .autoHideDock, .emptyTrash:
+      return .system
+    case .cleanScreen, .cleanKeyboard:
+      return .cleaning
     }
   }
 

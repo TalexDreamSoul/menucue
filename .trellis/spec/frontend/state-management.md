@@ -323,7 +323,7 @@ Use this pattern when portable `AppSettings` fields synchronize through `NSUbiqu
 
 | Condition | Required behavior |
 |---|---|
-| Missing iCloud entitlement | Status is unavailable; hide sync pane; local settings continue |
+| Missing iCloud entitlement | Status is unavailable; hide the iCloud group inside the General pane; local settings continue |
 | Signed out / missing identity token | Keep local values; show retryable signed-out status |
 | Malformed or future cloud field | Ignore that field only; merge valid neighbors |
 | Remote timestamp is stale | Keep the newer local field |

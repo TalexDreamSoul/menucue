@@ -345,10 +345,14 @@ struct TrackpadSettingsView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 150)
       } else {
+        // Resolved once for the whole list: every rule's answer depends on the same
+        // permission state, and this pane redraws with live touch input.
+        let availabilities = service.availabilities(for: settings.rules.map(\.action))
         VStack(alignment: .leading, spacing: 0) {
           ForEach(Array(settings.rules.enumerated()), id: \.element.id) { index, rule in
             TrackpadRuleRow(
               rule: rule,
+              availability: availabilities[index],
               index: index,
               ruleCount: settings.rules.count,
               isExpanded: expandedRuleID == rule.id,
@@ -714,6 +718,7 @@ private struct TrackpadLiveContactPreview: View {
 
 private struct TrackpadRuleRow: View {
   let rule: TrackpadGestureRule
+  let availability: ActionAvailability
   let index: Int
   let ruleCount: Int
   let isExpanded: Bool
@@ -765,6 +770,12 @@ private struct TrackpadRuleRow: View {
         L10n.format("%@, %@", rule.trigger.settingsSummary, rule.action.settingsSummary)
       )
       .accessibilityHint(isExpanded ? "Collapse rule editor" : "Edit rule")
+
+      // A rule whose action cannot run today looks identical to one that works, right
+      // up until the gesture silently does nothing.
+      if !availability.isAvailable {
+        ActionUnavailableBadge(reason: availability.reason, settingsURL: availability.settingsURL)
+      }
 
       Button(action: onMoveUp) {
         Image(systemName: "chevron.up")
@@ -1242,6 +1253,7 @@ private struct TrackpadActionEditor: View {
       }
 
       actionFields
+      availabilityNotice
       permissionGuidance
 
       if triggerKind == .drawing {
@@ -1285,15 +1297,6 @@ private struct TrackpadActionEditor: View {
           }
           .labelsHidden()
           .frame(maxWidth: 320)
-        }
-
-        if let item = selectedQuickActionItem,
-          let reason = item.state.availability.reason
-        {
-          Text(reason)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
       }
 
@@ -1393,22 +1396,37 @@ private struct TrackpadActionEditor: View {
     }
   }
 
+  /// What is actually wrong right now, as opposed to what this action family requires in
+  /// general. Only shown when the rule would fail if the gesture fired this second.
+  @ViewBuilder
+  private var availabilityNotice: some View {
+    let availability = model.trackpadGestureService.availability(for: action)
+    if !availability.isAvailable, let reason = availability.reason {
+      VStack(alignment: .leading, spacing: 7) {
+        Label(reason, systemImage: "exclamationmark.triangle.fill")
+          .font(.caption)
+          .foregroundStyle(.orange)
+          .fixedSize(horizontal: false, vertical: true)
+        if let settingsURL = availability.settingsURL {
+          Button("Open System Settings") {
+            WorkspaceOpener.openSettings(settingsURL)
+          }
+        }
+      }
+    }
+  }
+
   @ViewBuilder
   private var permissionGuidance: some View {
     switch action.kind {
     case .keyboardShortcut, .mouse, .scroll, .window:
-      VStack(alignment: .leading, spacing: 7) {
-        Label(
-          "This action requires Accessibility when it runs. Touch observation remains independent and pass-through.",
-          systemImage: "lock.shield"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-        Button("Open System Settings") {
-          model.trackpadGestureService.openAccessibilitySettings()
-        }
-      }
+      Label(
+        "This action requires Accessibility when it runs. Touch observation remains independent and pass-through.",
+        systemImage: "lock.shield"
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .fixedSize(horizontal: false, vertical: true)
 
     case .appleScript:
       Label(
@@ -1425,22 +1443,14 @@ private struct TrackpadActionEditor: View {
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
 
-    case .quickAction:
-      if let item = selectedQuickActionItem,
-        !item.state.availability.isAvailable,
-        let settingsURL = item.state.availability.settingsURL
-      {
-        Button("Open System Settings") {
-          WorkspaceOpener.openSettings(settingsURL)
-        }
-      }
-
     case .open:
       Label("Opening an app, URL, file, or folder does not require Accessibility.", systemImage: "checkmark.shield")
         .font(.caption)
         .foregroundStyle(.secondary)
 
-    case .none:
+    // A Quick Action's permissions belong to the action itself, and a rule with no
+    // action asks for nothing; both are covered by the notice above when they fail.
+    case .quickAction, .none:
       EmptyView()
     }
   }
@@ -1511,13 +1521,6 @@ private struct TrackpadActionEditor: View {
         action = next
       }
     )
-  }
-
-  private var selectedQuickActionItem: QuickActionItem? {
-    guard let reference = QuickActionReference(storageValue: action.quickActionStorageValue) else {
-      return nil
-    }
-    return quickActionService.item(for: reference)
   }
 
   private var openTargetLabel: LocalizedStringKey {
@@ -1917,13 +1920,6 @@ private enum TrackpadUIFormat {
 
   static func decimal(_ value: Double) -> String {
     String(format: "%.1f", locale: L10n.appLocale, value)
-  }
-}
-
-private extension TrackpadGestureRule {
-  var settingsDisplayName: String {
-    let presetNames = Set(TrackpadGestureSettings.presetRules.map(\.name))
-    return presetNames.contains(name) ? L10n.string(name) : name
   }
 }
 

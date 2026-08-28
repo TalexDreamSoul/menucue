@@ -9,6 +9,25 @@ enum ActionSurface: String, CaseIterable, Hashable {
   case trackpad
 }
 
+/// Where an entry came from, which is how the Action Center splits one flat register into
+/// lists a user can reason about: what MenuCue ships, what they wrote in Shortcuts, and
+/// what only the trackpad can reach.
+enum ActionSource: String, CaseIterable, Identifiable, Hashable {
+  case builtIn
+  case shortcut
+  case trackpadNative
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .builtIn: return L10n.string("Built-in")
+    case .shortcut: return L10n.string("Shortcuts")
+    case .trackpadNative: return L10n.string("Trackpad Native")
+    }
+  }
+}
+
 /// Whether an action can run right now, why not, and where the user fixes it. Both action
 /// surfaces report availability in this shape, so a failure always carries the same three
 /// pieces of information.
@@ -55,12 +74,20 @@ struct ActionCatalogItem: Identifiable, Equatable {
   let id: String
   let title: String
   let systemImage: String
+  let source: ActionSource
   let surfaces: Set<ActionSurface>
   let isDestructive: Bool
   let requirement: ActionRequirement
   let route: ActionRoute
 
   func isOffered(on surface: ActionSurface) -> Bool { surfaces.contains(surface) }
+}
+
+/// A place an action is already spoken for. The Action Center shows these so unpinning an
+/// action or repointing a rule is a decision made with its dependents in view.
+enum ActionReference: Equatable {
+  case pinned
+  case gestureRule(name: String)
 }
 
 /// The single register of everything the app can do on a user's behalf: the built-in Quick
@@ -75,6 +102,7 @@ enum ActionCatalog {
         id: reference.storageValue,
         title: actionID.title,
         systemImage: actionID.systemImage,
+        source: .builtIn,
         surfaces: [.panel, .trackpad],
         isDestructive: actionID.isDestructive,
         // Their permissions depend on live system state, which QuickActionService owns.
@@ -91,6 +119,7 @@ enum ActionCatalog {
         id: reference.storageValue,
         title: name,
         systemImage: "command.square.fill",
+        source: .shortcut,
         surfaces: [.panel, .trackpad],
         isDestructive: false,
         requirement: .none,
@@ -107,7 +136,6 @@ enum ActionCatalog {
     for control in TrackpadSystemControl.allCases {
       items.append(
         trackpadItem(
-          id: "trackpad:systemControl:\(control.rawValue)",
           title: control.actionTitle,
           systemImage: control.actionSystemImage,
           action: .system(control)
@@ -118,7 +146,6 @@ enum ActionCatalog {
     for placement in TrackpadWindowAction.allCases {
       items.append(
         trackpadItem(
-          id: "trackpad:window:\(placement.rawValue)",
           title: placement.actionTitle,
           systemImage: "macwindow",
           action: TrackpadGestureAction(kind: .window, windowAction: placement)
@@ -129,7 +156,6 @@ enum ActionCatalog {
     for click in TrackpadMouseAction.allCases {
       items.append(
         trackpadItem(
-          id: "trackpad:mouse:\(click.rawValue)",
           title: click.actionTitle,
           systemImage: "cursorarrow.click",
           action: TrackpadGestureAction(kind: .mouse, mouseAction: click)
@@ -140,7 +166,6 @@ enum ActionCatalog {
     for direction in TrackpadDirection.allCases {
       items.append(
         trackpadItem(
-          id: "trackpad:scroll:\(direction.rawValue)",
           title: L10n.format("Scroll %@", direction.actionTitle),
           systemImage: "arrow.up.and.down",
           action: TrackpadGestureAction(kind: .scroll, scrollDirection: direction)
@@ -152,7 +177,6 @@ enum ActionCatalog {
     // family once rather than every configuration of it.
     items.append(
       trackpadItem(
-        id: "trackpad:keyboardShortcut",
         title: L10n.string("Keyboard Shortcut"),
         systemImage: "keyboard",
         action: TrackpadGestureAction(kind: .keyboardShortcut)
@@ -160,7 +184,6 @@ enum ActionCatalog {
     )
     items.append(
       trackpadItem(
-        id: "trackpad:open",
         title: L10n.string("Open Target"),
         systemImage: "arrow.up.forward.app",
         action: TrackpadGestureAction(kind: .open)
@@ -168,7 +191,6 @@ enum ActionCatalog {
     )
     items.append(
       trackpadItem(
-        id: "trackpad:appleScript",
         title: L10n.string("AppleScript"),
         systemImage: "applescript",
         action: TrackpadGestureAction(kind: .appleScript)
@@ -176,9 +198,10 @@ enum ActionCatalog {
     )
     items.append(
       ActionCatalogItem(
-        id: "trackpad:pointerWindow",
+        id: pointerWindowItemID,
         title: L10n.string("Activate Window Under Pointer"),
         systemImage: "macwindow.on.rectangle",
+        source: .trackpadNative,
         surfaces: [.trackpad],
         isDestructive: false,
         requirement: .none,
@@ -189,8 +212,13 @@ enum ActionCatalog {
   }
 
   static func items(surface: ActionSurface, shortcuts: [String] = []) -> [ActionCatalogItem] {
-    let registered = builtInQuickActions + shortcutActions(shortcuts) + trackpadNativeActions
-    return registered.filter { $0.isOffered(on: surface) }
+    allItems(shortcuts: shortcuts).filter { $0.isOffered(on: surface) }
+  }
+
+  /// Everything registered, regardless of surface. The Action Center is the one view that
+  /// shows the whole register, since its job is to say what exists and where it is used.
+  static func allItems(shortcuts: [String] = []) -> [ActionCatalogItem] {
+    builtInQuickActions + shortcutActions(shortcuts) + trackpadNativeActions
   }
 
   /// The Quick Action references a surface offers, in catalog order. The popover builds
@@ -237,21 +265,85 @@ enum ActionCatalog {
     }
   }
 
+  /// Where an action is already spoken for: pinned to the popover, or selected by a
+  /// gesture rule. Pure, so the Action Center's "used by" column is testable without a
+  /// running app.
+  static func references(
+    of item: ActionCatalogItem,
+    pinned: [QuickActionReference],
+    rules: [TrackpadGestureRule]
+  ) -> [ActionReference] {
+    var references: [ActionReference] = []
+    if pinned.contains(where: { $0.storageValue == item.id }) {
+      references.append(.pinned)
+    }
+    for rule in rules where rule.uses(item) {
+      references.append(.gestureRule(name: rule.settingsDisplayName))
+    }
+    return references
+  }
+
+  /// The catalog entry a configured gesture action points at. A rule stores the action's
+  /// own parameters rather than a catalog identifier, so the mapping back lives here,
+  /// next to the identifiers it has to agree with.
+  static func itemID(for action: TrackpadGestureAction) -> String? {
+    switch action.kind {
+    case .quickAction:
+      return action.quickActionStorageValue.isEmpty ? nil : action.quickActionStorageValue
+    case .systemControl:
+      return trackpadItemID(family: "systemControl", variant: action.systemControl.rawValue)
+    case .window:
+      return trackpadItemID(family: "window", variant: action.windowAction.rawValue)
+    case .mouse:
+      return trackpadItemID(family: "mouse", variant: action.mouseAction.rawValue)
+    case .scroll:
+      return trackpadItemID(family: "scroll", variant: action.scrollDirection.rawValue)
+    // Parameterized families are registered once, so every configuration of one maps
+    // onto that single entry.
+    case .keyboardShortcut:
+      return trackpadItemID(family: "keyboardShortcut", variant: nil)
+    case .open:
+      return trackpadItemID(family: "open", variant: nil)
+    case .appleScript:
+      return trackpadItemID(family: "appleScript", variant: nil)
+    case .none:
+      return nil
+    }
+  }
+
+  static let pointerWindowItemID = "trackpad:pointerWindow"
+
   private static func trackpadItem(
-    id: String,
     title: String,
     systemImage: String,
     action: TrackpadGestureAction
   ) -> ActionCatalogItem {
     ActionCatalogItem(
-      id: id,
+      id: itemID(for: action) ?? action.kind.rawValue,
       title: title,
       systemImage: systemImage,
+      source: .trackpadNative,
       surfaces: [.trackpad],
       isDestructive: false,
       requirement: requirement(forActionKind: action.kind),
       route: .trackpad(action)
     )
+  }
+
+  private static func trackpadItemID(family: String, variant: String?) -> String {
+    guard let variant else { return "trackpad:\(family)" }
+    return "trackpad:\(family):\(variant)"
+  }
+}
+
+extension TrackpadGestureRule {
+  /// Whether this rule depends on a catalog entry — either as its action, or as the
+  /// pointer-window step it can run first.
+  func uses(_ item: ActionCatalogItem) -> Bool {
+    if item.route == .trackpadPointerWindow {
+      return activatesWindowUnderPointer
+    }
+    return ActionCatalog.itemID(for: action) == item.id
   }
 }
 

@@ -1166,6 +1166,18 @@ final class TrackpadGestureService: ObservableObject {
     WorkspaceOpener.openSettings(accessibilityPermissionRequester.accessibilitySettingsURL)
   }
 
+  /// Whether a configured action could run right now. The rule editor asks before the
+  /// gesture ever fires, so a rule that cannot work says so while it is being written
+  /// rather than failing silently on the trackpad.
+  func availability(for action: TrackpadGestureAction) -> ActionAvailability {
+    executor.availability(for: action)
+  }
+
+  /// The same answer for a whole rule list in one pass.
+  func availabilities(for actions: [TrackpadGestureAction]) -> [ActionAvailability] {
+    executor.availabilities(for: actions)
+  }
+
   func stop() {
     removeLifecycleObservers()
     runOnMain { [weak self] in

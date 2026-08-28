@@ -92,6 +92,87 @@ final class ActionCatalogTests: XCTestCase {
     }
   }
 
+  func testEveryTrackpadEntryIsFoundAgainFromTheActionARuleStores() {
+    for item in ActionCatalog.trackpadNativeActions {
+      guard case .trackpad(let action) = item.route else { continue }
+      XCTAssertEqual(
+        ActionCatalog.itemID(for: action),
+        item.id,
+        "a rule stores the action, so the way back to \(item.id) has to agree with the way it "
+          + "was registered"
+      )
+    }
+  }
+
+  func testAnActionReportsBeingPinnedAndEveryRuleThatSelectsIt() {
+    let item = ActionCatalog.builtInQuickActions.first { $0.id == "builtin:darkMode" }!
+    let rules = [
+      makeRule(
+        name: "Dark",
+        action: TrackpadGestureAction(kind: .quickAction, quickActionStorageValue: "builtin:darkMode")
+      ),
+      makeRule(name: "Louder", action: .system(.volumeUp)),
+      makeRule(
+        name: "Also dark",
+        action: TrackpadGestureAction(kind: .quickAction, quickActionStorageValue: "builtin:darkMode")
+      ),
+    ]
+
+    XCTAssertEqual(
+      ActionCatalog.references(of: item, pinned: [.builtIn(.darkMode)], rules: rules),
+      [.pinned, .gestureRule(name: "Dark"), .gestureRule(name: "Also dark")]
+    )
+    XCTAssertEqual(
+      ActionCatalog.references(of: item, pinned: [.builtIn(.lockScreen)], rules: []),
+      [],
+      "another action being pinned says nothing about this one"
+    )
+  }
+
+  func testATrackpadEntryReportsTheRulesThatSelectedIt() {
+    let volumeUp = ActionCatalog.trackpadNativeActions.first {
+      $0.id == "trackpad:systemControl:volumeUp"
+    }!
+    let leftHalf = ActionCatalog.trackpadNativeActions.first {
+      $0.id == "trackpad:window:leftHalf"
+    }!
+    let rules = [makeRule(name: "Louder", action: .system(.volumeUp))]
+
+    XCTAssertEqual(
+      ActionCatalog.references(of: volumeUp, pinned: [], rules: rules),
+      [.gestureRule(name: "Louder")]
+    )
+    XCTAssertEqual(
+      ActionCatalog.references(of: leftHalf, pinned: [], rules: rules),
+      [],
+      "one system control being used must not light up the whole trackpad section"
+    )
+  }
+
+  func testThePointerWindowEntryIsReferencedByTheRulesThatRunItFirst() {
+    let pointerWindow = ActionCatalog.trackpadNativeActions.first {
+      $0.route == .trackpadPointerWindow
+    }!
+    var rule = makeRule(name: "Focus first", action: .system(.volumeUp))
+    rule.activatesWindowUnderPointer = true
+
+    XCTAssertEqual(
+      ActionCatalog.references(of: pointerWindow, pinned: [], rules: [rule]),
+      [.gestureRule(name: "Focus first")]
+    )
+  }
+
+  func testEveryBuiltInActionIsInExactlyOneCategory() {
+    let categorized = BuiltInQuickActionCategory.allCases.flatMap { category in
+      BuiltInQuickActionID.allCases.filter { $0.category == category }
+    }
+
+    XCTAssertEqual(
+      Set(categorized), Set(BuiltInQuickActionID.allCases),
+      "the popover lists the built-ins by category, so an uncategorized action would vanish")
+    XCTAssertEqual(categorized.count, BuiltInQuickActionID.allCases.count)
+  }
+
   func testEveryRegisteredItemHasATitleAndAnIcon() {
     for item in ActionCatalog.items(surface: .trackpad, shortcuts: ["Routine"])
       + ActionCatalog.items(surface: .panel, shortcuts: ["Routine"])
@@ -183,6 +264,14 @@ final class ActionCatalogTests: XCTestCase {
       L10n.string("The selected Quick Action is no longer available.")
     )
   }
+}
+
+private func makeRule(name: String, action: TrackpadGestureAction) -> TrackpadGestureRule {
+  TrackpadGestureRule(
+    name: name,
+    trigger: TrackpadGestureTrigger(kind: .contact, fingerCount: 2),
+    action: action
+  )
 }
 
 /// A gesture must never trigger the Accessibility prompt, so this stub fails the test if

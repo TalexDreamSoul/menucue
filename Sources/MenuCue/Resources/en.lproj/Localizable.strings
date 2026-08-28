@@ -1,8 +1,6 @@
 "%.0fs" = "%.0fs";
 "%.1fs" = "%.1fs";
 "%@" = "%@";
-"%@ RPM" = "%@ RPM";
-"%@ ago" = "%@ ago";
 "%@ asked for it" = "%@ asked for it";
 "%@ asked for it, to %@" = "%@ asked for it, to %@";
 "%@ disabled." = "%@ disabled.";
@@ -14,8 +12,6 @@
 "%@ total" = "%@ total";
 "%@ used" = "%@ used";
 "%@ – %@" = "%@ – %@";
-"%@ • %@ • Click to select" = "%@ • %@ • Click to select";
-"%@/7" = "%@/7";
 "%d / 7" = "%d / 7";
 "%d RPM" = "%d RPM";
 "%d active" = "%d active";
@@ -32,7 +28,6 @@
 "%d hours ago" = "%d hours ago";
 "%d mounted" = "%d mounted";
 "%d process actions failed." = "%d process actions failed.";
-"%d/7" = "%d/7";
 "%dd %dh %dm" = "%dd %dh %dm";
 "%dh %dm" = "%dh %dm";
 "%dm" = "%dm";
@@ -49,7 +44,6 @@
 "5 min" = "5 min";
 "5 minutes before" = "5 minutes before";
 "A Bluetooth device" = "A Bluetooth device";
-"A light daily guide generated on-device for the selected date." = "A light daily guide generated on-device for the selected date.";
 "A notification" = "A notification";
 "A scheduled background task" = "A scheduled background task";
 "AC" = "AC";
@@ -72,22 +66,18 @@
 "Add System Clock" = "Add System Clock";
 "Add URL" = "Add URL";
 "Advanced" = "Advanced";
-"Alert" = "Alert";
 "Alert:" = "Alert:";
 "All" = "All";
 "All Calendars" = "All Calendars";
-"All Quick Actions…" = "All Quick Actions…";
 "All actions" = "All actions";
 "All day" = "All day";
 "All disks" = "All disks";
 "All-day:" = "All-day:";
-"Allow Accessibility access to use Lock Screen, then try again." = "Allow Accessibility access to use Lock Screen, then try again.";
 "Lock Screen requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility." = "Lock Screen requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility.";
 "Ambient" = "Ambient";
 "An alarm or timer" = "An alarm or timer";
 "An app asked it to sleep" = "An app asked it to sleep";
 "App" = "App";
-"App appearance and optional macOS Light/Dark automation." = "App appearance and optional macOS Light/Dark automation.";
 "App memory" = "App memory";
 "Appearance" = "Appearance";
 "Animation effects" = "Animation effects";
@@ -106,7 +96,6 @@
 "Approval Required" = "Approval Required";
 "Approve MenuCue in System Settings → General → Login Items & Extensions." = "Approve MenuCue in System Settings → General → Login Items & Extensions.";
 "Apps" = "Apps";
-"Arguments" = "Arguments";
 "At low battery" = "At low battery";
 "At start" = "At start";
 "Auto Rotate" = "Auto Rotate";
@@ -115,12 +104,8 @@
 "Auto uses light from 07:00-19:00 in the selected time zone." = "Auto uses light from 07:00-19:00 in the selected time zone.";
 "Auto-hide Dock" = "Auto-hide Dock";
 "Auto-hide Menu Bar" = "Auto-hide Menu Bar";
-"Automatic checks are off." = "Automatic checks are off.";
-"Automatic updates" = "Automatic updates";
 "Automatic updates are off. Manual checks remain available." = "Automatic updates are off. Manual checks remain available.";
 "Automatically check and download updates" = "Automatically check and download updates";
-"Available actions" = "Available actions";
-"Avoid" = "Avoid";
 "Back to sleep after background work" = "Back to sleep after background work";
 "Battery" = "Battery";
 "Battery %d%%" = "Battery %d%%";
@@ -131,7 +116,6 @@
 "Battery flow unavailable" = "Battery flow unavailable";
 "Battery supplying %1$@ to the system" = "Battery supplying %1$@ to the system";
 "Both this Mac and iCloud contain settings. Choose which source should win for the first merge." = "Both this Mac and iCloud contain settings. Choose which source should win for the first merge.";
-"Built-in actions and Apple Shortcuts can be added once and reordered above." = "Built-in actions and Apple Shortcuts can be added once and reordered above.";
 "Button" = "Button";
 "CPU" = "CPU";
 "CPU %.1f%% · Memory %.1f%% · Nice %d" = "CPU %.1f%% · Memory %.1f%% · Nice %d";
@@ -141,7 +125,6 @@
 "CPU proximity" = "CPU proximity";
 "Cached" = "Cached";
 "Calendar" = "Calendar";
-"Calendar access" = "Calendar access";
 "Calendar access and selection, system appearance control, Quick Actions, sync choices, and temporary UI state." = "Calendar access and selection, system appearance control, Quick Actions, sync choices, and temporary UI state.";
 "Calendar access denied." = "Calendar access denied.";
 "Calendar access granted." = "Calendar access granted.";
@@ -150,10 +133,7 @@
 "Calendar access is turned off. Open System Settings and turn on MenuCue under Privacy & Security → Calendars." = "Calendar access is turned off. Open System Settings and turn on MenuCue under Privacy & Security → Calendars.";
 "Calendar access restricted." = "Calendar access restricted.";
 "Calendar access: %@." = "Calendar access: %@.";
-"Calendar display, overview time zone, and week layout." = "Calendar display, overview time zone, and week layout.";
-"Calendar permissions and event sources." = "Calendar permissions and event sources.";
 "Calendar write-only access cannot read events." = "Calendar write-only access cannot read events.";
-"Calendars" = "Calendars";
 "Cancel" = "Cancel";
 "Cancel Install" = "Cancel Install";
 "Capacity" = "Capacity";
@@ -171,14 +151,11 @@
 "Clean Keyboard requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility." = "Clean Keyboard requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility.";
 "Clean Screen" = "Clean Screen";
 "Clear History" = "Clear History";
-"Clear local history" = "Clear local history";
 "Clear local history?" = "Clear local history?";
-"Click a tile to run it now. Use the pin button to show it in the menu-bar popover." = "Click a tile to run it now. Use the pin button to show it in the menu-bar popover.";
 "Clock carousel" = "Clock carousel";
 "Clock cycle" = "Clock cycle";
 "Close" = "Close";
 "Cluster Temperatures" = "Cluster Temperatures";
-"Communication" = "Communication";
 "Compressed" = "Compressed";
 "Cooling" = "Cooling";
 "Core" = "Core";
@@ -188,13 +165,10 @@
 "Could not save the event: %@" = "Could not save the event: %@";
 "Could not update Calendar access: %@" = "Could not update Calendar access: %@";
 "Could not update Launch at Login: %@" = "Could not update Launch at Login: %@";
-"Creating" = "Creating";
 "Critical" = "Critical";
-"Currently on" = "Currently on";
 "Custom" = "Custom";
 "Custom label" = "Custom label";
 "Daily" = "Daily";
-"Daily Guide" = "Daily Guide";
 "Dark" = "Dark";
 "Dark Mode" = "Dark Mode";
 "Dark Mode disabled." = "Dark Mode disabled.";
@@ -202,7 +176,6 @@
 "Dark Wake" = "Dark Wake";
 "Dashboard" = "Dashboard";
 "Date" = "Date";
-"Date & Events" = "Date & Events";
 "Date pattern (empty hides date)" = "Date pattern (empty hides date)";
 "Date pattern contains unbalanced quotes." = "Date pattern contains unbalanced quotes.";
 "Date pattern produced no visible output." = "Date pattern produced no visible output.";
@@ -215,7 +188,6 @@
 "Disk" = "Disk";
 "Display time zone" = "Display time zone";
 "Displays are sleeping." = "Displays are sleeping.";
-"Distraction" = "Distraction";
 "Don't Sleep When Closed" = "Don't Sleep When Closed";
 "Download" = "Download";
 "Downloading version %@..." = "Downloading version %@...";
@@ -246,17 +218,12 @@
 "Error" = "Error";
 "Est. %@ left" = "Est. %@ left";
 "Events" = "Events";
-"Events are visible in the popover." = "Events are visible in the popover.";
-"Every available action is pinned." = "Every available action is pinned.";
-"Exercise" = "Exercise";
 "Exit Cleaning Mode" = "Exit Cleaning Mode";
 "Exit MenuCue" = "Exit MenuCue";
 "Exits automatically in %ds" = "Exits automatically in %ds";
 "Expected system time zone %@, observed %@." = "Expected system time zone %@, observed %@.";
 "Fan" = "Fan";
 "Fan %d" = "Fan %d";
-"Focus" = "Focus";
-"Forcing outcomes" = "Forcing outcomes";
 "Free" = "Free";
 "Friday" = "Friday";
 "Full" = "Full";
@@ -266,14 +233,11 @@
 "GPU memory" = "GPU memory";
 "GitHub Repository" = "GitHub Repository";
 "Global language changes are managed by macOS and may require signing out." = "Global language changes are managed by macOS and may require signing out.";
-"Good for" = "Good for";
 "Grant Calendar Access" = "Grant Calendar Access";
 "Grant Calendar access to show iCloud and local Calendar events." = "Grant Calendar access to show iCloud and local Calendar events.";
-"Grant access to show events." = "Grant access to show events.";
 "Graphics" = "Graphics";
 "Graphics memory in use" = "Graphics memory in use";
 "Hardware address" = "Hardware address";
-"Hasty decisions" = "Hasty decisions";
 "Hidden" = "Hidden";
 "Hide Desktop" = "Hide Desktop";
 "Hide Notch" = "Hide Notch";
@@ -282,7 +246,6 @@
 "IPv4" = "IPv4";
 "ISO" = "ISO";
 "Idle" = "Idle";
-"Impulse spending" = "Impulse spending";
 "In %d day" = "In %d day";
 "In %d days" = "In %d days";
 "Install Helper" = "Install Helper";
@@ -292,7 +255,6 @@
 "Interfaces" = "Interfaces";
 "Internal" = "Internal";
 "Jump to today" = "Jump to today";
-"Just now" = "Just now";
 "Keep Running With the Lid Closed?" = "Keep Running With the Lid Closed?";
 "Keep Screen On" = "Keep Screen On";
 "Keep Screen On disabled." = "Keep Screen On disabled.";
@@ -303,19 +265,15 @@
 "Keeping Your Mac Awake" = "Keeping Your Mac Awake";
 "Keeps Running" = "Keeps Running";
 "Kept on this Mac" = "Kept on this Mac";
-"Language & Region" = "Language & Region";
 "Last Wake" = "Last Wake";
 "Last checked %@." = "Last checked %@.";
-"Last reading" = "Last reading";
 "Last sync activity %@. iCloud may take a few minutes to update other devices." = "Last sync activity %@. iCloud may take a few minutes to update other devices.";
 "Last woke at %@" = "Last woke at %@";
 "Launch MenuCue at login" = "Launch MenuCue at login";
 "Launch at Login is available when MenuCue runs from its app bundle." = "Launch at Login is available when MenuCue runs from its app bundle.";
-"Learning" = "Learning";
 "Less than 1 hour ago" = "Less than 1 hour ago";
 "Light" = "Light";
 "Links" = "Links";
-"Live CPU, GPU, memory, storage, network, and sensor readings." = "Live CPU, GPU, memory, storage, network, and sensor readings.";
 "Live CPU, GPU, memory, storage, network, sensor and power readings." = "Live CPU, GPU, memory, storage, network, sensor and power readings.";
 "Load Average" = "Load Average";
 "Load average unavailable." = "Load average unavailable.";
@@ -325,8 +283,6 @@
 "Low Power Mode" = "Low Power Mode";
 "Low Power Mode applies to battery and adapter power. Don't Sleep When Closed can increase heat and battery use." = "Low Power Mode applies to battery and adapter power. Don't Sleep When Closed can increase heat and battery use.";
 "Lower priority" = "Lower priority";
-"Manage" = "Manage";
-"Manage in Settings" = "Manage in Settings";
 "Memory" = "Memory";
 "Memory by app" = "Memory by app";
 "Menu Bar" = "Menu Bar";
@@ -335,13 +291,10 @@
 "MenuCue" = "MenuCue";
 "MenuCue Clock — scroll to switch clocks" = "MenuCue Clock — scroll to switch clocks";
 "MenuCue Language" = "MenuCue Language";
-"MenuCue Quick Actions" = "MenuCue Quick Actions";
 "MenuCue Settings" = "MenuCue Settings";
 "MenuCue checks for updates every 12 hours." = "MenuCue checks for updates every 12 hours.";
-"MenuCue checks for updates in the background." = "MenuCue checks for updates in the background.";
 "MenuCue could not relaunch: %@" = "MenuCue could not relaunch: %@";
 "MenuCue is up to date." = "MenuCue is up to date.";
-"MenuCue language and macOS system region controls." = "MenuCue language and macOS system region controls.";
 "MenuCue starts only when you open it." = "MenuCue starts only when you open it.";
 "MenuCue will start automatically after you sign in." = "MenuCue will start automatically after you sign in.";
 "MenuCueHelper must run as a root LaunchDaemon." = "MenuCueHelper must run as a root LaunchDaemon.";
@@ -353,16 +306,12 @@
 "Month view and week numbers use this start day." = "Month view and week numbers use this start day.";
 "Monthly" = "Monthly";
 "Move MenuCue to the Applications folder before installing or refreshing the power Helper." = "Move MenuCue to the Applications folder before installing or refreshing the power Helper.";
-"More" = "More";
-"More Actions" = "More Actions";
-"More Quick Actions" = "More Quick Actions";
 "More options" = "More options";
 "Move down" = "Move down";
 "Move up" = "Move up";
 "Needs attention" = "Needs attention";
 "Network" = "Network";
 "Neural Engine" = "Neural Engine";
-"Never" = "Never";
 "New Event" = "New Event";
 "New Event…" = "New Event…";
 "Next 7 Days" = "Next 7 Days";
@@ -381,11 +330,9 @@
 "No notched built-in display is connected." = "No notched built-in display is connected.";
 "No process energy sample" = "No process energy sample";
 "No readable processes." = "No readable processes.";
-"No reading cached yet. Open the menu-bar popover to sample this Mac." = "No reading cached yet. Open the menu-bar popover to sample this Mac.";
 "No readings available." = "No readings available.";
 "No sleep or wake events" = "No sleep or wake events";
 "No temperature sensors reported." = "No temperature sensors reported.";
-"No toggles are currently on." = "No toggles are currently on.";
 "No visible output" = "No visible output";
 "No wake has been recorded yet." = "No wake has been recorded yet.";
 "No writable calendar is available for new events." = "No writable calendar is available for new events.";
@@ -401,15 +348,10 @@
 "On wall power / full battery" = "On wall power / full battery";
 "Open Language & Region Settings" = "Open Language & Region Settings";
 "Open Login Items Settings" = "Open Login Items Settings";
-"Open Quick Actions Window" = "Open Quick Actions Window";
 "Open System Settings" = "Open System Settings";
-"Open all Quick Actions" = "Open all Quick Actions";
 "Open in Dashboard" = "Open in Dashboard";
 "Opening the lid" = "Opening the lid";
 "Order" = "Order";
-"Organizing" = "Organizing";
-"Overcommitting" = "Overcommitting";
-"Overview" = "Overview";
 "P%d" = "P%d";
 "P-cluster" = "P-cluster";
 "Per-Core Load" = "Per-Core Load";
@@ -422,11 +364,8 @@
 "Pin to popover" = "Pin to popover";
 "Pinned" = "Pinned";
 "Pinned actions" = "Pinned actions";
-"Pinned actions, ordering, availability, and Apple Shortcuts." = "Pinned actions, ordering, availability, and Apple Shortcuts.";
-"Planning" = "Planning";
 "Popover tabs" = "Popover tabs";
 "Portable clock and appearance preferences can stay consistent across your Macs. Calendar access, Quick Actions, and system controls remain local." = "Portable clock and appearance preferences can stay consistent across your Macs. Calendar access, Quick Actions, and system controls remain local.";
-"Portable preferences, conflict choices, and synchronization status." = "Portable preferences, conflict choices, and synchronization status.";
 "Power" = "Power";
 "Power Helper" = "Power Helper";
 "Power Helper connection failed: %@" = "Power Helper connection failed: %@";
@@ -448,9 +387,7 @@
 "Process view" = "Process view";
 "Processes" = "Processes";
 "Processor" = "Processor";
-"Procrastination" = "Procrastination";
 "Quick Actions" = "Quick Actions";
-"Quick Actions…" = "Quick Actions…";
 "Quick Time Zone" = "Quick Time Zone";
 "Quit MenuCue" = "Quit MenuCue";
 "Raise priority" = "Raise priority";
@@ -462,7 +399,6 @@
 "Read since boot" = "Read since boot";
 "Reading sensors…" = "Reading sensors…";
 "Recent Wakes" = "Recent Wakes";
-"Reflection" = "Reflection";
 "Refresh" = "Refresh";
 "Refresh Helper" = "Refresh Helper";
 "Refresh energy impact" = "Refresh energy impact";
@@ -482,13 +418,9 @@
 "Repeat:" = "Repeat:";
 "Required system tool is unavailable: %@" = "Required system tool is unavailable: %@";
 "Reset" = "Reset";
-"Rest" = "Rest";
 "Retry After Signing In" = "Retry After Signing In";
 "Retry Sync" = "Retry Sync";
-"Risk-taking" = "Risk-taking";
 "Run MenuCue from its packaged app bundle to install the power Helper." = "Run MenuCue from its packaged app bundle to install the power Helper.";
-"Run any action, pin your favorites, and manage Apple Shortcuts." = "Run any action, pin your favorites, and manage Apple Shortcuts.";
-"Run built-in actions and Apple Shortcuts without pinning them." = "Run built-in actions and Apple Shortcuts without pinning them.";
 "Runnable threads averaged over each window. Above the core count means work is queued." = "Runnable threads averaged over each window. Above the core count means work is queued.";
 "Running" = "Running";
 "SIGTERM sent to all confirmed processes." = "SIGTERM sent to all confirmed processes.";
@@ -519,20 +451,15 @@
 "Sign in to iCloud" = "Sign in to iCloud";
 "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac." = "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac.";
 "Simplified Chinese" = "Simplified Chinese";
-"Sitting too long" = "Sitting too long";
 "Sleep" = "Sleep";
 "Sleep & Wake" = "Sleep & Wake";
 "Slowest at or below" = "Slowest at or below";
 "SoC" = "SoC";
-"Socializing" = "Socializing";
 "Something plugged in" = "Something plugged in";
 "Standby" = "Standby";
-"Starting" = "Starting";
 "Starts:" = "Starts:";
 "Startup" = "Startup";
 "Status" = "Status";
-"Status item clocks and rotation behavior." = "Status item clocks and rotation behavior.";
-"Staying up late" = "Staying up late";
 "Storage" = "Storage";
 "Structured" = "Structured";
 "Sunday" = "Sunday";
@@ -550,7 +477,6 @@
 "System Clock" = "System Clock";
 "System Default" = "System Default";
 "System Short" = "System Short";
-"System Time Zone" = "System Time Zone";
 "System drawing %1$@, %2$@ from the adapter and %3$@ from the battery" = "System drawing %1$@, %2$@ from the adapter and %3$@ from the battery";
 "System time zone changed to %@." = "System time zone changed to %@.";
 "TCP Keepalive" = "TCP Keepalive";
@@ -572,7 +498,6 @@
 "The reason was not recorded." = "The reason was not recorded.";
 "The system time zone operation failed." = "The system time zone operation failed.";
 "The user Trash folder is unavailable." = "The user Trash folder is unavailable.";
-"This Mac at a glance, sampling behavior, and anything needing attention." = "This Mac at a glance, sampling behavior, and anything needing attention.";
 "This Mac does not expose a supported Low Power Mode pmset key." = "This Mac does not expose a supported Low Power Mode pmset key.";
 "This Mac has no fans." = "This Mac has no fans.";
 "This Mac reports no GPU performance counters." = "This Mac reports no GPU performance counters.";
@@ -597,7 +522,6 @@
 "Top Processes" = "Top Processes";
 "Total" = "Total";
 "Traffic" = "Traffic";
-"Travel" = "Travel";
 "Tuesday" = "Tuesday";
 "Turn Off Displays" = "Turn Off Displays";
 "Type %@ to confirm" = "Type %@ to confirm";
@@ -661,7 +585,6 @@
 "iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry." = "iCloud could not synchronize. Verify the app entitlement and iCloud account, then retry.";
 "iCloud preference storage is over quota. Local settings are unchanged." = "iCloud preference storage is over quota. Local settings are unchanged.";
 "iCloud reported an unknown preference synchronization state." = "iCloud reported an unknown preference synchronization state.";
-"in the last 30 days" = "in the last 30 days";
 "last 30 days · %@" = "last 30 days · %@";
 "macOS Language" = "macOS Language";
 "macOS denied the requested Automation action." = "macOS denied the requested Automation action.";
@@ -673,7 +596,6 @@
 "since you last restarted" = "since you last restarted";
 "systemsetup returned an unreadable time zone." = "systemsetup returned an unreadable time zone.";
 "unknown" = "unknown";
-"up %@" = "up %@";
 
 /* External notifications */
 "Add a rule to monitor system metrics or dark wakes." = "Add a rule to monitor system metrics or dark wakes.";
@@ -696,7 +618,6 @@
 "Cooldown" = "Cooldown";
 "Credential could not be removed." = "Credential could not be removed.";
 "Credential could not be saved." = "Credential could not be saved.";
-"Critical" = "Critical";
 "Delete Rule" = "Delete Rule";
 "Deliver to" = "Deliver to";
 "Device Identity" = "Device Identity";
@@ -705,7 +626,6 @@
 "Done" = "Done";
 "Each new dark wake triggers this rule once." = "Each new dark wake triggers this rule once.";
 "Enable %@" = "Enable %@";
-"Enabled" = "Enabled";
 "Endpoint URL" = "Endpoint URL";
 "Expected value" = "Expected value";
 "External channels, system alert rules, and message templates." = "External channels, system alert rules, and message templates.";
@@ -716,12 +636,9 @@
 "Message" = "Message";
 "Metric" = "Metric";
 "No Alert Rules" = "No Alert Rules";
-"Normal" = "Normal";
 "Not configured" = "Not configured";
 "Notification history could not be opened. Existing pending messages were preserved." = "Notification history could not be opened. Existing pending messages were preserved.";
-"Notifications" = "Notifications";
 "Notifications from this Mac are configured." = "Notifications from this Mac are configured.";
-"Preview" = "Preview";
 "Ready" = "Ready";
 "Recovery" = "Recovery";
 "Recovery sustained" = "Recovery sustained";
@@ -736,7 +653,6 @@
 "Server URL" = "Server URL";
 "Signing secret" = "Signing secret";
 "Sustained" = "Sustained";
-"System" = "System";
 "Target ID" = "Target ID";
 "Telegram" = "Telegram";
 "Template contains an unknown variable or is too long." = "Template contains an unknown variable or is too long.";
@@ -746,7 +662,6 @@
 "Title template" = "Title template";
 "Topic ID (optional)" = "Topic ID (optional)";
 "Variable" = "Variable";
-"Warning" = "Warning";
 "Webhook" = "Webhook";
 "Webhook URL" = "Webhook URL";
 "seconds" = "seconds";
@@ -801,12 +716,6 @@
 "Calendar & Events" = "Calendar & Events";
 "Changes the time zone for all apps and system services on this Mac." = "Changes the time zone for all apps and system services on this Mac.";
 "Choose the event sources and date layout used in the popover." = "Choose the event sources and date layout used in the popover.";
-"Configure the menu-bar clock and the date shown in MenuCue." = "Configure the menu-bar clock and the date shown in MenuCue.";
-"Date & Time" = "Date & Time";
-"Language" = "Language";
-"Menu Bar & Display" = "Menu Bar & Display";
-"Menu-bar clocks, calendar events, and time-zone controls." = "Menu-bar clocks, calendar events, and time-zone controls.";
-"MenuCue language and macOS language settings." = "MenuCue language and macOS language settings.";
 "macOS System Time Zone" = "macOS System Time Zone";
 "Overview Display" = "Overview Display";
 "This changes dates and times shown inside MenuCue without changing macOS." = "This changes dates and times shown inside MenuCue without changing macOS.";
@@ -935,7 +844,6 @@
 "macOS could not open %@." = "macOS could not open %@.";
 "macOS could not open the selected application." = "macOS could not open the selected application.";
 "macOS could not read the focused window frame." = "macOS could not read the focused window frame.";
-"macOS denied the requested Automation action." = "macOS denied the requested Automation action.";
 "macOS did not apply the requested display brightness." = "macOS did not apply the requested display brightness.";
 "macOS did not apply the requested mute state." = "macOS did not apply the requested mute state.";
 "macOS did not apply the requested volume." = "macOS did not apply the requested volume.";
@@ -994,7 +902,6 @@
 "Actions for %@" = "Actions for %@";
 "Rule Details" = "Rule Details";
 "Name" = "Name";
-"Rule name" = "Rule name";
 "Required modifiers" = "Required modifiers";
 "Trigger" = "Trigger";
 "Trackpad devices" = "Trackpad devices";
@@ -1036,7 +943,6 @@
 "Maximum duration" = "Maximum duration";
 "Movement tolerance" = "Movement tolerance";
 "Minimum velocity" = "Minimum velocity";
-"Action" = "Action";
 "Action family" = "Action family";
 "System control" = "System control";
 "No Quick Actions are currently available." = "No Quick Actions are currently available.";
@@ -1073,7 +979,6 @@
 "No apps are excluded; this currently behaves like All Applications." = "No apps are excluded; this currently behaves like All Applications.";
 "Remove application" = "Remove application";
 "Remove %@" = "Remove %@";
-"Add" = "Add";
 "Running Apps" = "Running Apps";
 "Gesture Rule %d" = "Gesture Rule %d";
 "%@ Copy" = "%@ Copy";
@@ -1208,3 +1113,25 @@
 /* Wake history retention, moved into Settings */
 "Wake History" = "Wake History";
 "Sleep and wake events from the last 30 days, kept on this Mac · %@" = "Sleep and wake events from the last 30 days, kept on this Mac · %@";
+
+/* Action Center and the popover actions page */
+"Built-in" = "Built-in";
+"Shortcuts" = "Shortcuts";
+"Trackpad Native" = "Trackpad Native";
+"Display & Screen" = "Display & Screen";
+"System Actions" = "System Actions";
+"Cleaning" = "Cleaning";
+"Search actions" = "Search actions";
+"Clear search" = "Clear search";
+"Collapse group" = "Collapse group";
+"Expand group" = "Expand group";
+"No action matches this search." = "No action matches this search.";
+"Manage Actions…" = "Manage Actions…";
+"Source" = "Source";
+"Run" = "Run";
+"Run %@" = "Run %@";
+"Run an action with its Run button. Pin it to reach it from the menu-bar popover." = "Run an action with its Run button. Pin it to reach it from the menu-bar popover.";
+"No actions are registered here yet." = "No actions are registered here yet.";
+"Not used yet" = "Not used yet";
+"Discovered from Apple Shortcuts on this Mac." = "Discovered from Apple Shortcuts on this Mac.";
+"These run from a trackpad gesture rule, not from a pinned action." = "These run from a trackpad gesture rule, not from a pinned action.";
