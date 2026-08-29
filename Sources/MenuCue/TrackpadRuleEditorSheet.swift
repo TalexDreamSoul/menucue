@@ -20,6 +20,81 @@ enum TrackpadRuleDraft {
   }
 }
 
+/// Which advanced groups the editor opens the moment it appears.
+///
+/// Every folded field has a working default, which is what makes folding it safe. A rule
+/// that already moved one off its default is a different matter: hiding a value the user
+/// chose would make a tuned rule read exactly like an untouched one, so its section opens.
+enum TrackpadRuleAdvancedDisclosure {
+  static func expandsTrigger(for rule: TrackpadGestureRule) -> Bool {
+    guard rule.requiredModifiers.isEmpty else { return true }
+    let defaults = TrackpadGestureTrigger(kind: rule.trigger.kind)
+    return foldedTuning(for: rule.trigger.kind).contains { field in
+      field.differs(rule.trigger, from: defaults)
+    }
+  }
+
+  static func expandsScope(for rule: TrackpadGestureRule) -> Bool {
+    rule.deviceScope != .allSupported
+      || rule.activatesWindowUnderPointer
+      || !rule.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  /// What each family folds away, mirroring `TrackpadTriggerEditor.familyTuningFields`.
+  /// A family is only asked about the fields it actually shows: a swipe distance stored on
+  /// a contact rule is not a setting that rule has, so it is not one worth opening for.
+  static func foldedTuning(for kind: TrackpadGestureKind) -> [TuningField] {
+    switch kind {
+    case .contact:
+      return [.maximumDuration, .movementTolerance]
+    case .swipe, .fingerSwipe:
+      return [.minimumDistance, .minimumVelocity, .maximumDuration, .movementTolerance]
+    case .edgeEntrySwipe:
+      return [.minimumDistance, .minimumVelocity, .maximumDuration]
+    case .pinch:
+      return [.minimumDistance, .maximumDuration, .movementTolerance]
+    case .tipTap:
+      return [.tapSpacing, .holdDuration, .maximumDuration, .movementTolerance]
+    case .drawing:
+      return [
+        .drawingActivation, .holdDuration, .minimumDrawingScore, .maximumDuration,
+        .movementTolerance,
+      ]
+    case .edgeContinuous:
+      return [.minimumDistance, .minimumVelocity]
+    case .anchoredSlide:
+      return [.minimumDistance, .movementTolerance]
+    }
+  }
+
+  enum TuningField {
+    case holdDuration
+    case maximumDuration
+    case movementTolerance
+    case minimumDistance
+    case minimumVelocity
+    case minimumDrawingScore
+    case tapSpacing
+    case drawingActivation
+
+    func differs(
+      _ trigger: TrackpadGestureTrigger,
+      from defaults: TrackpadGestureTrigger
+    ) -> Bool {
+      switch self {
+      case .holdDuration: return trigger.holdDuration != defaults.holdDuration
+      case .maximumDuration: return trigger.maximumDuration != defaults.maximumDuration
+      case .movementTolerance: return trigger.movementTolerance != defaults.movementTolerance
+      case .minimumDistance: return trigger.minimumDistance != defaults.minimumDistance
+      case .minimumVelocity: return trigger.minimumVelocity != defaults.minimumVelocity
+      case .minimumDrawingScore: return trigger.minimumDrawingScore != defaults.minimumDrawingScore
+      case .tapSpacing: return trigger.tapSpacing != defaults.tapSpacing
+      case .drawingActivation: return trigger.drawingActivation != defaults.drawingActivation
+      }
+    }
+  }
+}
+
 /// The whole of one rule, edited apart from the rule list. Every field writes to `draft`
 /// and nothing reaches settings until Save, so Cancel is genuinely free — which the
 /// previous inline editor could not offer, because each keystroke was already stored.
@@ -31,6 +106,10 @@ struct TrackpadRuleEditorSheet: View {
   let onDelete: (UUID) -> Void
 
   @State private var draft: TrackpadGestureRule
+  /// Decided once, from the rule as it arrived: a slider dragged back to its default while
+  /// the sheet is open must not fold itself away under the hand doing the dragging.
+  @State private var showsTriggerAdvanced: Bool
+  @State private var showsScopeAdvanced: Bool
 
   init(
     model: AppModel,
@@ -44,6 +123,10 @@ struct TrackpadRuleEditorSheet: View {
     self.onSave = onSave
     self.onDelete = onDelete
     _draft = State(initialValue: rule)
+    _showsTriggerAdvanced = State(
+      initialValue: TrackpadRuleAdvancedDisclosure.expandsTrigger(for: rule))
+    _showsScopeAdvanced = State(
+      initialValue: TrackpadRuleAdvancedDisclosure.expandsScope(for: rule))
   }
 
   var body: some View {
@@ -56,6 +139,7 @@ struct TrackpadRuleEditorSheet: View {
           TrackpadTriggerEditor(
             trigger: $draft.trigger,
             requiredModifiers: $draft.requiredModifiers,
+            isAdvancedExpanded: $showsTriggerAdvanced,
             edgeWidth: settings.edgeWidth,
             sensitivity: settings.sensitivity
           )
@@ -110,35 +194,40 @@ struct TrackpadRuleEditorSheet: View {
 
       TrackpadApplicationScopeEditor(scope: $draft.applicationScope)
 
-      LabeledContent("Trackpad devices") {
-        Picker("Trackpad devices", selection: $draft.deviceScope) {
-          ForEach(TrackpadDeviceScope.allCases) { scope in
-            Text(scope.settingsTitle).tag(scope)
+      TrackpadAdvancedDisclosure(
+        isExpanded: $showsScopeAdvanced,
+        caption: L10n.string("Devices, pointer activation, and notes.")
+      ) {
+        LabeledContent("Trackpad devices") {
+          Picker("Trackpad devices", selection: $draft.deviceScope) {
+            ForEach(TrackpadDeviceScope.allCases) { scope in
+              Text(scope.settingsTitle).tag(scope)
+            }
           }
+          .labelsHidden()
+          .frame(maxWidth: 260)
         }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
 
-      Toggle(
-        "Activate the window under the pointer before the action",
-        isOn: $draft.activatesWindowUnderPointer
-      )
-      .help("MenuCue fails closed when macOS cannot identify an activatable window.")
+        Toggle(
+          "Activate the window under the pointer before the action",
+          isOn: $draft.activatesWindowUnderPointer
+        )
+        .help("MenuCue fails closed when macOS cannot identify an activatable window.")
 
-      VStack(alignment: .leading, spacing: 5) {
-        Text("Note")
-          .font(.caption.weight(.medium))
-          .foregroundStyle(.secondary)
-        TextEditor(text: $draft.note)
-          .font(.body)
-          .frame(minHeight: 58, maxHeight: 88)
-          .padding(4)
-          .overlay {
-            RoundedRectangle(cornerRadius: TrackpadSettingsLayout.controlCornerRadius)
-              .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-          }
-          .accessibilityLabel("Rule note")
+        VStack(alignment: .leading, spacing: 5) {
+          Text("Note")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+          TextEditor(text: $draft.note)
+            .font(.body)
+            .frame(minHeight: 58, maxHeight: 88)
+            .padding(4)
+            .overlay {
+              RoundedRectangle(cornerRadius: TrackpadSettingsLayout.controlCornerRadius)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+            }
+            .accessibilityLabel("Rule note")
+        }
       }
     }
   }
@@ -176,9 +265,39 @@ private enum TrackpadRuleSheetLayout {
   static let maximumHeight: CGFloat = 680
 }
 
+/// The tail of an editor section: the fields that have a working default, folded away so
+/// the section reads as the handful of choices that actually define the rule.
+private struct TrackpadAdvancedDisclosure<Content: View>: View {
+  @Binding var isExpanded: Bool
+  let caption: String
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    DisclosureGroup(isExpanded: $isExpanded) {
+      VStack(alignment: .leading, spacing: 10) {
+        content
+      }
+      .padding(.top, 8)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    } label: {
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Advanced")
+          .font(.subheadline.weight(.medium))
+        Text(caption)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .contentShape(Rectangle())
+    }
+  }
+}
+
 private struct TrackpadTriggerEditor: View {
   @Binding var trigger: TrackpadGestureTrigger
   @Binding var requiredModifiers: Set<TrackpadModifier>
+  @Binding var isAdvancedExpanded: Bool
   let edgeWidth: Double
   let sensitivity: Double
 
@@ -206,14 +325,23 @@ private struct TrackpadTriggerEditor: View {
         .accessibilityValue(L10n.format("%d fingers", trigger.fingerCount))
       }
 
-      LabeledContent("Required modifiers") {
-        TrackpadModifierSelector(selection: $requiredModifiers)
-      }
-
       familyFields
+
+      TrackpadAdvancedDisclosure(
+        isExpanded: $isAdvancedExpanded,
+        caption: L10n.string("Thresholds and tuning. The defaults suit most gestures.")
+      ) {
+        LabeledContent("Required modifiers") {
+          TrackpadModifierSelector(selection: $requiredModifiers)
+        }
+
+        familyTuningFields
+      }
     }
   }
 
+  /// What the gesture *is*: the parameters that separate this rule from its siblings in the
+  /// same family, and the notes that explain them.
   @ViewBuilder
   private var familyFields: some View {
     switch trigger.kind {
@@ -238,9 +366,6 @@ private struct TrackpadTriggerEditor: View {
         .frame(maxWidth: 260)
       }
 
-      durationSlider
-      movementToleranceSlider
-
       if trigger.contactGesture == .click || trigger.contactGesture == .forceClick {
         Label(
           "Click and force-click use contact density and size. They remain inactive on hardware that cannot distinguish the configured gesture.",
@@ -253,17 +378,10 @@ private struct TrackpadTriggerEditor: View {
 
     case .swipe:
       directionPicker
-      distanceSlider(title: L10n.string("Minimum swipe distance"))
-      velocitySlider
-      durationSlider
-      movementToleranceSlider
 
     case .edgeEntrySwipe:
       edgePicker
       directionPicker
-      distanceSlider(title: L10n.string("Minimum entry distance"))
-      velocitySlider
-      durationSlider
 
     case .pinch:
       LabeledContent("Pinch direction") {
@@ -275,12 +393,100 @@ private struct TrackpadTriggerEditor: View {
         .labelsHidden()
         .frame(maxWidth: 260)
       }
+
+    case .tipTap:
+      selectedFingerStepper
+      Text("Finger positions are assigned left to right when the gesture arms.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      Text("Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+
+    case .fingerSwipe:
+      selectedFingerStepper
+      directionPicker
+
+    case .drawing:
+      TrackpadDrawingRecorder(points: binding(\.drawingTemplate))
+
+      Text("A drawing trigger runs the selected action directly. It replaces the cross-module normal-mouse drawing bridge with an equivalent editable rule.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+
+    case .edgeContinuous:
+      edgePicker
+      Toggle("Invert edge direction", isOn: binding(\.isInverted))
+      Label(
+        L10n.format(
+          "Uses the global edge width of %@ and sensitivity of %@.",
+          TrackpadUIFormat.percent(edgeWidth),
+          TrackpadUIFormat.multiplier(sensitivity)
+        ),
+        systemImage: "slider.horizontal.3"
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .fixedSize(horizontal: false, vertical: true)
+
+    case .anchoredSlide:
+      selectedFingerStepper
+      LabeledContent("Slide axis") {
+        Picker("Slide axis", selection: binding(\.slideAxis)) {
+          ForEach(TrackpadSlideAxis.allCases) { axis in
+            Text(axis.settingsTitle).tag(axis)
+          }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 260)
+      }
+      Text("Finger positions are assigned left to right when the gesture arms.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      Label(
+        L10n.format(
+          "Uses the global sensitivity of %@.",
+          TrackpadUIFormat.multiplier(sensitivity)
+        ),
+        systemImage: "slider.horizontal.3"
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .fixedSize(horizontal: false, vertical: true)
+    }
+  }
+
+  /// The thresholds behind the gesture. Every one of them ships with a value that works, so
+  /// they sit folded away; `TrackpadRuleAdvancedDisclosure.foldedTuning` lists the same
+  /// fields per family and is what unfolds the group for a rule that moved one.
+  @ViewBuilder
+  private var familyTuningFields: some View {
+    switch trigger.kind {
+    case .contact:
+      durationSlider
+      movementToleranceSlider
+
+    case .swipe:
+      distanceSlider(title: L10n.string("Minimum swipe distance"))
+      velocitySlider
+      durationSlider
+      movementToleranceSlider
+
+    case .edgeEntrySwipe:
+      distanceSlider(title: L10n.string("Minimum entry distance"))
+      velocitySlider
+      durationSlider
+
+    case .pinch:
       distanceSlider(title: L10n.string("Minimum pinch change"))
       durationSlider
       movementToleranceSlider
 
     case .tipTap:
-      selectedFingerStepper
       LabeledContent("Tap spacing") {
         Picker("Tap spacing", selection: binding(\.tapSpacing)) {
           ForEach(TrackpadTapSpacing.allCases) { spacing in
@@ -299,18 +505,8 @@ private struct TrackpadTriggerEditor: View {
       )
       durationSlider
       movementToleranceSlider
-      Text("Finger positions are assigned left to right when the gesture arms.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      Text("Tip-tap recognizes 2 to 4 fingers. A rule saved with 5 fingers never fires.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
 
     case .fingerSwipe:
-      selectedFingerStepper
-      directionPicker
       distanceSlider(title: L10n.string("Minimum finger distance"))
       velocitySlider
       durationSlider
@@ -337,8 +533,6 @@ private struct TrackpadTriggerEditor: View {
         )
       }
 
-      TrackpadDrawingRecorder(points: binding(\.drawingTemplate))
-
       TrackpadLabeledSlider(
         title: L10n.string("Minimum drawing match"),
         value: binding(\.minimumDrawingScore),
@@ -349,59 +543,17 @@ private struct TrackpadTriggerEditor: View {
       durationSlider
       movementToleranceSlider
 
-      Text("A drawing trigger runs the selected action directly. It replaces the cross-module normal-mouse drawing bridge with an equivalent editable rule.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
     case .edgeContinuous:
-      edgePicker
-      Toggle("Invert edge direction", isOn: binding(\.isInverted))
       distanceSlider(title: L10n.string("Distance per action step"))
       velocitySlider
-      Label(
-        L10n.format(
-          "Uses the global edge width of %@ and sensitivity of %@.",
-          TrackpadUIFormat.percent(edgeWidth),
-          TrackpadUIFormat.multiplier(sensitivity)
-        ),
-        systemImage: "slider.horizontal.3"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
 
     case .anchoredSlide:
-      selectedFingerStepper
-      LabeledContent("Slide axis") {
-        Picker("Slide axis", selection: binding(\.slideAxis)) {
-          ForEach(TrackpadSlideAxis.allCases) { axis in
-            Text(axis.settingsTitle).tag(axis)
-          }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 260)
-      }
       distanceSlider(title: L10n.string("Distance per action step"))
       movementToleranceSlider
-      Text("Finger positions are assigned left to right when the gesture arms.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
       Text("The other fingers must stay inside the movement tolerance. Keeping the step distance larger than that tolerance is what separates this gesture from an ordinary two-finger scroll.")
         .font(.caption)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
-      Label(
-        L10n.format(
-          "Uses the global sensitivity of %@.",
-          TrackpadUIFormat.multiplier(sensitivity)
-        ),
-        systemImage: "slider.horizontal.3"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
     }
   }
 

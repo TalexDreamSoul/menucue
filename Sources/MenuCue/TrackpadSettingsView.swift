@@ -6,14 +6,10 @@ import UniformTypeIdentifiers
 
 struct TrackpadSettingsView: View {
   @Environment(\.menuCueMotion) private var motion
-  @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
   @ObservedObject private var service: TrackpadGestureService
-  /// The live preview publishes touches at 30 Hz, so it must stop when the settings
-  /// window closes. Closing that window only orders it out, and `onDisappear` covers
-  /// leaving the pane but not that.
-  @StateObject private var livePreviewGate = VisibilityGate()
 
+  @State private var tab: TrackpadSettingsTab = .rules
   @State private var editingTarget: TrackpadRuleSheetTarget?
   @State private var feedbackMessage: String?
   @State private var feedbackIsError = false
@@ -25,31 +21,14 @@ struct TrackpadSettingsView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 24) {
-      runtimeSection
-
-      if settings.isEnabled {
-        Divider()
-        livePreviewSection
-      }
-
-      Divider()
-      feedbackAndEdgeSection
-      Divider()
-      rulesSection
-      Divider()
-      managementSection
+    VStack(alignment: .leading, spacing: 20) {
+      moduleHeader
+      TrackpadSettingsTabBar(selection: $tab)
+      tabContent
     }
+    .frame(maxWidth: TrackpadSettingsLayout.paneWidth, alignment: .leading)
     .onAppear {
       model.quickActionService.refreshAll()
-      livePreviewGate.connect(
-        to: router.visibility(of: .settings),
-        onStart: { service.retainLivePreview() },
-        onStop: { service.releaseLivePreview() }
-      )
-    }
-    .onDisappear {
-      livePreviewGate.disconnect()
     }
     .sheet(item: $editingTarget) { target in
       TrackpadRuleEditorSheet(
@@ -76,22 +55,52 @@ struct TrackpadSettingsView: View {
     model.settings.trackpadGestureSettings
   }
 
+  /// The one control every tab needs within reach: a rule list nobody can trigger reads the
+  /// same as one that works, so the module switch stays above the tabs rather than inside
+  /// the diagnostics tab with the status card it belongs to.
+  private var moduleHeader: some View {
+    HStack(alignment: .firstTextBaseline) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Trackpad Runtime")
+          .font(.headline)
+        Text("Raw touch capture starts only while this module is enabled.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      Spacer()
+      Toggle("Enable trackpad gestures", isOn: enabledBinding)
+        .toggleStyle(.switch)
+    }
+  }
+
+  /// Each tab renders on its own, which is what stops the 30 Hz preview: leaving the
+  /// diagnostics tab takes `TrackpadLivePreviewCard` out of the hierarchy, and its gate
+  /// releases the preview from `onDisappear`.
+  @ViewBuilder
+  private var tabContent: some View {
+    switch tab {
+    case .rules:
+      VStack(alignment: .leading, spacing: 24) {
+        rulesSection
+        Divider()
+        managementSection
+      }
+    case .feedback:
+      feedbackAndEdgeSection
+    case .diagnostics:
+      VStack(alignment: .leading, spacing: 24) {
+        runtimeSection
+        if settings.isEnabled {
+          Divider()
+          TrackpadLivePreviewCard(service: service)
+        }
+      }
+    }
+  }
+
   private var runtimeSection: some View {
     SettingsGroup(spacing: 12) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Trackpad Runtime")
-            .font(.headline)
-          Text("Raw touch capture starts only while this module is enabled.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        Spacer()
-        Toggle("Enable trackpad gestures", isOn: enabledBinding)
-          .toggleStyle(.switch)
-      }
-
       HStack(alignment: .top, spacing: 10) {
         Image(systemName: runtimeStatusSymbol)
           .font(.title3)
@@ -263,38 +272,6 @@ struct TrackpadSettingsView: View {
       Button("Open System Settings") {
         service.openAccessibilitySettings()
       }
-    }
-  }
-
-  private var livePreviewSection: some View {
-    SettingsGroup(spacing: 10) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Live Touch Preview")
-            .font(.headline)
-          Text("Contact dots are published at a bounded rate of up to 30 Hz.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        Spacer()
-        Text(L10n.format("%d contacts", activeContactCount))
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(.secondary)
-          .monospacedDigit()
-      }
-
-      TrackpadLiveContactPreview(contacts: service.liveContacts)
-
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Text("Last recognized")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-        Text(lastRecognitionTitle)
-          .font(.caption.weight(.medium))
-          .lineLimit(2)
-        Spacer(minLength: 0)
-      }
-      .accessibilityElement(children: .combine)
     }
   }
 
@@ -583,20 +560,6 @@ struct TrackpadSettingsView: View {
     feedbackIsError = isError
   }
 
-  private var activeContactCount: Int {
-    service.liveContacts.reduce(into: 0) { count, contact in
-      if contact.state.isActive { count += 1 }
-    }
-  }
-
-  private var lastRecognitionTitle: String {
-    guard let recognition = service.lastRecognition else {
-      return L10n.string("Nothing recognized yet")
-    }
-    let presetNames = Set(TrackpadGestureSettings.presetRules.map(\.name))
-    return presetNames.contains(recognition) ? L10n.string(recognition) : recognition
-  }
-
   private var isRuntimeStarting: Bool {
     if case .starting = service.status { return true }
     return false
@@ -654,7 +617,158 @@ struct TrackpadSettingsView: View {
   }
 }
 
+/// Which group of trackpad settings the pane is showing.
+///
+/// Deliberately view state rather than a router destination: the pane is one settings page
+/// whose tabs are a way of reading it, not places to link to. The choice lives as long as
+/// the window does.
+private enum TrackpadSettingsTab: String, CaseIterable, Identifiable {
+  case rules
+  case feedback
+  case diagnostics
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .rules: return L10n.string("Gesture Rules")
+    case .feedback: return L10n.string("Feedback and Parameters")
+    case .diagnostics: return L10n.string("Runtime and Diagnostics")
+    }
+  }
+
+  var systemImage: String {
+    switch self {
+    case .rules: return "hand.tap"
+    case .feedback: return "slider.horizontal.3"
+    case .diagnostics: return "waveform.path.ecg"
+    }
+  }
+}
+
+/// The pane's tab bar, drawn the way the Dashboard's is: a macOS segmented control renders
+/// either the icon or the label, never both.
+private struct TrackpadSettingsTabBar: View {
+  @Environment(\.menuCueMotion) private var motion
+  @Binding var selection: TrackpadSettingsTab
+  @Namespace private var highlight
+  @State private var hovered: TrackpadSettingsTab?
+
+  var body: some View {
+    HStack(spacing: 2) {
+      ForEach(TrackpadSettingsTab.allCases) { tab in
+        Button {
+          guard selection != tab else { return }
+          withAnimation(motion.navigationAnimation) { selection = tab }
+        } label: {
+          HStack(spacing: 6) {
+            Image(systemName: tab.systemImage)
+              .menuCueSymbolBounce(value: selection == tab)
+            Text(tab.title)
+          }
+          .font(.callout.weight(.medium))
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 7)
+          .background {
+            if selection == tab {
+              RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .shadow(color: .black.opacity(0.10), radius: 2, y: 1)
+                .menuCueMatchedGeometryEffect(id: "selected-trackpad-tab", in: highlight)
+            } else if hovered == tab {
+              RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(.quaternary)
+            }
+          }
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(selection == tab ? .primary : .secondary)
+        .onHover { isHovering in
+          withAnimation(motion.hoverAnimation) {
+            hovered = isHovering ? tab : (hovered == tab ? nil : hovered)
+          }
+        }
+        .accessibilityLabel(tab.title)
+        .accessibilityAddTraits(selection == tab ? [.isSelected, .isButton] : .isButton)
+      }
+    }
+    .padding(3)
+    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+  }
+}
+
+/// The live preview and the gate that pays for it, in one view.
+///
+/// The preview publishes touches at 30 Hz, so it has to stop both when this card leaves the
+/// hierarchy — switching away from the diagnostics tab — and when the settings window is
+/// merely ordered out, which never reaches `onDisappear`.
+private struct TrackpadLivePreviewCard: View {
+  @EnvironmentObject private var router: AppRouter
+  @ObservedObject var service: TrackpadGestureService
+  @StateObject private var gate = VisibilityGate()
+
+  var body: some View {
+    SettingsGroup(spacing: 10) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Live Touch Preview")
+            .font(.headline)
+          Text("Contact dots are published at a bounded rate of up to 30 Hz.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Text(L10n.format("%d contacts", activeContactCount))
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
+          .monospacedDigit()
+      }
+
+      TrackpadLiveContactPreview(contacts: service.liveContacts)
+
+      HStack(alignment: .firstTextBaseline, spacing: 8) {
+        Text("Last recognized")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        Text(lastRecognitionTitle)
+          .font(.caption.weight(.medium))
+          .lineLimit(2)
+        Spacer(minLength: 0)
+      }
+      .accessibilityElement(children: .combine)
+    }
+    .onAppear {
+      gate.connect(
+        to: router.visibility(of: .settings),
+        onStart: { service.retainLivePreview() },
+        onStop: { service.releaseLivePreview() }
+      )
+    }
+    .onDisappear {
+      gate.disconnect()
+    }
+  }
+
+  private var activeContactCount: Int {
+    service.liveContacts.reduce(into: 0) { count, contact in
+      if contact.state.isActive { count += 1 }
+    }
+  }
+
+  private var lastRecognitionTitle: String {
+    guard let recognition = service.lastRecognition else {
+      return L10n.string("Nothing recognized yet")
+    }
+    let presetNames = Set(TrackpadGestureSettings.presetRules.map(\.name))
+    return presetNames.contains(recognition) ? L10n.string(recognition) : recognition
+  }
+}
+
 enum TrackpadSettingsLayout {
+  /// What `SettingsGroup` gives every card, applied to the pane itself so the header and
+  /// the tab bar line up with the cards below them.
+  static let paneWidth: CGFloat = 560
   static let previewHeight: CGFloat = 210
   static let drawingHeight: CGFloat = 180
   static let contactDiameter: CGFloat = 18

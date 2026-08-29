@@ -185,6 +185,95 @@ final class TrackpadRuleEditorSheetTests: XCTestCase {
     }
   }
 
+  // MARK: - Advanced disclosure
+
+  /// The whole point of folding: a rule nobody has tuned opens as the few choices that
+  /// define it. This is the draft "Add Rule" seeds, field for field.
+  func testAFreshDraftOpensWithBothAdvancedGroupsFolded() {
+    let draft = TrackpadGestureRule(
+      name: "Gesture Rule 1",
+      trigger: TrackpadGestureTrigger(kind: .contact),
+      action: TrackpadGestureAction(kind: .none)
+    )
+
+    XCTAssertFalse(TrackpadRuleAdvancedDisclosure.expandsTrigger(for: draft))
+    XCTAssertFalse(TrackpadRuleAdvancedDisclosure.expandsScope(for: draft))
+  }
+
+  func testEveryGestureFamilyStartsFoldedAtItsOwnDefaults() {
+    for kind in TrackpadGestureKind.allCases {
+      let untouched = TrackpadGestureRule(
+        name: "Untouched",
+        trigger: TrackpadGestureTrigger(kind: kind),
+        action: .system(.volumeUp)
+      )
+
+      XCTAssertFalse(
+        TrackpadRuleAdvancedDisclosure.expandsTrigger(for: untouched),
+        "\(kind) opened its advanced group with nothing in it to show")
+    }
+  }
+
+  /// Folding a value the user chose would make a tuned rule read exactly like an untouched
+  /// one, and the difference would only surface as a gesture behaving oddly.
+  func testAThresholdTheUserMovedOpensTheTriggerGroup() {
+    var tuned = rule(named: "Slow tap")
+    tuned.trigger.maximumDuration = 1.2
+
+    XCTAssertTrue(TrackpadRuleAdvancedDisclosure.expandsTrigger(for: tuned))
+  }
+
+  func testARequiredModifierOpensTheTriggerGroup() {
+    var guarded = rule(named: "Command tap")
+    guarded.requiredModifiers = [.command]
+
+    XCTAssertTrue(TrackpadRuleAdvancedDisclosure.expandsTrigger(for: guarded))
+  }
+
+  /// A swipe velocity stored on a contact rule is not a setting that rule has: the contact
+  /// family never shows one, so opening the group would present an empty explanation.
+  func testAThresholdThisFamilyNeverShowsLeavesTheGroupFolded() {
+    var contact = rule(named: "Two-finger tap")
+    contact.trigger.minimumVelocity = 4
+
+    XCTAssertTrue(
+      TrackpadRuleAdvancedDisclosure.foldedTuning(for: .swipe).contains(.minimumVelocity),
+      "a swipe does fold its velocity away, so this rule is about the family, not the field")
+    XCTAssertFalse(TrackpadRuleAdvancedDisclosure.expandsTrigger(for: contact))
+  }
+
+  func testTheScopeGroupOpensForAnythingTheUserSetInIt() {
+    var deviceLimited = rule(named: "Built-in only")
+    deviceLimited.deviceScope = .builtInOnly
+    var activating = rule(named: "Follows the pointer")
+    activating.activatesWindowUnderPointer = true
+    var annotated = rule(named: "Explained")
+    annotated.note = "Only for the review build."
+
+    XCTAssertTrue(TrackpadRuleAdvancedDisclosure.expandsScope(for: deviceLimited))
+    XCTAssertTrue(TrackpadRuleAdvancedDisclosure.expandsScope(for: activating))
+    XCTAssertTrue(TrackpadRuleAdvancedDisclosure.expandsScope(for: annotated))
+  }
+
+  /// Whitespace is not a note, and a group that opens on it opens on every rule whose
+  /// editor was clicked into once.
+  func testAnEmptyNoteLeavesTheScopeGroupFolded() {
+    var blank = rule(named: "Blank note")
+    blank.note = "  \n "
+
+    XCTAssertFalse(TrackpadRuleAdvancedDisclosure.expandsScope(for: blank))
+  }
+
+  /// The presets ship tuned — hold times and step distances chosen against real hardware.
+  /// A user reading one of them must see the values it actually runs on.
+  func testShippedPresetsShowTheTuningTheyShipWith() {
+    for preset in TrackpadGestureSettings.presetRules {
+      XCTAssertTrue(
+        TrackpadRuleAdvancedDisclosure.expandsTrigger(for: preset),
+        "\(preset.name) hides the thresholds it was shipped with")
+    }
+  }
+
   // MARK: - Helpers
 
   private func rule(named name: String) -> TrackpadGestureRule {

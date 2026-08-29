@@ -1158,6 +1158,12 @@
 "Top edge" = "Top edge";
 "Bottom edge" = "Bottom edge";
 
+/* Trackpad pane tabs and the folded advanced fields */
+"Feedback and Parameters" = "Feedback and Parameters";
+"Runtime and Diagnostics" = "Runtime and Diagnostics";
+"Thresholds and tuning. The defaults suit most gestures." = "Thresholds and tuning. The defaults suit most gestures.";
+"Devices, pointer activation, and notes." = "Devices, pointer activation, and notes.";
+
 /* Calendar personalization */
 "Show date distance" = "Show date distance";
 "Show how far a date sits from today, both while hovering and for the selected date." = "Show how far a date sits from today, both while hovering and for the selected date.";
@@ -1186,3 +1192,32 @@
 "Labour Day" = "Labour Day";
 "National Day" = "National Day";
 "National Day & Mid-Autumn Festival" = "National Day & Mid-Autumn Festival";
+
+/* Global hotkeys */
+"Keyboard Shortcuts" = "Keyboard Shortcuts";
+"Global keyboard shortcuts that run any action on this Mac." = "Global keyboard shortcuts that run any action on this Mac.";
+"Global shortcuts" = "Global shortcuts";
+"Each shortcut runs its action from anywhere, whichever app is in front." = "Each shortcut runs its action from anywhere, whichever app is in front.";
+"Add Shortcut" = "Add Shortcut";
+"No global shortcuts yet." = "No global shortcuts yet.";
+"Add one to run a Quick Action, a Shortcut, or a window action from the keyboard." = "Add one to run a Quick Action, a Shortcut, or a window action from the keyboard.";
+"New Shortcut" = "New Shortcut";
+"Edit Shortcut" = "Edit Shortcut";
+"Delete Shortcut" = "Delete Shortcut";
+"Edit shortcut" = "Edit shortcut";
+"Not set" = "Not set";
+"Optional name" = "Optional name";
+"Key combination" = "Key combination";
+"Click, then press the combination that runs this action." = "Click, then press the combination that runs this action.";
+"Runs" = "Runs";
+"Choose an action…" = "Choose an action…";
+"A global shortcut needs ⌘, ⌃, or ⌥ so it cannot capture ordinary typing." = "A global shortcut needs ⌘, ⌃, or ⌥ so it cannot capture ordinary typing.";
+"Actions that place or move windows ask for Accessibility the first time they run." = "Actions that place or move windows ask for Accessibility the first time they run.";
+"Record a keyboard shortcut for this action." = "Record a keyboard shortcut for this action.";
+"Add ⌘, ⌃, or ⌥ so this shortcut cannot capture ordinary typing." = "Add ⌘, ⌃, or ⌥ so this shortcut cannot capture ordinary typing.";
+"Choose the action this shortcut runs." = "Choose the action this shortcut runs.";
+"This shortcut is already used by %@." = "This shortcut is already used by %@.";
+"This action is no longer available." = "This action is no longer available.";
+"This shortcut is already claimed." = "This shortcut is already claimed.";
+"A combination macOS or another app already uses keeps working there, and this shortcut stays silent." = "A combination macOS or another app already uses keeps working there, and this shortcut stays silent.";
+"macOS refused this shortcut (error %d)." = "macOS refused this shortcut (error %d).";

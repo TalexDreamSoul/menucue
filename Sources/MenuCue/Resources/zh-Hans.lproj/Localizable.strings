@@ -1157,6 +1157,12 @@
 "Top edge" = "上边缘";
 "Bottom edge" = "下边缘";
 
+/* 触摸板分区标签页与高级收纳 */
+"Feedback and Parameters" = "反馈与参数";
+"Runtime and Diagnostics" = "运行与诊断";
+"Thresholds and tuning. The defaults suit most gestures." = "阈值与调参，默认值适合大多数手势。";
+"Devices, pointer activation, and notes." = "设备、指针激活与备注。";
+
 /* 日历个性化 */
 "Show date distance" = "显示日期距离";
 "Show how far a date sits from today, both while hovering and for the selected date." = "悬浮或选中某一天时，显示它距今多久。";
@@ -1187,3 +1193,32 @@
 "National Day & Mid-Autumn Festival" = "国庆节、中秋节";
 
 "Any spacing" = "任意";
+
+/* Global hotkeys */
+"Keyboard Shortcuts" = "快捷键";
+"Global keyboard shortcuts that run any action on this Mac." = "在任意应用中按下即可运行本机动作的全局快捷键。";
+"Global shortcuts" = "全局快捷键";
+"Each shortcut runs its action from anywhere, whichever app is in front." = "无论当前是哪个应用在前台，快捷键都会运行它绑定的动作。";
+"Add Shortcut" = "添加快捷键";
+"No global shortcuts yet." = "尚未添加全局快捷键。";
+"Add one to run a Quick Action, a Shortcut, or a window action from the keyboard." = "添加一个，即可用键盘运行快捷操作、快捷指令或窗口动作。";
+"New Shortcut" = "新建快捷键";
+"Edit Shortcut" = "编辑快捷键";
+"Delete Shortcut" = "删除快捷键";
+"Edit shortcut" = "编辑快捷键";
+"Not set" = "未设置";
+"Optional name" = "名称（可选）";
+"Key combination" = "组合键";
+"Click, then press the combination that runs this action." = "点按后，按下用于运行该动作的组合键。";
+"Runs" = "运行";
+"Choose an action…" = "选择动作…";
+"A global shortcut needs ⌘, ⌃, or ⌥ so it cannot capture ordinary typing." = "全局快捷键需包含 ⌘、⌃ 或 ⌥，以免拦截日常输入。";
+"Actions that place or move windows ask for Accessibility the first time they run." = "摆放或移动窗口的动作会在首次运行时申请辅助功能权限。";
+"Record a keyboard shortcut for this action." = "请为该动作录制一个快捷键。";
+"Add ⌘, ⌃, or ⌥ so this shortcut cannot capture ordinary typing." = "请加入 ⌘、⌃ 或 ⌥，以免该快捷键拦截日常输入。";
+"Choose the action this shortcut runs." = "请选择该快捷键要运行的动作。";
+"This shortcut is already used by %@." = "该快捷键已被“%@”占用。";
+"This action is no longer available." = "该动作已不再可用。";
+"This shortcut is already claimed." = "该组合键已被占用。";
+"A combination macOS or another app already uses keeps working there, and this shortcut stays silent." = "若某组合键已被 macOS 或其他应用占用，它仍在那里生效，此快捷键则不会响应。";
+"macOS refused this shortcut (error %d)." = "macOS 拒绝了该快捷键（错误 %d）。";
