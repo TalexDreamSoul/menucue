@@ -78,6 +78,9 @@ extension TrackpadKeyboardShortcut {
 /// survive a keyboard layout change.
 struct TrackpadShortcutRecorder: View {
   @Binding var shortcut: TrackpadKeyboardShortcut
+  /// What the recorder is being used for, which is the only part of it that differs
+  /// between a gesture's action and a global shortcut.
+  var help: LocalizedStringKey = "Click, then press the shortcut you want this gesture to send."
 
   @State private var isRecording = false
   @State private var monitor: Any?
@@ -88,7 +91,7 @@ struct TrackpadShortcutRecorder: View {
         Text(buttonTitle)
           .frame(minWidth: 150)
       }
-      .help("Click, then press the shortcut you want this gesture to send.")
+      .help(help)
       .accessibilityLabel("Keyboard shortcut")
       .accessibilityValue(shortcut.isUnset ? "" : shortcut.displayText)
 

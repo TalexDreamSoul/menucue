@@ -87,6 +87,7 @@ final class AppModel: ObservableObject {
     @Published var launchAtLoginErrorMessage: String?
     let quickActionService: QuickActionService
     let trackpadGestureService: TrackpadGestureService
+    let hotkeyService: HotkeyService
     let preferenceSyncService: PreferenceSyncService
     /// One instance for the whole app. The popover, the Dashboard and the background
     /// backfill all read the same history; three services would mean three concurrent
@@ -117,6 +118,7 @@ final class AppModel: ObservableObject {
         launchAtLoginService: LaunchAtLoginManaging = LaunchAtLoginService(),
         quickActionService: QuickActionService? = nil,
         trackpadGestureService: TrackpadGestureService? = nil,
+        hotkeyService: HotkeyService? = nil,
         preferenceSyncService: PreferenceSyncService? = nil,
         notificationRuntimeStore: NotificationRuntimeStore? = nil,
         notificationRuntimeErrorMessage: String? = nil,
@@ -149,12 +151,17 @@ final class AppModel: ObservableObject {
         self.quickActionService = resolvedQuickActionService
         self.trackpadGestureService = trackpadGestureService
             ?? TrackpadGestureService(quickActionService: resolvedQuickActionService)
+        self.hotkeyService = hotkeyService ?? HotkeyService()
         self.preferenceSyncService = preferenceSyncService ?? PreferenceSyncService()
         self.launchAtLoginState = launchAtLoginService.state
         self.settings = settingsStore.load()
         self.authorizationState = calendarService.authorizationState
         appearanceService.apply(settings: settings)
         self.trackpadGestureService.apply(settings: settings.trackpadGestureSettings)
+        self.hotkeyService.configure { [weak self] binding in
+            self?.runHotkeyBinding(binding)
+        }
+        self.hotkeyService.apply(bindings: settings.hotkeyBindings)
         refreshCalendarData()
 
         self.preferenceSyncService.configure(
@@ -178,6 +185,7 @@ final class AppModel: ObservableObject {
 
     deinit {
         trackpadGestureService.stop()
+        hotkeyService.stop()
     }
 
     func updateSettings(_ update: (inout AppSettings) -> Void) {
@@ -213,6 +221,48 @@ final class AppModel: ObservableObject {
             update(&trackpadSettings)
             settings.trackpadGestureSettings = trackpadSettings.normalized
         }
+    }
+
+    /// Saves an edited or newly recorded binding. The editor works on a draft, so this is
+    /// the step that turns one into a stored shortcut — replacing its predecessor when the
+    /// list still holds its identifier, and joining the end when it does not.
+    func upsertHotkeyBinding(_ binding: HotkeyBinding) {
+        updateSettings { settings in
+            var bindings = settings.hotkeyBindings
+            if let index = bindings.firstIndex(where: { $0.id == binding.id }) {
+                bindings[index] = binding
+            } else {
+                bindings.append(binding)
+            }
+            settings.hotkeyBindings = AppSettings.normalizedHotkeyBindings(bindings)
+        }
+    }
+
+    func removeHotkeyBinding(id: UUID) {
+        updateSettings { settings in
+            settings.hotkeyBindings.removeAll { $0.id == id }
+        }
+    }
+
+    func setHotkeyBinding(id: UUID, isEnabled: Bool) {
+        updateSettings { settings in
+            guard let index = settings.hotkeyBindings.firstIndex(where: { $0.id == id }) else {
+                return
+            }
+            settings.hotkeyBindings[index].isEnabled = isEnabled
+        }
+    }
+
+    /// A press runs through the same executor a gesture would, so a shortcut and a rule
+    /// pointing at one action are indistinguishable once either has fired — down to the
+    /// overlay and the haptic tap.
+    private func runHotkeyBinding(_ binding: HotkeyBinding) {
+        guard let route = ActionCatalog.route(forItemID: binding.actionItemID) else { return }
+        trackpadGestureService.perform(
+            route: route,
+            feedbackHUDEnabled: settings.trackpadGestureSettings.feedbackHUDEnabled,
+            hapticFeedbackEnabled: settings.trackpadGestureSettings.hapticFeedbackEnabled
+        )
     }
 
     func setLaunchAtLoginEnabled(_ enabled: Bool) {
@@ -496,11 +546,15 @@ final class AppModel: ObservableObject {
 
     private func applySettings(_ nextSettings: AppSettings) {
         let previousTrackpadSettings = settings.trackpadGestureSettings
+        let previousHotkeyBindings = settings.hotkeyBindings
         settings = nextSettings
         settingsStore.save(nextSettings)
         appearanceService.apply(settings: nextSettings)
         if previousTrackpadSettings != nextSettings.trackpadGestureSettings {
             trackpadGestureService.apply(settings: nextSettings.trackpadGestureSettings)
+        }
+        if previousHotkeyBindings != nextSettings.hotkeyBindings {
+            hotkeyService.apply(bindings: nextSettings.hotkeyBindings)
         }
         configureNotificationServices(nextSettings.notificationSettings)
         refreshEventsIfPossible()

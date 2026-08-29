@@ -143,6 +143,9 @@ struct AppSettings: Equatable {
     var animationQuality: AnimationQuality
     /// Machine-local: rules refer to this Mac's devices, applications, and permissions.
     var trackpadGestureSettings: TrackpadGestureSettings
+    /// Machine-local for the same reason, plus two of its own: the Shortcuts a binding can
+    /// name exist per Mac, and so does the display arrangement a window action moves through.
+    var hotkeyBindings: [HotkeyBinding]
     /// Set once the user has opened the power feature. Until then nothing samples in
     /// the background; afterwards wake history keeps being backfilled with the popover
     /// closed, which is the only way "what woke my Mac overnight" can be answered.
@@ -177,6 +180,7 @@ struct AppSettings: Equatable {
         metricsSampling: MetricsSamplingSettings = .default,
         animationQuality: AnimationQuality = .elegant,
         trackpadGestureSettings: TrackpadGestureSettings = .default,
+        hotkeyBindings: [HotkeyBinding] = [],
         powerMonitoringEnabled: Bool = false,
         notificationSettings: NotificationSettings = .default,
         preferenceSyncEnabled: Bool = false,
@@ -203,6 +207,7 @@ struct AppSettings: Equatable {
         self.metricsSampling = metricsSampling.normalized
         self.animationQuality = animationQuality
         self.trackpadGestureSettings = trackpadGestureSettings.normalized
+        self.hotkeyBindings = Self.normalizedHotkeyBindings(hotkeyBindings)
         self.powerMonitoringEnabled = powerMonitoringEnabled
         self.notificationSettings = notificationSettings
         self.pinnedQuickActions = pinnedQuickActions
@@ -320,6 +325,17 @@ struct AppSettings: Equatable {
 
     mutating func replaceClockEntries(_ entries: [ClockEntry]) {
         clockEntries = Self.normalizedClockEntries(entries)
+    }
+
+    /// Two bindings sharing an identifier would fight over one row and one registration,
+    /// so the later of the pair is dropped rather than left to overwrite the earlier.
+    static func normalizedHotkeyBindings(_ bindings: [HotkeyBinding]) -> [HotkeyBinding] {
+        var seen = Set<UUID>()
+        return bindings.prefix(64).compactMap { binding in
+            let normalized = binding.normalized
+            guard seen.insert(normalized.id).inserted else { return nil }
+            return normalized
+        }
     }
 
     private static func normalizedClockEntries(_ entries: [ClockEntry]) -> [ClockEntry] {

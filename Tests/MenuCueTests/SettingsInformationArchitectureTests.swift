@@ -12,6 +12,7 @@ final class SettingsInformationArchitectureTests: XCTestCase {
         .calendar,
         .actionCenter,
         .trackpad,
+        .hotkeys,
         .alerts,
         .power,
         .general,
@@ -20,7 +21,7 @@ final class SettingsInformationArchitectureTests: XCTestCase {
     )
 
     XCTAssertEqual(SettingsPaneGroup.interface.panes, [.menuBar, .panel, .calendar, .actionCenter])
-    XCTAssertEqual(SettingsPaneGroup.input.panes, [.trackpad, .alerts])
+    XCTAssertEqual(SettingsPaneGroup.input.panes, [.trackpad, .hotkeys, .alerts])
     XCTAssertEqual(SettingsPaneGroup.system.panes, [.power, .general, .about])
   }
 

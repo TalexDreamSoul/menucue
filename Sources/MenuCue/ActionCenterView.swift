@@ -230,7 +230,8 @@ struct ActionCenterSettingsView: View {
         references: ActionCatalog.references(
           of: item,
           pinned: model.settings.pinnedQuickActions,
-          rules: model.settings.trackpadGestureSettings.rules
+          rules: model.settings.trackpadGestureSettings.rules,
+          hotkeys: model.settings.hotkeyBindings
         )
       )
     }
@@ -393,6 +394,8 @@ private struct ActionCenterRow: View {
             ActionReferenceBadge(title: L10n.string("Pinned"), systemImage: "pin.fill")
           case .gestureRule(let name):
             ActionReferenceBadge(title: name, systemImage: "hand.tap")
+          case .hotkey(let shortcut):
+            ActionReferenceBadge(title: shortcut, systemImage: "keyboard")
           }
         }
       }

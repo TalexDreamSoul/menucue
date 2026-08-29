@@ -31,6 +31,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   case calendar
   case actionCenter
   case trackpad
+  case hotkeys
   case alerts
   case power
   case general
@@ -41,7 +42,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   var group: SettingsPaneGroup {
     switch self {
     case .menuBar, .panel, .calendar, .actionCenter: return .interface
-    case .trackpad, .alerts: return .input
+    case .trackpad, .hotkeys, .alerts: return .input
     case .power, .general, .about: return .system
     }
   }
@@ -70,6 +71,9 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .calendar: return L10n.string("Calendar")
     case .actionCenter: return L10n.string("Action Center")
     case .trackpad: return L10n.string("Trackpad")
+    // Not "Shortcuts": that key already names Apple's Shortcuts app in the action
+    // catalog, and one key cannot hold two translations.
+    case .hotkeys: return L10n.string("Keyboard Shortcuts")
     case .alerts: return L10n.string("Alerts")
     case .power: return L10n.string("Power")
     case .general: return L10n.string("General")
@@ -89,6 +93,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
       return L10n.string("Every action MenuCue can run, and where it appears.")
     case .trackpad:
       return L10n.string("Build gesture rules from live touch input and run actions on this Mac.")
+    case .hotkeys:
+      return L10n.string("Global keyboard shortcuts that run any action on this Mac.")
     case .alerts:
       return L10n.string("External channels, system alert rules, and message templates.")
     case .power:
@@ -107,6 +113,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .calendar: return "calendar"
     case .actionCenter: return "square.grid.2x2"
     case .trackpad: return "hand.tap"
+    case .hotkeys: return "keyboard"
     case .alerts: return "bell.badge"
     case .power: return "bolt"
     case .general: return "gearshape"
@@ -197,6 +204,8 @@ private struct SettingsContentView: View {
       ActionCenterSettingsView(model: model)
     case .trackpad:
       TrackpadSettingsView(model: model)
+    case .hotkeys:
+      HotkeySettingsView(model: model)
     case .alerts:
       NotificationSettingsView(model: model)
     case .power:

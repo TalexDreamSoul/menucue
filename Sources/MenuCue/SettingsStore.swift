@@ -22,6 +22,7 @@ final class SettingsStore {
         static let metricsSampling = "metricsSampling.v1"
         static let animationQuality = "animationQuality.v1"
         static let trackpadGestureSettings = "trackpadGestureSettings.v1"
+        static let hotkeyBindings = "hotkeyBindings.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
         static let notificationSettings = "notificationSettings.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
@@ -100,6 +101,7 @@ final class SettingsStore {
             metricsSampling: loadMetricsSampling(),
             animationQuality: loadAnimationQuality(),
             trackpadGestureSettings: loadTrackpadGestureSettings(),
+            hotkeyBindings: loadHotkeyBindings(),
             powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
             notificationSettings: loadNotificationSettings(),
             preferenceSyncEnabled: defaults.bool(forKey: Key.preferenceSyncEnabled),
@@ -144,6 +146,11 @@ final class SettingsStore {
         defaults.set(settings.animationQuality.rawValue, forKey: Key.animationQuality)
         if let data = try? encoder.encode(settings.trackpadGestureSettings.normalized) {
             defaults.set(data, forKey: Key.trackpadGestureSettings)
+        }
+        if let data = try? encoder.encode(
+            AppSettings.normalizedHotkeyBindings(settings.hotkeyBindings)
+        ) {
+            defaults.set(data, forKey: Key.hotkeyBindings)
         }
         defaults.set(settings.preferenceSyncEnabled, forKey: Key.preferenceSyncEnabled)
         defaults.set(
@@ -191,6 +198,15 @@ final class SettingsStore {
             return .default
         }
         return settings.normalized
+    }
+
+    private func loadHotkeyBindings() -> [HotkeyBinding] {
+        guard let data = defaults.data(forKey: Key.hotkeyBindings),
+              let bindings = try? decoder.decode([HotkeyBinding].self, from: data)
+        else {
+            return []
+        }
+        return AppSettings.normalizedHotkeyBindings(bindings)
     }
 
 

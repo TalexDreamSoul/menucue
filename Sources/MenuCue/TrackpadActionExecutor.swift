@@ -83,6 +83,70 @@ enum TrackpadFeedbackPolicy {
   }
 }
 
+/// Moving a window from one display to another. The arithmetic is kept away from
+/// `NSScreen` so it can be checked against display layouts this Mac does not have — which
+/// is every layout, on the single-display Mac most of this is written on.
+enum WindowDisplayGeometry {
+  /// The display a window is on: whichever shows the most of it, because a window pulled
+  /// across a boundary still belongs to the screen holding its larger part. A window that
+  /// overlaps nothing falls to the first display rather than to no display at all.
+  static func index(ofScreenShowing frame: CGRect, in screens: [CGRect]) -> Int? {
+    guard !screens.isEmpty else { return nil }
+    var bestIndex = 0
+    var bestArea = -1.0
+    for (index, screen) in screens.enumerated() {
+      let overlap = screen.intersection(frame)
+      let area = overlap.isNull ? 0 : Double(overlap.width * overlap.height)
+      if area > bestArea {
+        bestArea = area
+        bestIndex = index
+      }
+    }
+    return bestIndex
+  }
+
+  /// The next display in the given order, wrapping past the last one. Nil when there is
+  /// nowhere else to go, which is what a single-display Mac reports.
+  static func nextIndex(after index: Int, count: Int) -> Int? {
+    guard count > 1, (0..<count).contains(index) else { return nil }
+    return (index + 1) % count
+  }
+
+  /// The same window in the same place on another display: position and size travel as
+  /// fractions of the visible area, then are clamped so a smaller or differently shaped
+  /// display cannot leave part of the window off screen.
+  static func frame(_ frame: CGRect, movingFrom source: CGRect, to target: CGRect) -> CGRect {
+    guard source.width > 0, source.height > 0 else {
+      return centered(size: frame.size, in: target)
+    }
+    let size = CGSize(
+      width: min(target.width, frame.width / source.width * target.width),
+      height: min(target.height, frame.height / source.height * target.height)
+    )
+    let x = target.minX + (frame.minX - source.minX) / source.width * target.width
+    let y = target.minY + (frame.minY - source.minY) / source.height * target.height
+    return CGRect(
+      x: min(max(x, target.minX), target.maxX - size.width),
+      y: min(max(y, target.minY), target.maxY - size.height),
+      width: size.width,
+      height: size.height
+    )
+  }
+
+  private static func centered(size: CGSize, in target: CGRect) -> CGRect {
+    let clamped = CGSize(
+      width: min(size.width, target.width),
+      height: min(size.height, target.height)
+    )
+    return CGRect(
+      x: target.midX - clamped.width / 2,
+      y: target.midY - clamped.height / 2,
+      width: clamped.width,
+      height: clamped.height
+    )
+  }
+}
+
 private enum TrackpadDirectAdjustment {
   case increment(Double)
   case decrement(Double)
@@ -205,6 +269,45 @@ final class TrackpadActionExecutor {
       continuous: continuous
     )
     return result
+  }
+
+  /// Runs whatever a catalog entry points at, for surfaces that store an identifier rather
+  /// than a configured action. A global shortcut is one: it picks an entry out of the
+  /// register, and the register decides how that entry executes.
+  @discardableResult
+  func execute(
+    route: ActionRoute,
+    feedbackHUDEnabled: Bool,
+    hapticFeedbackEnabled: Bool
+  ) -> TrackpadActionExecutionResult {
+    switch route {
+    case .quickAction(let reference):
+      return execute(
+        TrackpadGestureAction(
+          kind: .quickAction,
+          quickActionStorageValue: reference.storageValue
+        ),
+        feedbackHUDEnabled: feedbackHUDEnabled,
+        hapticFeedbackEnabled: hapticFeedbackEnabled,
+        continuous: false
+      )
+    case .trackpad(let action):
+      return execute(
+        action,
+        feedbackHUDEnabled: feedbackHUDEnabled,
+        hapticFeedbackEnabled: hapticFeedbackEnabled,
+        continuous: false
+      )
+    case .trackpadPointerWindow:
+      let result = activateWindowUnderPointer()
+      present(
+        result,
+        feedbackHUDEnabled: feedbackHUDEnabled,
+        hapticFeedbackEnabled: hapticFeedbackEnabled,
+        continuous: false
+      )
+      return result
+    }
   }
 
   private func executeSystemControl(
@@ -506,31 +609,41 @@ final class TrackpadActionExecutor {
     return result
   }
 
+  /// Which display comes next is decided by where the window is, not by where the pointer
+  /// is: the shortcut that moves a window is often pressed without touching the trackpad
+  /// at all.
   private func moveFocusedWindowToNextDisplay() -> TrackpadActionExecutionResult {
     if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow(), let currentFrame = focused.frame else {
       return .failure(key: "macOS could not read the focused window frame.")
     }
-    let screens = NSScreen.screens.sorted { lhs, rhs in
-      lhs.frame.minX == rhs.frame.minX ? lhs.frame.minY < rhs.frame.minY : lhs.frame.minX < rhs.frame.minX
-    }
-    guard screens.count > 1 else {
+    let visibleFrames = NSScreen.screens
+      .sorted { lhs, rhs in
+        lhs.frame.minX == rhs.frame.minX
+          ? lhs.frame.minY < rhs.frame.minY
+          : lhs.frame.minX < rhs.frame.minX
+      }
+      .map(\.visibleFrame)
+    let windowFrame = currentFrame.appKitFrame
+    guard
+      let currentIndex = WindowDisplayGeometry.index(
+        ofScreenShowing: windowFrame,
+        in: visibleFrames
+      ),
+      let targetIndex = WindowDisplayGeometry.nextIndex(
+        after: currentIndex,
+        count: visibleFrames.count
+      )
+    else {
       return .failure(key: "No second display is connected.")
     }
-    let pointer = NSEvent.mouseLocation
-    let currentIndex = screens.firstIndex { $0.frame.contains(pointer) } ?? 0
-    let targetScreen = screens[(currentIndex + 1) % screens.count]
+
     let identity = AXWindowIdentity(pid: focused.pid, window: focused.window)
     restoredWindowFrames[identity] = currentFrame
-    let size = NSSize(
-      width: min(currentFrame.size.width, targetScreen.visibleFrame.width),
-      height: min(currentFrame.size.height, targetScreen.visibleFrame.height)
-    )
-    let target = NSRect(
-      x: targetScreen.visibleFrame.midX - size.width / 2,
-      y: targetScreen.visibleFrame.midY - size.height / 2,
-      width: size.width,
-      height: size.height
+    let target = WindowDisplayGeometry.frame(
+      windowFrame,
+      movingFrom: visibleFrames[currentIndex],
+      to: visibleFrames[targetIndex]
     )
     let result = setWindowFrame(.fromAppKit(target), for: focused.window)
     if result.isFailure {
@@ -718,6 +831,18 @@ private struct AXWindowFrame {
     return Self(
       position: CGPoint(x: frame.minX, y: desktopTop - frame.maxY),
       size: frame.size
+    )
+  }
+
+  /// The inverse: Accessibility measures a window from the top of the desktop and AppKit
+  /// from the bottom of it, so the same edge is what both are counted from.
+  var appKitFrame: NSRect {
+    let desktopTop = NSScreen.screens.map(\.frame.maxY).max() ?? (position.y + size.height)
+    return NSRect(
+      x: position.x,
+      y: desktopTop - position.y - size.height,
+      width: size.width,
+      height: size.height
     )
   }
 

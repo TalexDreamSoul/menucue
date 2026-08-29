@@ -7,6 +7,10 @@ enum ActionSurface: String, CaseIterable, Hashable {
   case panel
   /// Selectable as the action of a trackpad gesture rule.
   case trackpad
+  /// Bindable to a global keyboard shortcut. Only entries that carry their whole
+  /// configuration are offered here: a hotkey stores a catalog identifier and nothing
+  /// else, so a family registered once for its parameters has nothing to run.
+  case hotkey
 }
 
 /// Where an entry came from, which is how the Action Center splits one flat register into
@@ -88,6 +92,7 @@ struct ActionCatalogItem: Identifiable, Equatable {
 enum ActionReference: Equatable {
   case pinned
   case gestureRule(name: String)
+  case hotkey(shortcut: String)
 }
 
 /// The single register of everything the app can do on a user's behalf: the built-in Quick
@@ -103,7 +108,7 @@ enum ActionCatalog {
         title: actionID.title,
         systemImage: actionID.systemImage,
         source: .builtIn,
-        surfaces: [.panel, .trackpad],
+        surfaces: [.panel, .trackpad, .hotkey],
         isDestructive: actionID.isDestructive,
         // Their permissions depend on live system state, which QuickActionService owns.
         requirement: .none,
@@ -120,7 +125,7 @@ enum ActionCatalog {
         title: name,
         systemImage: "command.square.fill",
         source: .shortcut,
-        surfaces: [.panel, .trackpad],
+        surfaces: [.panel, .trackpad, .hotkey],
         isDestructive: false,
         requirement: .none,
         route: .quickAction(reference)
@@ -174,26 +179,31 @@ enum ActionCatalog {
     }
 
     // The remaining families carry user-supplied parameters, so the catalog registers the
-    // family once rather than every configuration of it.
+    // family once rather than every configuration of it. That single entry is enough for a
+    // rule, which stores the parameters itself, and not enough for a hotkey, which stores
+    // only which entry to run.
     items.append(
       trackpadItem(
         title: L10n.string("Keyboard Shortcut"),
         systemImage: "keyboard",
-        action: TrackpadGestureAction(kind: .keyboardShortcut)
+        action: TrackpadGestureAction(kind: .keyboardShortcut),
+        surfaces: [.trackpad]
       )
     )
     items.append(
       trackpadItem(
         title: L10n.string("Open Target"),
         systemImage: "arrow.up.forward.app",
-        action: TrackpadGestureAction(kind: .open)
+        action: TrackpadGestureAction(kind: .open),
+        surfaces: [.trackpad]
       )
     )
     items.append(
       trackpadItem(
         title: L10n.string("AppleScript"),
         systemImage: "applescript",
-        action: TrackpadGestureAction(kind: .appleScript)
+        action: TrackpadGestureAction(kind: .appleScript),
+        surfaces: [.trackpad]
       )
     )
     items.append(
@@ -265,13 +275,14 @@ enum ActionCatalog {
     }
   }
 
-  /// Where an action is already spoken for: pinned to the popover, or selected by a
-  /// gesture rule. Pure, so the Action Center's "used by" column is testable without a
-  /// running app.
+  /// Where an action is already spoken for: pinned to the popover, selected by a gesture
+  /// rule, or bound to a global shortcut. Pure, so the Action Center's "used by" column is
+  /// testable without a running app.
   static func references(
     of item: ActionCatalogItem,
     pinned: [QuickActionReference],
-    rules: [TrackpadGestureRule]
+    rules: [TrackpadGestureRule],
+    hotkeys: [HotkeyBinding] = []
   ) -> [ActionReference] {
     var references: [ActionReference] = []
     if pinned.contains(where: { $0.storageValue == item.id }) {
@@ -280,7 +291,27 @@ enum ActionCatalog {
     for rule in rules where rule.uses(item) {
       references.append(.gestureRule(name: rule.settingsDisplayName))
     }
+    for binding in hotkeys where binding.actionItemID == item.id && !binding.shortcut.isUnset {
+      references.append(.hotkey(shortcut: binding.shortcut.displayText))
+    }
     return references
+  }
+
+  /// How to run what an identifier names, without consulting the runtime Shortcuts list.
+  /// Execution deliberately does not depend on discovery: a Shortcut that is momentarily
+  /// missing has to fail through the executor, with its own reason, rather than look like
+  /// a binding that points at nothing.
+  static func route(forItemID id: String) -> ActionRoute? {
+    if let reference = QuickActionReference(storageValue: id) {
+      return .quickAction(reference)
+    }
+    if id == pointerWindowItemID {
+      return .trackpadPointerWindow
+    }
+    for item in trackpadNativeActions where item.id == id {
+      if case .trackpad(let action) = item.route { return .trackpad(action) }
+    }
+    return nil
   }
 
   /// The catalog entry a configured gesture action points at. A rule stores the action's
@@ -316,14 +347,15 @@ enum ActionCatalog {
   private static func trackpadItem(
     title: String,
     systemImage: String,
-    action: TrackpadGestureAction
+    action: TrackpadGestureAction,
+    surfaces: Set<ActionSurface> = [.trackpad, .hotkey]
   ) -> ActionCatalogItem {
     ActionCatalogItem(
       id: itemID(for: action) ?? action.kind.rawValue,
       title: title,
       systemImage: systemImage,
       source: .trackpadNative,
-      surfaces: [.trackpad],
+      surfaces: surfaces,
       isDestructive: false,
       requirement: requirement(forActionKind: action.kind),
       route: .trackpad(action)

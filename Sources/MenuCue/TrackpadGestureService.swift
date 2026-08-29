@@ -1259,6 +1259,24 @@ final class TrackpadGestureService: ObservableObject {
     executor.availabilities(for: actions)
   }
 
+  /// Runs a catalog entry that no gesture selected — a global shortcut, today. It goes
+  /// through this service because the executor is a single object per app: the window it
+  /// restores and the overlay it draws are shared state, and two of them would each know
+  /// half of it.
+  func perform(
+    route: ActionRoute,
+    feedbackHUDEnabled: Bool,
+    hapticFeedbackEnabled: Bool
+  ) {
+    runOnMain { [weak self] in
+      self?.executor.execute(
+        route: route,
+        feedbackHUDEnabled: feedbackHUDEnabled,
+        hapticFeedbackEnabled: hapticFeedbackEnabled
+      )
+    }
+  }
+
   func stop() {
     removeLifecycleObservers()
     // Synchronously, not on the engine queue: `deinit` and application termination both

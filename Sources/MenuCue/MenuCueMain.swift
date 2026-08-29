@@ -60,6 +60,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         appModel?.trackpadGestureService.stop()
+        // A hot key survives the object that asked for it, so quitting has to hand every
+        // combination back rather than leave it claimed by a process that is gone.
+        appModel?.hotkeyService.stop()
         statusBarController = nil
         appModel = nil
     }
