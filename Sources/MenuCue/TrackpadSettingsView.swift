@@ -141,6 +141,27 @@ struct TrackpadSettingsView: View {
       .foregroundStyle(.secondary)
       .fixedSize(horizontal: false, vertical: true)
 
+      switch service.inputOwnership {
+      case .local:
+        EmptyView()
+      case .mirroredDisplay:
+        Label(
+          "AirPlay display mirroring is active. MenuCue pauses local gesture automation so system input remains pass-through.",
+          systemImage: "airplayvideo.badge.exclamationmark"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      case .remoteOrUnknown:
+        Label(
+          "The pointer is outside this Mac's displays. MenuCue pauses local gesture automation so cross-Mac input is not captured here.",
+          systemImage: "rectangle.portrait.and.arrow.right"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      }
+
       Divider()
 
       VStack(alignment: .leading, spacing: 8) {

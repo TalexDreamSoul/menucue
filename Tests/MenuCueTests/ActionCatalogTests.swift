@@ -264,6 +264,34 @@ final class ActionCatalogTests: XCTestCase {
       L10n.string("The selected Quick Action is no longer available.")
     )
   }
+  func testTabNavigationRoutesAreHotkeyOnlyAndResolveFromTheirStableIdentifiers() {
+    let expected: [(action: TrackpadTabAction, identifier: String)] = [
+      (.previous, "trackpad:tabNavigation:previous"),
+      (.next, "trackpad:tabNavigation:next"),
+    ]
+    let hotkey = ActionCatalog.items(surface: .hotkey)
+    let trackpad = ActionCatalog.items(surface: .trackpad)
+    let tabRoutes = hotkey.compactMap { item -> TrackpadTabAction? in
+      guard case .tabNavigation(let action) = item.route else { return nil }
+      return action
+    }
+    XCTAssertEqual(tabRoutes.count, expected.count)
+
+    for expectedRoute in expected {
+      let entry = hotkey.first { $0.id == expectedRoute.identifier }
+
+      XCTAssertEqual(entry?.route, .tabNavigation(expectedRoute.action))
+      XCTAssertFalse(
+        trackpad.contains { $0.id == expectedRoute.identifier },
+        "Tab traversal has no gesture configuration and must not appear in the trackpad action picker"
+      )
+      XCTAssertEqual(
+        ActionCatalog.route(forItemID: expectedRoute.identifier),
+        .tabNavigation(expectedRoute.action),
+        "a hotkey stores only this stable identifier, so it must resolve to the Tab route"
+      )
+    }
+  }
 }
 
 private func makeRule(name: String, action: TrackpadGestureAction) -> TrackpadGestureRule {

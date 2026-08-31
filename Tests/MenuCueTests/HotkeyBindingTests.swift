@@ -32,23 +32,85 @@ final class HotkeyBindingTests: XCTestCase {
       "a binding stored before the switch existed was one the user had turned on")
   }
 
-  func testStoredBindingsSurviveASaveAndReload() {
+  func testBuiltInDefaultsKeepTheirStableShortcutAndActionCatalog() {
+    let bindings = HotkeyBuiltInDefaults.bindings
+    let expected: [(keyCode: UInt16, modifiers: Set<TrackpadModifier>, actionItemID: String)] = [
+      (126, [.command, .shift], "trackpad:window:maximize"),
+      (125, [.command, .shift], "trackpad:window:restore"),
+      (124, [.command, .shift], "trackpad:window:nextDisplay"),
+      (33, [.command, .shift], "trackpad:tabNavigation:previous"),
+      (30, [.command, .shift], "trackpad:tabNavigation:next"),
+      (33, [.command, .option], "trackpad:tabNavigation:previous"),
+      (30, [.command, .option], "trackpad:tabNavigation:next"),
+    ]
+
+    XCTAssertEqual(bindings.count, expected.count)
+    for expectedBinding in expected {
+      XCTAssertTrue(
+        bindings.contains { binding in
+          binding.shortcut.keyCode == expectedBinding.keyCode
+            && binding.shortcut.modifiers == expectedBinding.modifiers
+            && binding.actionItemID == expectedBinding.actionItemID
+        },
+        "the built-in shortcut must keep its promised key combination and action"
+      )
+    }
+  }
+
+  func testBuiltInDefaultsYieldToExistingIdentityAndCarbonKeyClaims() {
+    let identityDefault = HotkeyBuiltInDefaults.bindings[0]
+    let shortcutDefault = HotkeyBuiltInDefaults.bindings[1]
+    let identityClaim = HotkeyBinding(
+      id: identityDefault.id,
+      name: "User identity claim",
+      shortcut: shortcut(keyCode: 12, modifiers: [.command]),
+      actionItemID: "builtin:darkMode"
+    )
+    let carbonKeyClaim = HotkeyBinding(
+      name: "User key claim",
+      shortcut: shortcutDefault.shortcut,
+      actionItemID: "builtin:lockScreen"
+    )
+
+    let merged = HotkeyBuiltInDefaults.merged(with: [identityClaim, carbonKeyClaim])
+
+    XCTAssertEqual(merged.first { $0.id == identityClaim.id }, identityClaim)
+    XCTAssertEqual(
+      merged.first { $0.shortcut.claimsSameKey(as: carbonKeyClaim.shortcut) },
+      carbonKeyClaim,
+      "a user-owned Carbon key must never be claimed again by a built-in binding"
+    )
+  }
+
+  func testBuiltInDefaultsAreNotAddedAgainAfterTheirFirstMerge() {
+    let once = HotkeyBuiltInDefaults.merged(with: [])
+
+    XCTAssertEqual(
+      HotkeyBuiltInDefaults.merged(with: once), once,
+      "merging defaults repeatedly must not create duplicate hotkey registrations"
+    )
+  }
+
+  func testBuiltInDefaultsAreAddedOnlyOnceAndStayRemovedAfterSaving() {
     let suiteName = "MenuCueTests.HotkeyBindingTests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suiteName)!
     defer { defaults.removePersistentDomain(forName: suiteName) }
     let store = SettingsStore(defaults: defaults)
-    let binding = HotkeyBinding(
-      name: "Move right",
-      shortcut: TrackpadKeyboardShortcut(keyCode: 10, characters: "K", modifiers: [.command]),
-      actionItemID: "trackpad:window:nextDisplay"
-    )
 
-    XCTAssertEqual(store.load().hotkeyBindings, [], "an install with no bindings has none")
     var settings = store.load()
-    settings.hotkeyBindings = [binding]
+    XCTAssertEqual(
+      settings.hotkeyBindings,
+      HotkeyBuiltInDefaults.bindings,
+      "the first load performs the one-time built-in hotkey migration"
+    )
+    settings.hotkeyBindings = []
     store.save(settings)
 
-    XCTAssertEqual(store.load().hotkeyBindings, [binding])
+    XCTAssertEqual(
+      SettingsStore(defaults: defaults).load().hotkeyBindings,
+      [],
+      "a user who removes every built-in shortcut must not get them back on the next load"
+    )
   }
 
   func testTwoBindingsCannotShareAnIdentifier() {

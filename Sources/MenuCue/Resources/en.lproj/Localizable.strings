@@ -777,6 +777,8 @@
 "Retry trackpad detection and optional capabilities" = "Retry trackpad detection and optional capabilities";
 "Rechecks trackpad support without changing your rules." = "Rechecks trackpad support without changing your rules.";
 "Raw touch observation remains pass-through. MenuCue consumes native input only for an explicitly enabled click rule or while a configured continuous edge gesture is active. Input suppression requires Accessibility; volume and supported display brightness do not." = "Raw touch observation remains pass-through. MenuCue consumes native input only for an explicitly enabled click rule or while a configured continuous edge gesture is active. Input suppression requires Accessibility; volume and supported display brightness do not.";
+"AirPlay display mirroring is active. MenuCue pauses local gesture automation so system input remains pass-through." = "AirPlay display mirroring is active. MenuCue pauses local gesture automation so system input remains pass-through.";
+"The pointer is outside this Mac's displays. MenuCue pauses local gesture automation so cross-Mac input is not captured here." = "The pointer is outside this Mac's displays. MenuCue pauses local gesture automation so cross-Mac input is not captured here.";
 "Suppress the left click after a multi-finger tap" = "Suppress the left click after a multi-finger tap";
 "Only the matching click immediately after a recognized multi-finger tap is consumed." = "Only the matching click immediately after a recognized multi-finger tap is consumed.";
 "Native scrolling is suppressed while an enabled continuous edge rule owns the trackpad. Click suppression remains optional." = "Native scrolling is suppressed while an enabled continuous edge rule owns the trackpad. Click suppression remains optional.";
@@ -1050,6 +1052,8 @@
 "Brightness Down" = "Brightness Down";
 "Continuous Volume" = "Continuous Volume";
 "Continuous Brightness" = "Continuous Brightness";
+"Previous Tab" = "Previous Tab";
+"Next Tab" = "Next Tab";
 "Left Click" = "Left Click";
 "Right Click" = "Right Click";
 "Middle Click" = "Middle Click";

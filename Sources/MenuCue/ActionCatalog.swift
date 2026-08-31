@@ -72,6 +72,8 @@ enum ActionRoute: Equatable {
   /// Activating whatever window sits under the pointer, which a trackpad rule can also
   /// request as a prelude to its own action.
   case trackpadPointerWindow
+  /// A non-parameterized Tab traversal action offered only to global shortcuts.
+  case tabNavigation(TrackpadTabAction)
 }
 
 struct ActionCatalogItem: Identifiable, Equatable {
@@ -154,6 +156,21 @@ enum ActionCatalog {
           title: placement.actionTitle,
           systemImage: "macwindow",
           action: TrackpadGestureAction(kind: .window, windowAction: placement)
+        )
+      )
+    }
+
+    for tabAction in TrackpadTabAction.allCases {
+      items.append(
+        ActionCatalogItem(
+          id: tabNavigationItemID(tabAction),
+          title: tabAction.actionTitle,
+          systemImage: "rectangle.3.group",
+          source: .trackpadNative,
+          surfaces: [.hotkey],
+          isDestructive: false,
+          requirement: .accessibility(reason: L10n.string("Allow Accessibility access to send keyboard shortcuts.")),
+          route: .tabNavigation(tabAction)
         )
       )
     }
@@ -308,8 +325,8 @@ enum ActionCatalog {
     if id == pointerWindowItemID {
       return .trackpadPointerWindow
     }
-    for item in trackpadNativeActions where item.id == id {
-      if case .trackpad(let action) = item.route { return .trackpad(action) }
+    if let item = trackpadNativeActions.first(where: { $0.id == id }) {
+      return item.route
     }
     return nil
   }
@@ -343,6 +360,9 @@ enum ActionCatalog {
   }
 
   static let pointerWindowItemID = "trackpad:pointerWindow"
+  static func tabNavigationItemID(_ action: TrackpadTabAction) -> String {
+    "trackpad:tabNavigation:\(action.rawValue)"
+  }
 
   private static func trackpadItem(
     title: String,
@@ -421,6 +441,15 @@ extension TrackpadWindowAction {
     case .center: return L10n.string("Center")
     case .restore: return L10n.string("Restore")
     case .nextDisplay: return L10n.string("Move to Next Display")
+    }
+  }
+}
+
+extension TrackpadTabAction {
+  var actionTitle: String {
+    switch self {
+    case .previous: return L10n.string("Previous Tab")
+    case .next: return L10n.string("Next Tab")
     }
   }
 }

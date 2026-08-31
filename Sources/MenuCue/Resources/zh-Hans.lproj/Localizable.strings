@@ -777,6 +777,8 @@
 "Retry trackpad detection and optional capabilities" = "重试检测触摸板及可选能力";
 "Rechecks trackpad support without changing your rules." = "重新检查触摸板支持，不会更改规则。";
 "Raw touch observation remains pass-through. MenuCue consumes native input only for an explicitly enabled click rule or while a configured continuous edge gesture is active. Input suppression requires Accessibility; volume and supported display brightness do not." = "原始触控观察始终放行。MenuCue 仅在明确启用的点击规则命中，或已配置的连续边缘手势处于活动状态时抑制原生输入。输入抑制需要辅助功能权限；音量和受支持显示器的亮度调节不需要。";
+"AirPlay display mirroring is active. MenuCue pauses local gesture automation so system input remains pass-through." = "AirPlay 显示镜像已启用。MenuCue 会暂停本机手势自动化，让系统输入保持放行。";
+"The pointer is outside this Mac's displays. MenuCue pauses local gesture automation so cross-Mac input is not captured here." = "指针已离开这台 Mac 的显示器。MenuCue 会暂停本机手势自动化，避免在本机捕获跨 Mac 输入。";
 "Suppress the left click after a multi-finger tap" = "抑制多指轻点后的左键点击";
 "Only the matching click immediately after a recognized multi-finger tap is consumed." = "仅会消费已识别多指轻点后紧接着发生的匹配点击。";
 "Native scrolling is suppressed while an enabled continuous edge rule owns the trackpad. Click suppression remains optional." = "启用的连续边缘规则接管触摸板期间会抑制原生滚动；点击抑制仍为可选功能。";
@@ -1050,6 +1052,8 @@
 "Brightness Down" = "调低亮度";
 "Continuous Volume" = "连续调节音量";
 "Continuous Brightness" = "连续调节亮度";
+"Previous Tab" = "上一个标签页";
+"Next Tab" = "下一个标签页";
 "Left Click" = "左键点击";
 "Right Click" = "右键点击";
 "Middle Click" = "中键点击";

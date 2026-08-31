@@ -455,6 +455,10 @@ extension AppModel {
       return trackpadGestureService.availability(for: action)
     case .trackpadPointerWindow:
       return .available
+    case .tabNavigation:
+      return trackpadGestureService.availability(
+        for: TrackpadGestureAction(kind: .keyboardShortcut)
+      )
     }
   }
 }

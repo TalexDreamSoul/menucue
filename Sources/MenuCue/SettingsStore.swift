@@ -23,6 +23,7 @@ final class SettingsStore {
         static let animationQuality = "animationQuality.v1"
         static let trackpadGestureSettings = "trackpadGestureSettings.v1"
         static let hotkeyBindings = "hotkeyBindings.v1"
+        static let hotkeyBuiltInDefaultsVersion = "hotkeyBuiltInDefaultsVersion.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
         static let notificationSettings = "notificationSettings.v1"
         static let preferenceSyncEnabled = "preferenceSyncEnabled"
@@ -201,12 +202,22 @@ final class SettingsStore {
     }
 
     private func loadHotkeyBindings() -> [HotkeyBinding] {
-        guard let data = defaults.data(forKey: Key.hotkeyBindings),
-              let bindings = try? decoder.decode([HotkeyBinding].self, from: data)
-        else {
-            return []
+        let stored: [HotkeyBinding]
+        if let data = defaults.data(forKey: Key.hotkeyBindings),
+           let decoded = try? decoder.decode([HotkeyBinding].self, from: data) {
+            stored = AppSettings.normalizedHotkeyBindings(decoded)
+        } else {
+            stored = []
         }
-        return AppSettings.normalizedHotkeyBindings(bindings)
+        guard defaults.integer(forKey: Key.hotkeyBuiltInDefaultsVersion) < HotkeyBuiltInDefaults.currentVersion else {
+            return stored
+        }
+        let merged = HotkeyBuiltInDefaults.merged(with: stored)
+        if let data = try? encoder.encode(merged) {
+            defaults.set(data, forKey: Key.hotkeyBindings)
+        }
+        defaults.set(HotkeyBuiltInDefaults.currentVersion, forKey: Key.hotkeyBuiltInDefaultsVersion)
+        return merged
     }
 
 

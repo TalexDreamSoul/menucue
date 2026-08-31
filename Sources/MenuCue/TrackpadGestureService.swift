@@ -1065,6 +1065,10 @@ final class TrackpadGestureService: ObservableObject {
   @Published private(set) var lastRecognition: String?
   @Published private(set) var clickSuppressionStatus: TrackpadInputSuppressionStatus = .disabled
   @Published private(set) var edgeScrollSuppressionStatus: TrackpadInputSuppressionStatus = .disabled
+  /// The mirrored-display guard leaves native input untouched when AirPlay mirrors this Mac.
+  /// Universal Control has no public remote-focus API, so it intentionally stays local until
+  /// macOS itself hands the event stream to the other device.
+  @Published private(set) var inputOwnership: TrackpadInputOwnership = .local
 
   private let engineQueue: DispatchQueue
   private let notificationCenter: NotificationCenter
@@ -1074,6 +1078,7 @@ final class TrackpadGestureService: ObservableObject {
   private let clickSuppressor: TrackpadClickSuppressor
   private let edgeScrollSuppressor: TrackpadEdgeScrollSuppressor
   private let pointerFreeze: TrackpadPointerFreezeCoordinator
+  private let inputOwnershipProvider: () -> TrackpadInputOwnership
 
   private var engine: TrackpadGestureEngine
   private var activeSettings: TrackpadGestureSettings
@@ -1088,6 +1093,7 @@ final class TrackpadGestureService: ObservableObject {
   private var frontmostObserver: NSObjectProtocol?
   private var lastLiveContactPublication: TimeInterval = 0
   private var livePreviewRetainCount = 0
+  private var automationSuspendedForNonLocalInput = false
 
   // Written only on the main thread, read on the engine queue for every frame.
   private let frontmostLock = NSLock()
@@ -1139,7 +1145,8 @@ final class TrackpadGestureService: ObservableObject {
     workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
     accessibilityPermissionRequester: AccessibilityPermissionRequesting =
       SystemAccessibilityPermissionRequester(),
-    pointerFreezer: PointerFreezing = SystemPointerFreezer()
+    pointerFreezer: PointerFreezing = SystemPointerFreezer(),
+    inputOwnershipProvider: @escaping () -> TrackpadInputOwnership = SystemTrackpadInputOwnership.current
   ) {
     let engineQueue = DispatchQueue(
       label: "com.tagzxia.app.menucue.trackpad.engine",
@@ -1157,6 +1164,7 @@ final class TrackpadGestureService: ObservableObject {
     self.notificationCenter = notificationCenter
     self.workspaceNotificationCenter = workspaceNotificationCenter
     self.accessibilityPermissionRequester = accessibilityPermissionRequester
+    self.inputOwnershipProvider = inputOwnershipProvider
     self.executor = TrackpadActionExecutor(
       quickActionService: quickActionService,
       accessibilityPermissionRequester: accessibilityPermissionRequester
@@ -1203,6 +1211,8 @@ final class TrackpadGestureService: ObservableObject {
       self.clickSuppressionOwnerDeviceID = nil
       self.clickSuppressionConflictedDeviceIDs.removeAll()
       self.clickSuppressor.cancel()
+      self.automationSuspendedForNonLocalInput = false
+      self.publish(inputOwnership: .local)
       if settings.isEnabled {
         self.source.start()
       } else {
@@ -1268,6 +1278,12 @@ final class TrackpadGestureService: ObservableObject {
     feedbackHUDEnabled: Bool,
     hapticFeedbackEnabled: Bool
   ) {
+    let ownership = inputOwnershipProvider()
+    guard ownership.acceptsLocalAutomation else {
+      publish(inputOwnership: ownership)
+      return
+    }
+    publish(inputOwnership: .local)
     runOnMain { [weak self] in
       self?.executor.execute(
         route: route,
@@ -1306,6 +1322,12 @@ final class TrackpadGestureService: ObservableObject {
 
   private func receive(_ sourceFrame: TrackpadSourceFrame) {
     guard activeSettings.isEnabled else { return }
+    let ownership = inputOwnershipProvider()
+    guard ownership.acceptsLocalAutomation else {
+      suspendAutomationForNonLocalInput(ownership)
+      return
+    }
+    resumeAutomationAfterLocalInputReturns()
     let frame = sourceFrame.trackpadFrame
     let context = currentContext()
     let edgeDecision = edgeScrollSuppressionPolicy.consume(
@@ -1397,6 +1419,34 @@ final class TrackpadGestureService: ObservableObject {
         clickSuppressor.cancel()
       }
     }
+  }
+
+  /// A raw continuous gesture may already own the pointer or the native scroll tap when
+  /// input leaves this Mac. Release every ownership path once and leave later frames alone,
+  /// so AirPlay and Universal Control continue receiving unmodified system input.
+  private func suspendAutomationForNonLocalInput(_ ownership: TrackpadInputOwnership) {
+    if automationSuspendedForNonLocalInput {
+      publish(inputOwnership: ownership)
+      return
+    }
+    automationSuspendedForNonLocalInput = true
+    engine.reset()
+    pointerFreeze.release()
+    clickSuppressionPolicy.reset()
+    edgeScrollSuppressionPolicy.reset()
+    sessionScrollSuppressionPolicy.reset()
+    edgeScrollSuppressor.setGestureActive(false, cancelMomentumDrain: true)
+    clickSuppressionOwnerDeviceID = nil
+    clickSuppressionConflictedDeviceIDs.removeAll()
+    clickSuppressor.cancel()
+    publish(liveContacts: [])
+    publish(inputOwnership: ownership)
+  }
+
+  private func resumeAutomationAfterLocalInputReturns() {
+    guard automationSuspendedForNonLocalInput else { return }
+    automationSuspendedForNonLocalInput = false
+    publish(inputOwnership: .local)
   }
 
   /// Recognition happens on the engine queue; the action runs on the main thread and the
@@ -1604,6 +1654,9 @@ final class TrackpadGestureService: ObservableObject {
     runOnMain { [weak self] in
       self?.edgeScrollSuppressionStatus = edgeScrollSuppressionStatus
     }
+  }
+  private func publish(inputOwnership: TrackpadInputOwnership) {
+    runOnMain { [weak self] in self?.inputOwnership = inputOwnership }
   }
 
   private static func runtimeStatus(

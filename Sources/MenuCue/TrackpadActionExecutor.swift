@@ -307,7 +307,16 @@ final class TrackpadActionExecutor {
         continuous: false
       )
       return result
-    }
+    case .tabNavigation(let action):
+      let result = performTabNavigation(action)
+      present(
+        result,
+        feedbackHUDEnabled: feedbackHUDEnabled,
+        hapticFeedbackEnabled: hapticFeedbackEnabled,
+        continuous: false
+      )
+      return result
+  }
   }
 
   private func executeSystemControl(
@@ -445,6 +454,11 @@ final class TrackpadActionExecutor {
     keyDown.post(tap: .cghidEventTap)
     keyUp.post(tap: .cghidEventTap)
     return .success("Sent keyboard shortcut.")
+  }
+
+  private func performTabNavigation(_ action: TrackpadTabAction) -> TrackpadActionExecutionResult {
+    let modifiers: CGEventFlags = action == .previous ? [.maskControl, .maskShift] : [.maskControl]
+    return performKeyboardShortcut(keyCode: 48, modifiers: modifiers)
   }
 
   func performMouseClick(button: CGMouseButton = .left) -> TrackpadActionExecutionResult {

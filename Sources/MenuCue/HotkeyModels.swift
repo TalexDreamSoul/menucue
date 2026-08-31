@@ -135,6 +135,50 @@ enum HotkeyBindingPolicy {
   }
 }
 
+/// Stable, removable-once defaults that make MenuCue compatible with the window and Tab
+/// shortcuts BetterAndBetter users expect without overwriting an existing claimed key.
+enum HotkeyBuiltInDefaults {
+  static let currentVersion = 1
+
+  static let bindings: [HotkeyBinding] = [
+    binding("11111111-1111-4111-8111-111111111111", 126, "↑", [.command, .shift], "trackpad:window:maximize"),
+    binding("22222222-2222-4222-8222-222222222222", 125, "↓", [.command, .shift], "trackpad:window:restore"),
+    binding("33333333-3333-4333-8333-333333333333", 124, "→", [.command, .shift], "trackpad:window:nextDisplay"),
+    binding("44444444-4444-4444-8444-444444444444", 33, "[", [.command, .shift], ActionCatalog.tabNavigationItemID(.previous)),
+    binding("55555555-5555-4555-8555-555555555555", 30, "]", [.command, .shift], ActionCatalog.tabNavigationItemID(.next)),
+    binding("66666666-6666-4666-8666-666666666666", 33, "[", [.command, .option], ActionCatalog.tabNavigationItemID(.previous)),
+    binding("77777777-7777-4777-8777-777777777777", 30, "]", [.command, .option], ActionCatalog.tabNavigationItemID(.next)),
+  ]
+
+  static func merged(with existing: [HotkeyBinding]) -> [HotkeyBinding] {
+    var result = existing
+    for binding in bindings where !result.contains(where: { candidate in
+      candidate.id == binding.id || candidate.shortcut.claimsSameKey(as: binding.shortcut)
+    }) {
+      result.append(binding)
+    }
+    return AppSettings.normalizedHotkeyBindings(result)
+  }
+
+  private static func binding(
+    _ id: String,
+    _ keyCode: UInt16,
+    _ characters: String,
+    _ modifiers: Set<TrackpadModifier>,
+    _ actionItemID: String
+  ) -> HotkeyBinding {
+    HotkeyBinding(
+      id: UUID(uuidString: id)!,
+      shortcut: TrackpadKeyboardShortcut(
+        keyCode: keyCode,
+        characters: characters,
+        modifiers: modifiers
+      ),
+      actionItemID: actionItemID
+    )
+  }
+}
+
 extension TrackpadKeyboardShortcut {
   /// Two shortcuts collide when the system would hand them the same press, which is a
   /// narrower question than being written the same way: the typed character is a label

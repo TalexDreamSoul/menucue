@@ -383,6 +383,13 @@ enum TrackpadWindowAction: String, CaseIterable, Codable, Identifiable {
   var id: String { rawValue }
 }
 
+enum TrackpadTabAction: String, CaseIterable, Codable, Identifiable {
+  case previous
+  case next
+
+  var id: String { rawValue }
+}
+
 struct TrackpadKeyboardShortcut: Codable, Equatable {
   var keyCode: UInt16
   var characters: String
