@@ -9,9 +9,9 @@ BUNDLE_IDENTIFIER="com.tagzxia.app.menucue"
 HELPER_BUNDLE_IDENTIFIER="com.tagzxia.app.menucue.helper"
 HELPER_PLIST_NAME="$HELPER_BUNDLE_IDENTIFIER.plist"
 BUILD_CONFIG="${BUILD_CONFIG:-release}"
-APP_VERSION="0.9.1"
-BUILD_NUMBER="35"
-CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+APP_VERSION="0.9.2"
+BUILD_NUMBER="36"
+CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
 REQUIRE_STABLE_SIGNING="${REQUIRE_STABLE_SIGNING:-false}"
 SPARKLE_PUBLIC_ED_KEY="3UilJjqjrxBl53x71Fe2Kidf1uIooNLoOFL/6c13qyg="
 SPARKLE_FEED_URL="https://github.com/TalexDreamSoul/menucue/releases/download/appcast-feed/appcast.xml"
@@ -33,6 +33,22 @@ SPARKLE_FRAMEWORK_DESTINATION="$FRAMEWORKS_DIR/Sparkle.framework"
 LOCALIZATION_BUNDLE_SOURCE="$ROOT_DIR/.build/$BUILD_CONFIG/MenuCue_MenuCue.bundle"
 
 cd "$ROOT_DIR"
+# Prefer a fixed Apple Development identity for local builds so TCC recognizes
+# consecutive app bundles as the same client. An explicit "-" remains a useful
+# opt-out for contributors without a development certificate.
+if [[ -z "$CODESIGN_IDENTITY" ]]; then
+    CODESIGN_IDENTITY="$(
+        security find-identity -v -p codesigning \
+            | sed -nE 's/.*"(Apple Development: [^"]+)".*/\1/p' \
+            | sed -n '1p'
+    )"
+    CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+fi
+
+if [[ "$CODESIGN_IDENTITY" == "-" ]]; then
+    echo "Using ad-hoc signing; macOS privacy grants will not survive a rebuild." >&2
+fi
+
 if [[ "$REQUIRE_STABLE_SIGNING" == "true" ]]; then
     if [[ "$CODESIGN_IDENTITY" != "Developer ID Application:"* ]]; then
         echo "Stable release builds require a Developer ID Application identity." >&2

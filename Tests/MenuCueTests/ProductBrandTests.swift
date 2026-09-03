@@ -90,6 +90,23 @@ struct ProductBrandTests {
     #expect(!buildScript.contains("<string>14.0</string>"))
   }
 
+  @Test func localBuildSigningSelectsAppleDevelopmentAndRetainsAdHocOptOut() throws {
+    let repositoryRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let buildScript = try String(
+      contentsOf: repositoryRoot.appendingPathComponent("scripts/build-app.sh"),
+      encoding: .utf8
+    )
+
+    #expect(buildScript.contains(#"if [[ -z "$CODESIGN_IDENTITY" ]]; then"#))
+    #expect(buildScript.contains("security find-identity -v -p codesigning"))
+    #expect(buildScript.contains("Apple Development: "))
+    #expect(buildScript.contains(#"if [[ "$CODESIGN_IDENTITY" == "-" ]]; then"#))
+    #expect(buildScript.contains("Using ad-hoc signing"))
+  }
+
   @Test func releasePipelineRequiresDeveloperIDAndNotarization() throws {
     let repositoryRoot = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()

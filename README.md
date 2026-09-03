@@ -44,7 +44,7 @@ scripts/build-app.sh
 open .build/app/MenuCue.app
 ```
 
-The default command keeps the ad-hoc build local-only. Public releases must use a `Developer ID Application` identity, a non-device-bound Developer ID provisioning profile, hardened runtime, and Apple notarization:
+By default, the script uses an available `Apple Development` identity so local macOS privacy grants remain valid across rebuilds. If none is available, it falls back to ad-hoc signing; explicitly use `CODESIGN_IDENTITY="-"` for the same local-only fallback. Public releases must use a `Developer ID Application` identity, a non-device-bound Developer ID provisioning profile, hardened runtime, and Apple notarization:
 
 ```bash
 BUILD_CONFIG=release \
@@ -55,8 +55,8 @@ PROVISIONING_PROFILE="/path/to/MenuCue-DeveloperID.provisionprofile" \
 scripts/build-app.sh
 
 NOTARYTOOL_PROFILE="MenuCue-Notarization" \
-EXPECTED_VERSION="0.6.6" \
-EXPECTED_BUILD="22" \
+EXPECTED_VERSION="0.9.2" \
+EXPECTED_BUILD="36" \
 scripts/build-update.sh
 ```
 
