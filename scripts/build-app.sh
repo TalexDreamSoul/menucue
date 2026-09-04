@@ -203,6 +203,17 @@ codesign "${CODESIGN_ARGS[@]}" \
     --identifier "$HELPER_BUNDLE_IDENTIFIER" \
     "$MACOS_DIR/$HELPER_NAME"
 
+cat > "$RESOLVED_APP_ENTITLEMENTS" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.personal-information.calendars</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+
 if [[ -n "$APPLE_TEAM_ID" ]]; then
     if [[ "$CODESIGN_IDENTITY" == "-" ]]; then
         echo "CODESIGN_IDENTITY must name an Apple signing identity when APPLE_TEAM_ID is set." >&2
@@ -279,6 +290,8 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
     <string>$PROFILE_TEAM_ID</string>
     <key>com.apple.developer.ubiquity-kvstore-identifier</key>
     <string>$EXPECTED_APPLICATION_IDENTIFIER</string>
+    <key>com.apple.security.personal-information.calendars</key>
+    <true/>
 </dict>
 </plist>
 PLIST
@@ -287,7 +300,9 @@ PLIST
         "$APP_DIR"
     echo "Built iCloud-enabled $APP_DIR"
 else
-    codesign "${CODESIGN_ARGS[@]}" "$APP_DIR"
+    codesign "${CODESIGN_ARGS[@]}" \
+        --entitlements "$RESOLVED_APP_ENTITLEMENTS" \
+        "$APP_DIR"
     echo "Built local-only $APP_DIR"
 fi
 
