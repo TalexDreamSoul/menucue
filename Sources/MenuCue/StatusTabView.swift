@@ -301,20 +301,6 @@ struct SystemMetricsCards: View {
           value: SystemMetricsFormatter.capacity(disk.total),
           alignment: .trailing)
       }
-      Text(L10n.string("All disks"))
-        .font(.system(size: 9, weight: .medium))
-        .foregroundStyle(.tertiary)
-      HStack(spacing: 4) {
-        MetricReadout(
-          label: "Read",
-          value: SystemMetricsFormatter.rate(disk.readBytesPerSecond),
-          valueColor: .secondary)
-        MetricReadout(
-          label: "Write",
-          value: SystemMetricsFormatter.rate(disk.writeBytesPerSecond),
-          valueColor: .secondary,
-          alignment: .trailing)
-      }
     }
   }
 
