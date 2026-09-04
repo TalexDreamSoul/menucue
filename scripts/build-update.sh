@@ -165,6 +165,8 @@ APP_APPLICATION_IDENTIFIER="$(/usr/libexec/PlistBuddy \
     -c 'Print :com.apple.application-identifier' "$APP_ENTITLEMENTS_PLIST")"
 APP_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
     -c 'Print :com.apple.developer.ubiquity-kvstore-identifier' "$APP_ENTITLEMENTS_PLIST")"
+APP_CALENDAR_ACCESS="$(/usr/libexec/PlistBuddy \
+    -c 'Print :com.apple.security.personal-information.calendars' "$APP_ENTITLEMENTS_PLIST")"
 PROFILE_APPLICATION_IDENTIFIER="$(/usr/libexec/PlistBuddy \
     -c 'Print :Entitlements:com.apple.application-identifier' "$PROFILE_PLIST")"
 PROFILE_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
@@ -175,6 +177,10 @@ PROFILE_KVSTORE_IDENTIFIER="$(/usr/libexec/PlistBuddy \
 }
 [[ "$APP_KVSTORE_IDENTIFIER" == "$EXPECTED_APPLICATION_IDENTIFIER" ]] || {
     echo "Release app is missing the required iCloud key-value entitlement." >&2
+    exit 1
+}
+[[ "$APP_CALENDAR_ACCESS" == "true" ]] || {
+    echo "Release app is missing the Calendar entitlement." >&2
     exit 1
 }
 [[ "$PROFILE_APPLICATION_IDENTIFIER" == "$EXPECTED_APPLICATION_IDENTIFIER" ]] || {
