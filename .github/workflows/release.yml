@@ -9,7 +9,7 @@ on:
       tag:
         description: Existing version tag to publish
         required: true
-        default: v0.9.4
+        default: v0.9.5
         type: string
 
 permissions:
@@ -168,6 +168,7 @@ jobs:
           - Calendar permission requests work in Hardened Runtime builds.
           - The disk status card shows capacity and Used/Total only.
           - The memory status card shows Used/Total only.
+          - Calendar resources resolve from the packaged app bundle without crashing on first open.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF

@@ -309,7 +309,7 @@ struct SolarTermStore {
         guard let dataURL = L10n.bundle.url(
             forResource: "solar-terms-1901-2100",
             withExtension: "json"
-        ), let metadataURL = Bundle.module.url(
+        ), let metadataURL = L10n.bundle.url(
             forResource: "solar-terms-1901-2100.metadata",
             withExtension: "json"
         ), let data = try? Data(contentsOf: dataURL),
