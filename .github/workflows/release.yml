@@ -33,12 +33,12 @@ jobs:
       APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
       APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
       SPARKLE_PRIVATE_KEY_BASE64: ${{ secrets.SPARKLE_PRIVATE_KEY_BASE64 }}
-      KEYCHAIN_PATH: ${{ runner.temp }}/menucue-signing.keychain-db
+      KEYCHAIN_PATH: ${{ github.workspace }}/menucue-signing.keychain-db
       KEYCHAIN_PASSWORD: ${{ secrets.MENUCUE_CI_KEYCHAIN_PASSWORD }}
-      PROVISIONING_PROFILE_PATH: ${{ runner.temp }}/MenuCue.provisionprofile
-      NOTARY_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
-      CERTIFICATE_PATH: ${{ runner.temp }}/developer-id.p12
-      SPARKLE_PRIVATE_KEY_PATH: ${{ runner.temp }}/sparkle-private-key
+      PROVISIONING_PROFILE_PATH: ${{ github.workspace }}/MenuCue.provisionprofile
+      NOTARY_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
+      CERTIFICATE_PATH: ${{ github.workspace }}/developer-id.p12
+      SPARKLE_PRIVATE_KEY_PATH: ${{ github.workspace }}/sparkle-private-key
 
     steps:
       - name: Check out release source
