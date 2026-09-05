@@ -262,6 +262,13 @@ if [[ -n "$APPLE_TEAM_ID" ]]; then
         exit 1
     fi
     EXPECTED_KVSTORE_IDENTIFIER="$PROFILE_APP_IDENTIFIER_PREFIX.$BUNDLE_IDENTIFIER"
+    PROFILE_CALENDAR_ACCESS="$(/usr/libexec/PlistBuddy \
+        -c 'Print :Entitlements:com.apple.security.personal-information.calendars' \
+        "$PROFILE_PLIST" 2>/dev/null || echo false)"
+    [[ "$PROFILE_CALENDAR_ACCESS" == "true" ]] || {
+        echo "Provisioning profile is missing the Calendar entitlement." >&2
+        exit 1
+    }
 
     if [[ "$PROFILE_TEAM_ID" != "$APPLE_TEAM_ID" ]]; then
         echo "Provisioning profile team $PROFILE_TEAM_ID does not match APPLE_TEAM_ID $APPLE_TEAM_ID." >&2
