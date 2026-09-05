@@ -9,7 +9,7 @@ on:
       tag:
         description: Existing version tag to publish
         required: true
-        default: v0.9.5
+        default: v0.9.6
         type: string
 
 permissions:
@@ -165,10 +165,9 @@ jobs:
           cat > "$NOTES" <<EOF
           ## Changes
 
-          - Calendar permission requests work in Hardened Runtime builds.
-          - The disk status card shows capacity and Used/Total only.
-          - The memory status card shows Used/Total only.
-          - Calendar resources resolve from the packaged app bundle without crashing on first open.
+          - Calendar data refresh no longer blocks the popover's main thread.
+          - Month presentation and lunar formatters are reused across tab switches.
+          - Calendar navigation uses a shorter transition to keep interaction responsive.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF

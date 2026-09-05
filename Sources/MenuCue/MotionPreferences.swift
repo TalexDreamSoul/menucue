@@ -46,9 +46,9 @@ struct MotionProfile {
   }
 
   var navigationAnimation: Animation? {
-    if isMinimal { return .easeOut(duration: 0.10) }
-    if quality == .full { return .snappy(duration: 0.26) }
-    return .easeOut(duration: 0.20)
+    if isMinimal { return .easeOut(duration: 0.08) }
+    if quality == .full { return .snappy(duration: 0.18) }
+    return .easeOut(duration: 0.12)
   }
 
   var barAnimation: Animation? {

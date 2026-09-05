@@ -25,29 +25,84 @@ enum CalendarServiceError: LocalizedError {
 
 final class CalendarService {
     private let eventStore = EKEventStore()
+    private let eventStoreQueue = DispatchQueue(
+        label: "com.tagzxia.app.menucue.calendar-event-store",
+        qos: .userInitiated
+    )
 
     var authorizationState: CalendarAuthorizationState {
         Self.mapAuthorizationStatus(EKEventStore.authorizationStatus(for: .event))
     }
 
     func requestAccess(completion: @escaping (CalendarAuthorizationState, Error?) -> Void) {
-        let finish: (Bool, Error?) -> Void = { [weak self] _, error in
+        eventStoreQueue.async { [weak self] in
             guard let self else { return }
-            completion(self.authorizationState, error)
+            let finish: (Bool, Error?) -> Void = { [weak self] _, error in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    completion(self.authorizationState, error)
+                }
+            }
+            if #available(macOS 14.0, *) {
+                self.eventStore.requestFullAccessToEvents(completion: finish)
+            } else {
+                self.eventStore.requestAccess(to: .event, completion: finish)
+            }
         }
-        if #available(macOS 14.0, *) {
-            eventStore.requestFullAccessToEvents(completion: finish)
-        } else {
-            eventStore.requestAccess(to: .event, completion: finish)
+    }
+
+    func load(
+        settings: AppSettings,
+        visibleMonthDate: Date,
+        completion: @escaping ([CalendarInfo], [CalendarEventInfo]) -> Void
+    ) {
+        eventStoreQueue.async { [weak self] in
+            guard let self else { return }
+            let allCalendars = self.eventStore.calendars(for: .event)
+            let calendars = self.calendarInfos(from: allCalendars)
+            let events = self.eventInfos(
+                settings: settings,
+                visibleMonthDate: visibleMonthDate,
+                allCalendars: allCalendars
+            )
+            DispatchQueue.main.async {
+                completion(calendars, events)
+            }
+        }
+    }
+
+    func loadEvents(
+        settings: AppSettings,
+        visibleMonthDate: Date,
+        completion: @escaping ([CalendarEventInfo]) -> Void
+    ) {
+        eventStoreQueue.async { [weak self] in
+            guard let self else { return }
+            let events = self.eventInfos(
+                settings: settings,
+                visibleMonthDate: visibleMonthDate,
+                allCalendars: self.eventStore.calendars(for: .event)
+            )
+            DispatchQueue.main.async {
+                completion(events)
+            }
         }
     }
 
     var defaultNewEventCalendarID: String? {
-        eventStore.defaultCalendarForNewEvents?.calendarIdentifier
+        eventStoreQueue.sync {
+            eventStore.defaultCalendarForNewEvents?.calendarIdentifier
+        }
     }
 
-    func calendars() -> [CalendarInfo] {
-        eventStore.calendars(for: .event)
+    func createEvent(from draft: QuickEventDraft) throws {
+        try eventStoreQueue.sync {
+            try saveEvent(from: draft)
+        }
+    }
+
+    private func calendarInfos(from calendars: [EKCalendar]) -> [CalendarInfo] {
+        calendars
             .sorted { left, right in
                 if left.source.title == right.source.title {
                     return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
@@ -63,12 +118,11 @@ final class CalendarService {
             }
     }
 
-    func events(
+    private func eventInfos(
         settings: AppSettings,
         visibleMonthDate: Date,
-        daysAhead: Int = 14
+        allCalendars: [EKCalendar]
     ) -> [CalendarEventInfo] {
-        let allCalendars = eventStore.calendars(for: .event)
         let selectedCalendars: [EKCalendar]
         switch settings.calendarSelectionMode {
         case .all:
@@ -86,7 +140,7 @@ final class CalendarService {
             now: Date(),
             timeZone: settings.overviewTimeZone,
             weekStartDay: settings.calendarWeekStartDay,
-            daysAhead: daysAhead
+            daysAhead: 14
         )
         var eventsByID: [String: EKEvent] = [:]
         for range in ranges {
@@ -129,7 +183,7 @@ final class CalendarService {
             }
     }
 
-    func createEvent(from draft: QuickEventDraft) throws {
+    private func saveEvent(from draft: QuickEventDraft) throws {
         let event = EKEvent(eventStore: eventStore)
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         event.title = trimmedTitle.isEmpty ? L10n.string("New Event") : trimmedTitle

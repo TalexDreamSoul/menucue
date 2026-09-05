@@ -110,6 +110,8 @@ final class AppModel: ObservableObject {
     private let launchAtLoginService: LaunchAtLoginManaging
     private var visibleCalendarMonthDate = Date()
     private var calendarRefreshController: CalendarRefreshController?
+    private var calendarRefreshGeneration = 0
+
 
     init(
         settingsStore: SettingsStore,
@@ -489,14 +491,30 @@ final class AppModel: ObservableObject {
         if authorizationState != .notDetermined {
             calendarPromptSuppressed = false
         }
+
+        calendarRefreshGeneration &+= 1
+        let refreshGeneration = calendarRefreshGeneration
         guard authorizationState.canReadEvents else {
             calendars = []
             events = []
             return
         }
 
-        calendars = calendarService.calendars()
-        refreshEventsIfPossible()
+        let requestedSettings = settings
+        let requestedMonth = visibleCalendarMonthDate
+        calendarService.load(
+            settings: requestedSettings,
+            visibleMonthDate: requestedMonth
+        ) { [weak self] calendars, events in
+            guard let self,
+                  self.calendarRefreshGeneration == refreshGeneration,
+                  self.authorizationState.canReadEvents
+            else {
+                return
+            }
+            self.calendars = calendars
+            self.events = events
+        }
     }
 
     func setVisibleCalendarMonth(_ date: Date) {
@@ -557,7 +575,8 @@ final class AppModel: ObservableObject {
             hotkeyService.apply(bindings: nextSettings.hotkeyBindings)
         }
         configureNotificationServices(nextSettings.notificationSettings)
-        refreshEventsIfPossible()
+        refreshCalendarData()
+
     }
 
     private func configureNotificationServices(_ notificationSettings: NotificationSettings) {
@@ -662,13 +681,26 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshEventsIfPossible() {
+        calendarRefreshGeneration &+= 1
+        let refreshGeneration = calendarRefreshGeneration
         guard authorizationState.canReadEvents else {
             events = []
             return
         }
-        events = calendarService.events(
-            settings: settings,
-            visibleMonthDate: visibleCalendarMonthDate
-        )
+
+        let requestedSettings = settings
+        let requestedMonth = visibleCalendarMonthDate
+        calendarService.loadEvents(
+            settings: requestedSettings,
+            visibleMonthDate: requestedMonth
+        ) { [weak self] events in
+            guard let self,
+                  self.calendarRefreshGeneration == refreshGeneration,
+                  self.authorizationState.canReadEvents
+            else {
+                return
+            }
+            self.events = events
+        }
     }
 }

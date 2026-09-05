@@ -70,6 +70,7 @@ struct StatusPopoverView: View {
   @State private var selectedTab: PopoverTab = .status
   @State private var visibleMonthDate = Date()
   @State private var selectedCalendarDate = Date()
+  @State private var calendarPresentationCache = CalendarMonthPresentationCache()
   @State private var quickEventDraft: QuickEventDraft?
   /// Which way the next tab change travels. Set before `selectedTab` so the
   /// transition below is already pointing the right way when SwiftUI evaluates it.
@@ -230,6 +231,7 @@ struct StatusPopoverView: View {
         MonthCalendarView(
           monthDate: $visibleMonthDate,
           selectedDate: $selectedCalendarDate,
+          presentationCache: calendarPresentationCache,
           events: model.events,
           timeZone: model.settings.overviewTimeZone,
           weekStartDay: model.settings.calendarWeekStartDay,
@@ -741,6 +743,7 @@ private struct MonthCalendarView: View {
   @Environment(\.menuCueMotion) private var motion
   @Binding var monthDate: Date
   @Binding var selectedDate: Date
+  let presentationCache: CalendarMonthPresentationCache
   let events: [CalendarEventInfo]
   let timeZone: TimeZone
   let weekStartDay: WeekStartDay
@@ -1015,17 +1018,16 @@ private struct MonthCalendarView: View {
   }
 
   private var days: [CalendarDayPresentation] {
-    CalendarMonthBuilder(
+    presentationCache.days(
+      monthDate: monthDate,
+      selectedDate: selectedDate,
+      now: Date(),
       timeZone: timeZone,
       weekStartDay: weekStartDay,
       showsLunarCalendar: showsLunarCalendar,
       allDayEventDatePolicy: allDayEventDatePolicy,
+      events: events,
       solarTerms: SolarTermStore.bundled
-    ).days(
-      monthDate: monthDate,
-      selectedDate: selectedDate,
-      now: Date(),
-      events: events
     )
   }
 

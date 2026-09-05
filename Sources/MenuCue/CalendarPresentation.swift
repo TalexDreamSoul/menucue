@@ -119,16 +119,20 @@ struct LunarDateInfo: Equatable {
     let festival: TraditionalFestival?
 }
 
-struct LunarDateProvider {
+final class LunarDateProvider {
     let timeZone: TimeZone
     let locale: Locale
+    private let lunarCalendar: Calendar
+    private let fullFormatter: DateFormatter
+    private let sexagenaryFormatter: DateFormatter
 
-    func info(for date: Date) -> LunarDateInfo? {
+    init(timeZone: TimeZone, locale: Locale) {
+        self.timeZone = timeZone
+        self.locale = locale
+
         var lunarCalendar = Calendar(identifier: .chinese)
         lunarCalendar.timeZone = timeZone
-        let components = lunarCalendar.dateComponents(in: timeZone, from: date)
-        guard let month = components.month, let day = components.day else { return nil }
-        let isLeapMonth = components.isLeapMonth ?? false
+        self.lunarCalendar = lunarCalendar
 
         let fullFormatter = DateFormatter()
         fullFormatter.calendar = lunarCalendar
@@ -136,12 +140,20 @@ struct LunarDateProvider {
         fullFormatter.locale = locale
         fullFormatter.dateStyle = .long
         fullFormatter.timeStyle = .none
+        self.fullFormatter = fullFormatter
 
         let sexagenaryFormatter = DateFormatter()
         sexagenaryFormatter.calendar = lunarCalendar
         sexagenaryFormatter.timeZone = timeZone
         sexagenaryFormatter.locale = Locale(identifier: "zh-Hans")
         sexagenaryFormatter.dateFormat = "U"
+        self.sexagenaryFormatter = sexagenaryFormatter
+    }
+
+    func info(for date: Date) -> LunarDateInfo? {
+        let components = lunarCalendar.dateComponents(in: timeZone, from: date)
+        guard let month = components.month, let day = components.day else { return nil }
+        let isLeapMonth = components.isLeapMonth ?? false
 
         return LunarDateInfo(
             month: month,
@@ -456,6 +468,66 @@ struct CalendarMonthBuilder {
         }
     }
 }
+final class CalendarMonthPresentationCache {
+    private struct Request: Equatable {
+        let monthDate: CivilDateKey
+        let selectedDate: CivilDateKey
+        let currentDate: CivilDateKey
+        let timeZoneIdentifier: String
+        let timeZoneOffset: Int
+        let weekStartDay: WeekStartDay
+        let showsLunarCalendar: Bool
+        let allDayEventDatePolicy: AllDayEventDatePolicy
+        let events: [CalendarEventInfo]
+    }
+
+    private var cachedRequest: Request?
+    private var cachedDays: [CalendarDayPresentation] = []
+
+    func days(
+        monthDate: Date,
+        selectedDate: Date,
+        now: Date,
+        timeZone: TimeZone,
+        weekStartDay: WeekStartDay,
+        showsLunarCalendar: Bool,
+        allDayEventDatePolicy: AllDayEventDatePolicy,
+        events: [CalendarEventInfo],
+        solarTerms: SolarTermStore?
+    ) -> [CalendarDayPresentation] {
+        let request = Request(
+            monthDate: CivilDateKey(date: monthDate, timeZone: timeZone),
+            selectedDate: CivilDateKey(date: selectedDate, timeZone: timeZone),
+            currentDate: CivilDateKey(date: now, timeZone: timeZone),
+            timeZoneIdentifier: timeZone.identifier,
+            timeZoneOffset: timeZone.secondsFromGMT(for: monthDate),
+            weekStartDay: weekStartDay,
+            showsLunarCalendar: showsLunarCalendar,
+            allDayEventDatePolicy: allDayEventDatePolicy,
+            events: events
+        )
+        if cachedRequest == request {
+            return cachedDays
+        }
+
+        let days = CalendarMonthBuilder(
+            timeZone: timeZone,
+            weekStartDay: weekStartDay,
+            showsLunarCalendar: showsLunarCalendar,
+            allDayEventDatePolicy: allDayEventDatePolicy,
+            solarTerms: solarTerms
+        ).days(
+            monthDate: monthDate,
+            selectedDate: selectedDate,
+            now: now,
+            events: events
+        )
+        cachedRequest = request
+        cachedDays = days
+        return days
+    }
+}
+
 
 enum CalendarEventQueryPlanner {
     static func ranges(
