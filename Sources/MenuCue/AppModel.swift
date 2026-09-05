@@ -590,13 +590,13 @@ final class AppModel: ObservableObject {
         if enabled {
             powerDiagnosticsService.setDarkWakeMonitoring(
                 historyHandler: { [weak monitor] events in
-                    Task { await monitor?.processDarkWakeEvents(events) }
+                    Task { [weak monitor] in await monitor?.processDarkWakeEvents(events) }
                 },
                 onSleep: { [weak monitor] in
-                    Task { await monitor?.handleSystemSleep() }
+                    Task { [weak monitor] in await monitor?.handleSystemSleep() }
                 },
                 onWake: { [weak monitor] in
-                    Task { await monitor?.handleSystemWake() }
+                    Task { [weak monitor] in await monitor?.handleSystemWake() }
                 }
             )
         } else {
