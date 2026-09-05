@@ -1,0 +1,195 @@
+name: Release MenuCue
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        default: v0.9.3
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: menucue-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-14
+    env:
+      APPLE_TEAM_ID: 2L5YC85FQ7
+      CODESIGN_IDENTITY: 'Developer ID Application: ZiXian Tang (2L5YC85FQ7)'
+      SPARKLE_KEY_ACCOUNT: com.tagzxia.app.menucue.sparkle
+      APPLE_DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 }}
+      APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_NOTARY_KEY_BASE64: ${{ secrets.APPLE_NOTARY_KEY_BASE64 }}
+      APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+      APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+      SPARKLE_PRIVATE_KEY_BASE64: ${{ secrets.SPARKLE_PRIVATE_KEY_BASE64 }}
+      KEYCHAIN_PATH: ${{ github.workspace }}/menucue-signing.keychain-db
+      KEYCHAIN_PASSWORD: ${{ secrets.MENUCUE_CI_KEYCHAIN_PASSWORD }}
+      PROVISIONING_PROFILE_PATH: ${{ github.workspace }}/MenuCue.provisionprofile
+      NOTARY_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
+      CERTIFICATE_PATH: ${{ github.workspace }}/developer-id.p12
+      SPARKLE_PRIVATE_KEY_PATH: ${{ github.workspace }}/sparkle-private-key
+
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+
+      - name: Resolve release version
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
+          [[ "$TAG" == v* ]] || { echo "Release tag must start with v." >&2; exit 1; }
+          VERSION="${TAG#v}"
+          SCRIPT_VERSION="$(sed -n 's/^APP_VERSION="\([^"]*\)"$/\1/p' scripts/build-app.sh)"
+          BUILD_NUMBER="$(sed -n 's/^BUILD_NUMBER="\([^"]*\)"$/\1/p' scripts/build-app.sh)"
+          [[ "$VERSION" == "$SCRIPT_VERSION" ]] || {
+            echo "Tag $TAG does not match scripts/build-app.sh version $SCRIPT_VERSION." >&2
+            exit 1
+          }
+          [[ -n "$BUILD_NUMBER" ]] || { echo "Build number is missing." >&2; exit 1; }
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "build=$BUILD_NUMBER"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate release secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            APPLE_DEVELOPER_ID_CERTIFICATE_BASE64
+            APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD
+            APPLE_PROVISIONING_PROFILE_BASE64
+            APPLE_NOTARY_KEY_BASE64
+            APPLE_NOTARY_KEY_ID
+            APPLE_NOTARY_ISSUER_ID
+            SPARKLE_PRIVATE_KEY_BASE64
+            KEYCHAIN_PASSWORD
+          )
+          for name in "${required[@]}"; do
+            [[ -n "${!name:-}" ]] || { echo "Missing Actions secret: $name" >&2; exit 1; }
+          done
+
+      - name: Create signing keychain
+        shell: bash
+        run: |
+          set -euo pipefail
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db System.keychain
+          security default-keychain -s "$KEYCHAIN_PATH"
+          printf '%s' "$APPLE_DEVELOPER_ID_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" \
+            -P "$APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          printf '%s' "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROVISIONING_PROFILE_PATH"
+          printf '%s' "$APPLE_NOTARY_KEY_BASE64" | base64 --decode > "$NOTARY_KEY_PATH"
+
+      - name: Build signed app
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUIRE_STABLE_SIGNING=true \
+          PROVISIONING_PROFILE="$PROVISIONING_PROFILE_PATH" \
+          scripts/build-app.sh
+
+      - name: Import Sparkle signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$SPARKLE_PRIVATE_KEY_BASE64" | base64 --decode > "$SPARKLE_PRIVATE_KEY_PATH"
+          .build/artifacts/menucue/Sparkle/bin/generate_keys \
+            --account "$SPARKLE_KEY_ACCOUNT" \
+            -f "$SPARKLE_PRIVATE_KEY_PATH"
+
+      - name: Configure Apple notarization
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun notarytool store-credentials MenuCue-Notarization \
+            --key "$NOTARY_KEY_PATH" \
+            --key-id "$APPLE_NOTARY_KEY_ID" \
+            --issuer "$APPLE_NOTARY_ISSUER_ID" \
+            --validate
+
+      - name: Preserve existing Sparkle feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/updates
+          if ! curl --fail --location \
+            --output .build/updates/appcast.xml \
+            https://github.com/TalexDreamSoul/menucue/releases/download/appcast-feed/appcast.xml; then
+            rm -f .build/updates/appcast.xml
+            echo "No previous appcast was available; generating a new feed."
+          fi
+
+      - name: Notarize and package release
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_VERSION="${{ steps.release.outputs.version }}" \
+          EXPECTED_BUILD="${{ steps.release.outputs.build }}" \
+          NOTARYTOOL_PROFILE=MenuCue-Notarization \
+          scripts/build-update.sh
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.release.outputs.tag }}"
+          VERSION="${{ steps.release.outputs.version }}"
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          cat > "$NOTES" <<EOF
+          ## Changes
+
+          - Calendar permission requests work in Hardened Runtime builds.
+          - The disk status card shows capacity and Used/Total only.
+
+          This release is signed with Developer ID, notarized by Apple, and stapled.
+          EOF
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "MenuCue $VERSION" \
+              --notes-file "$NOTES" \
+              --latest
+          fi
+          gh release upload "$TAG" \
+            ".build/updates/MenuCue-v$VERSION-macos.zip" \
+            --clobber
+          if ! gh release view appcast-feed >/dev/null 2>&1; then
+            gh release create appcast-feed \
+              --title "MenuCue Sparkle appcast" \
+              --notes "Machine-generated Sparkle update feed."
+          fi
+          gh release upload appcast-feed ".build/updates/appcast.xml" --clobber
+
+      - name: Clean signing material
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set +e
+          security delete-keychain "$KEYCHAIN_PATH"
+          rm -f "$CERTIFICATE_PATH" "$PROVISIONING_PROFILE_PATH" "$NOTARY_KEY_PATH" "$SPARKLE_PRIVATE_KEY_PATH"
