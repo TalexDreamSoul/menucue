@@ -55,8 +55,8 @@ PROVISIONING_PROFILE="/path/to/MenuCue-DeveloperID.provisionprofile" \
 scripts/build-app.sh
 
 NOTARYTOOL_PROFILE="MenuCue-Notarization" \
-EXPECTED_VERSION="0.9.3" \
-EXPECTED_BUILD="37" \
+EXPECTED_VERSION="0.9.4" \
+EXPECTED_BUILD="38"
 scripts/build-update.sh
 ```
 

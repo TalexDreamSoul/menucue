@@ -271,10 +271,6 @@ struct SystemMetricsCards: View {
           value: SystemMetricsFormatter.capacity(memory.total),
           alignment: .trailing)
       }
-      MetricReadout(
-        label: "Cached",
-        value: SystemMetricsFormatter.capacity(memory.cached),
-        valueColor: .secondary)
     }
   }
 
