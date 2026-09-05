@@ -10,6 +10,15 @@ APP_DIR="${APP_DIR:-$ROOT_DIR/.build/app/$APP_NAME.app}"
 UPDATES_DIR="${UPDATES_DIR:-$ROOT_DIR/.build/updates}"
 SPARKLE_TOOLS_DIR="${SPARKLE_TOOLS_DIR:-$ROOT_DIR/.build/artifacts/menucue/Sparkle/bin}"
 SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-com.tagzxia.app.menucue.sparkle}"
+SPARKLE_PRIVATE_KEY_PATH="${SPARKLE_PRIVATE_KEY_PATH:-}"
+SPARKLE_SIGNING_ARGS=(--account "$SPARKLE_KEY_ACCOUNT")
+if [[ -n "$SPARKLE_PRIVATE_KEY_PATH" ]]; then
+    if [[ ! -f "$SPARKLE_PRIVATE_KEY_PATH" ]]; then
+        echo "Missing Sparkle private key file: $SPARKLE_PRIVATE_KEY_PATH" >&2
+        exit 1
+    fi
+    SPARKLE_SIGNING_ARGS=(--ed-key-file "$SPARKLE_PRIVATE_KEY_PATH")
+fi
 EXPECTED_TEAM_ID="${EXPECTED_TEAM_ID:-2L5YC85FQ7}"
 EXPECTED_CODESIGN_AUTHORITY="${EXPECTED_CODESIGN_AUTHORITY:-Developer ID Application: ZiXian Tang (2L5YC85FQ7)}"
 NOTARYTOOL_PROFILE="${NOTARYTOOL_PROFILE:-}"
@@ -299,15 +308,15 @@ fi
 GENERATION_APPCAST_PATH="$GENERATION_DIR/appcast.xml"
 
 "$GENERATE_APPCAST" \
-    --account "$SPARKLE_KEY_ACCOUNT" \
+    "${SPARKLE_SIGNING_ARGS[@]}" \
     --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
     --maximum-deltas 0 \
     --maximum-versions 10 \
     -o "$GENERATION_APPCAST_PATH" \
     "$GENERATION_DIR"
 
-"$SIGN_UPDATE" --account "$SPARKLE_KEY_ACCOUNT" "$GENERATION_APPCAST_PATH" >/dev/null
-"$SIGN_UPDATE" --account "$SPARKLE_KEY_ACCOUNT" --verify "$GENERATION_APPCAST_PATH"
+"$SIGN_UPDATE" "${SPARKLE_SIGNING_ARGS[@]}" "$GENERATION_APPCAST_PATH" >/dev/null
+"$SIGN_UPDATE" "${SPARKLE_SIGNING_ARGS[@]}" --verify "$GENERATION_APPCAST_PATH"
 mv "$GENERATION_APPCAST_PATH" "$APPCAST_PATH"
 
 ARCHIVE_SIGNATURE="$(xmllint --xpath \
@@ -318,7 +327,7 @@ if [[ -z "$ARCHIVE_SIGNATURE" ]]; then
     exit 1
 fi
 "$SIGN_UPDATE" \
-    --account "$SPARKLE_KEY_ACCOUNT" \
+    "${SPARKLE_SIGNING_ARGS[@]}" \
     --verify "$ARCHIVE_PATH" \
     "$ARCHIVE_SIGNATURE"
 
