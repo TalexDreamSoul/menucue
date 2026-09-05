@@ -182,7 +182,7 @@ jobs:
           if ! gh release view appcast-feed >/dev/null 2>&1; then
             gh release create appcast-feed \
               --title "MenuCue Sparkle appcast" \
-              --notes "Machine-generated Sparkle update feed." \
+              --notes "Machine-generated Sparkle update feed."
           fi
           gh release upload appcast-feed ".build/updates/appcast.xml" --clobber
 
