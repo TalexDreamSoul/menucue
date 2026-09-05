@@ -46,16 +46,16 @@ final class SparkleUpdateEngine: NSObject, UpdateEngine, SPUUpdaterDelegate {
     let updater = controller.updater
     observations = [
       updater.observe(\.canCheckForUpdates, options: [.new]) { [weak self] _, _ in
-        Task { @MainActor in self?.stateDidChange?() }
+        Task { @MainActor [weak self] in self?.stateDidChange?() }
       },
       updater.observe(\.lastUpdateCheckDate, options: [.new]) { [weak self] _, _ in
-        Task { @MainActor in self?.stateDidChange?() }
+        Task { @MainActor [weak self] in self?.stateDidChange?() }
       },
       updater.observe(\.automaticallyChecksForUpdates, options: [.new]) { [weak self] _, _ in
-        Task { @MainActor in self?.stateDidChange?() }
+        Task { @MainActor [weak self] in self?.stateDidChange?() }
       },
       updater.observe(\.automaticallyDownloadsUpdates, options: [.new]) { [weak self] _, _ in
-        Task { @MainActor in self?.stateDidChange?() }
+        Task { @MainActor [weak self] in self?.stateDidChange?() }
       },
     ]
   }
