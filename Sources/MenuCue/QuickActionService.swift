@@ -311,18 +311,16 @@ final class QuickActionService: ObservableObject {
         processToRestart: "SystemUIServer",
         storedValueWhenOn: true
       )
-    case .cleanScreen:
-      cleaningController.start(mode: .screen)
-    case .cleanKeyboard:
-      switch cleaningController.start(mode: .keyboard) {
+    case .cleaningMode:
+      switch cleaningController.start() {
       case .started:
         refreshCleaningStates()
       case .accessibilityDenied:
         refreshCleaningStates()
-        setFeedback(cleanKeyboardAccessibilityDeniedMessage)
+        setFeedback(cleaningModeAccessibilityDeniedMessage)
       case .eventTapUnavailable:
         refreshCleaningStates()
-        setFeedback(L10n.string("Clean Keyboard could not start because macOS did not make the keyboard event tap available."))
+        setFeedback(L10n.string("Cleaning Mode could not start because macOS did not make the keyboard event tap available."))
       }
     case .emptyTrash:
       performProcessBacked(reference: .builtIn(actionID)) {
@@ -555,23 +553,18 @@ final class QuickActionService: ObservableObject {
 
   private func refreshCleaningStates() {
     setState(
-      .cleanScreen,
-      isOn: cleaningController.mode == .screen,
-      isRunning: false
-    )
-    setState(
-      .cleanKeyboard,
-      availability: cleanKeyboardAvailability,
-      isOn: cleaningController.mode == .keyboard,
+      .cleaningMode,
+      availability: cleaningModeAvailability,
+      isOn: cleaningController.isActive,
       isRunning: false
     )
   }
 
-  private var cleanKeyboardAvailability: QuickActionAvailability {
+  private var cleaningModeAvailability: QuickActionAvailability {
     switch accessibilityPermissionRequester.status {
     case .denied:
       return .unavailable(
-        cleanKeyboardAccessibilityDeniedMessage,
+        cleaningModeAccessibilityDeniedMessage,
         settingsURL: accessibilityPermissionRequester.accessibilitySettingsURL
       )
     case .granted:
@@ -579,9 +572,9 @@ final class QuickActionService: ObservableObject {
     }
   }
 
-  private var cleanKeyboardAccessibilityDeniedMessage: String {
+  private var cleaningModeAccessibilityDeniedMessage: String {
     L10n.string(
-      "Clean Keyboard requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
+      "Cleaning Mode requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
     )
   }
 
@@ -758,17 +751,12 @@ private struct QuickActionSystemSnapshot {
   let shortcuts: [String]
 }
 
-private enum CleaningMode {
-  case screen
-  case keyboard
-}
-
 enum CleaningModePolicy {
   static let durationSeconds = 5 * 60
 }
 
 private final class CleaningModeController: ObservableObject {
-  @Published private(set) var mode: CleaningMode?
+  @Published private(set) var isActive = false
   @Published private(set) var secondsRemaining = 0
 
   var onStateChange: (() -> Void)?
@@ -782,7 +770,6 @@ private final class CleaningModeController: ObservableObject {
     self.accessibilityPermissionRequester = accessibilityPermissionRequester
     self.keyboardEventBlockerFactory = keyboardEventBlockerFactory
   }
-
 
   private lazy var displayOverlays = CleaningDisplayOverlayCoordinator<NSWindow>(
     notificationCenter: .default,
@@ -802,27 +789,21 @@ private final class CleaningModeController: ObservableObject {
     }
   )
   private var countdownTimer: Timer?
-  private var localKeyMonitor: Any?
-  private var escapeHoldTimer: Timer?
   private var keyboardBlocker: (any KeyboardEventBlocking)?
 
   @discardableResult
-  func start(mode: CleaningMode) -> KeyboardEventBlockerStartResult {
+  func start() -> KeyboardEventBlockerStartResult {
     stop()
 
-    if mode == .keyboard {
-      let blocker = keyboardEventBlockerFactory()
-      let result = blocker.start(
-        accessibilityPermissionRequester: accessibilityPermissionRequester,
-        onEscapeHeld: { [weak self] in self?.stop() }
-      )
-      guard result == .started else { return result }
-      keyboardBlocker = blocker
-    } else {
-      installLocalEscapeMonitor()
-    }
+    let blocker = keyboardEventBlockerFactory()
+    let result = blocker.start(
+      accessibilityPermissionRequester: accessibilityPermissionRequester,
+      onEscapeHeld: { [weak self] in self?.stop() }
+    )
+    guard result == .started else { return result }
+    keyboardBlocker = blocker
 
-    self.mode = mode
+    isActive = true
     secondsRemaining = CleaningModePolicy.durationSeconds
     displayOverlays.start()
     NSApp.activate(ignoringOtherApps: true)
@@ -847,67 +828,37 @@ private final class CleaningModeController: ObservableObject {
   func stop() {
     countdownTimer?.invalidate()
     countdownTimer = nil
-    escapeHoldTimer?.invalidate()
-    escapeHoldTimer = nil
     keyboardBlocker?.stop()
     keyboardBlocker = nil
-    if let localKeyMonitor {
-      NSEvent.removeMonitor(localKeyMonitor)
-      self.localKeyMonitor = nil
-    }
     displayOverlays.stop()
-    let hadMode = mode != nil
-    mode = nil
+    let wasActive = isActive
+    isActive = false
     secondsRemaining = 0
-    if hadMode {
+    if wasActive {
       onStateChange?()
     }
   }
 
   private func makeOverlayWindow(for display: CleaningDisplaySnapshot) -> NSWindow? {
-    guard let mode, let window = CleaningOverlayWindowFactory.makeWindow(for: display) else {
+    guard let window = CleaningOverlayWindowFactory.makeWindow(for: display) else {
       return nil
     }
-    window.contentView = NSHostingView(
-      rootView: CleaningOverlayView(controller: self, mode: mode)
-    )
+    window.contentView = NSHostingView(rootView: CleaningOverlayView(controller: self))
     window.makeKeyAndOrderFront(nil)
     return window
-  }
-
-  private func installLocalEscapeMonitor() {
-    localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) {
-      [weak self] event in
-      guard event.keyCode == 53 else { return event }
-      if event.type == .keyDown && !event.isARepeat {
-        self?.startEscapeHoldTimer()
-      } else if event.type == .keyUp {
-        self?.escapeHoldTimer?.invalidate()
-        self?.escapeHoldTimer = nil
-      }
-      return nil
-    }
-  }
-
-  private func startEscapeHoldTimer() {
-    escapeHoldTimer?.invalidate()
-    escapeHoldTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
-      self?.stop()
-    }
   }
 }
 
 private struct CleaningOverlayView: View {
   @ObservedObject var controller: CleaningModeController
-  let mode: CleaningMode
 
   var body: some View {
     ZStack {
       Color.black.ignoresSafeArea()
       VStack(spacing: 16) {
-        Image(systemName: mode == .screen ? "sparkles.rectangle.stack" : "keyboard")
+        Image(systemName: "sparkles.rectangle.stack")
           .font(.system(size: 44, weight: .medium))
-        Text(L10n.string(mode == .screen ? "Clean Screen" : "Clean Keyboard"))
+        Text(L10n.string("Cleaning Mode"))
           .font(.title2.weight(.semibold))
         Text(L10n.format("Exits automatically in %ds", controller.secondsRemaining))
           .foregroundStyle(.secondary)

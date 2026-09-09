@@ -194,30 +194,53 @@ private struct MenuBarFormatSettingsView: View {
         }
       }
 
-      Picker("Mode", selection: formatBinding(\.mode)) {
-        ForEach(MenuBarFormatMode.allCases) { mode in
-          Text(mode.title).tag(mode)
+      Picker(L10n.string("Status item"), selection: formatBinding(\.statusItemContent)) {
+        ForEach(StatusBarContent.allCases) { content in
+          Text(content.title).tag(content)
         }
       }
       .pickerStyle(.segmented)
       .frame(maxWidth: 320)
 
-      if model.settings.menuBarFormat.mode == .structured {
-        structuredControls
-      } else {
-        advancedControls
-      }
-
-      Picker("Order", selection: formatBinding(\.segmentOrder)) {
-        ForEach(MenuBarSegmentOrder.allCases) { order in
-          Text(order.title).tag(order)
+      if model.settings.menuBarFormat.statusItemContent == .clock {
+        Picker("Mode", selection: formatBinding(\.mode)) {
+          ForEach(MenuBarFormatMode.allCases) { mode in
+            Text(mode.title).tag(mode)
+          }
         }
+        .pickerStyle(.segmented)
+        .frame(maxWidth: 320)
+
+        if model.settings.menuBarFormat.mode == .structured {
+          structuredControls
+        } else {
+          advancedControls
+        }
+
+        Picker("Order", selection: formatBinding(\.segmentOrder)) {
+          ForEach(MenuBarSegmentOrder.allCases) { order in
+            Text(order.title).tag(order)
+          }
+        }
+        .frame(maxWidth: 320)
+      } else {
+        Picker(L10n.string("Icon"), selection: formatBinding(\.statusItemIcon)) {
+          ForEach(StatusBarIcon.allCases) { icon in
+            Label(icon.title, systemImage: icon.systemImageName ?? "app.dashed")
+              .tag(icon)
+          }
+        }
+        .frame(maxWidth: 320)
+
+        Text(L10n.string("Shows the selected icon in place of the rotating clock. Click it to open MenuCue."))
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
-      .frame(maxWidth: 320)
 
       MenuBarFormatPreview(format: previewFormat, clock: previewClock)
 
-      if let message = draftValidation.message {
+      if let message = draftValidation.message,
+         model.settings.menuBarFormat.statusItemContent == .clock {
         Label(message, systemImage: "exclamationmark.triangle.fill")
           .font(.caption)
           .foregroundStyle(.orange)
@@ -318,23 +341,44 @@ private struct MenuBarFormatPreview: View {
   @State private var renderer = MenuBarClockRenderer()
 
   var body: some View {
-    TimelineView(.periodic(from: .now, by: 1)) { context in
-      let output = rendering(at: context.date)
+    if format.statusItemContent == .icon {
       VStack(alignment: .leading, spacing: 6) {
         Text("Preview")
           .font(.caption.weight(.medium))
           .foregroundStyle(.secondary)
-        Text(
-          output.combinedText.isEmpty ? L10n.string("No visible output") : output.combinedText
-        )
-        .font(.system(size: 13, weight: .semibold, design: .monospaced))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        Group {
+          if format.statusItemIcon == .appIcon {
+            Image(nsImage: NSApp.applicationIconImage)
+              .resizable()
+          } else if let systemImageName = format.statusItemIcon.systemImageName {
+            Image(systemName: systemImageName)
+              .resizable()
+              .scaledToFit()
+          }
+        }
+        .frame(width: 18, height: 18)
+        .padding(8)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 7))
-        if MenuBarClockRenderer.exceedsRecommendedWidth(output.combinedText) {
-          Text("This format may occupy too much menu-bar width.")
-            .font(.caption)
-            .foregroundStyle(.orange)
+      }
+    } else {
+      TimelineView(.periodic(from: .now, by: 1)) { context in
+        let output = rendering(at: context.date)
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Preview")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+          Text(
+            output.combinedText.isEmpty ? L10n.string("No visible output") : output.combinedText
+          )
+          .font(.system(size: 13, weight: .semibold, design: .monospaced))
+          .padding(.horizontal, 10)
+          .padding(.vertical, 7)
+          .background(.quaternary, in: RoundedRectangle(cornerRadius: 7))
+          if MenuBarClockRenderer.exceedsRecommendedWidth(output.combinedText) {
+            Text("This format may occupy too much menu-bar width.")
+              .font(.caption)
+              .foregroundStyle(.orange)
+          }
         }
       }
     }

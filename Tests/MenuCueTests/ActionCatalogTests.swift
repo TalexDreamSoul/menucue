@@ -30,6 +30,17 @@ final class ActionCatalogTests: XCTestCase {
     )
   }
 
+  func testLegacyCleanActionReferencesMigrateAndSerializeAsCleaningMode() {
+    let legacyStorageValues = ["builtin:cleanScreen", "builtin:cleanKeyboard"]
+
+    for storageValue in legacyStorageValues {
+      let reference = QuickActionReference(storageValue: storageValue)
+
+      XCTAssertEqual(reference, .builtIn(.cleaningMode), storageValue)
+      XCTAssertEqual(reference?.storageValue, "builtin:cleaningMode", storageValue)
+    }
+  }
+
   func testNoTrackpadOnlyActionLeaksIntoThePanel() {
     let panel = ActionCatalog.items(surface: .panel, shortcuts: ["Routine"])
 

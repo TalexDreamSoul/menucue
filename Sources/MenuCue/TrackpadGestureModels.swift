@@ -494,6 +494,10 @@ struct TrackpadGestureRule: Codable, Equatable, Identifiable {
     result.note = note.trimmingCharacters(in: .newlines)
     result.applicationScope = applicationScope.normalized
     result.trigger = trigger.normalized
+    if result.action.kind == .quickAction,
+       let reference = QuickActionReference(storageValue: result.action.quickActionStorageValue) {
+      result.action.quickActionStorageValue = reference.storageValue
+    }
     return result
   }
 }

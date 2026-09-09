@@ -70,6 +70,46 @@ enum MenuBarSegmentOrder: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+enum StatusBarContent: String, CaseIterable, Codable, Identifiable {
+    case clock
+    case icon
+
+    var id: String { rawValue }
+    var title: String {
+        L10n.string(self == .clock ? "Clock" : "Icon")
+    }
+}
+
+enum StatusBarIcon: String, CaseIterable, Codable, Identifiable {
+    case appIcon
+    case clock
+    case sparkles
+    case bolt
+    case grid
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .appIcon: return L10n.string("MenuCue logo")
+        case .clock: return L10n.string("Clock icon")
+        case .sparkles: return L10n.string("Sparkles icon")
+        case .bolt: return L10n.string("Bolt icon")
+        case .grid: return L10n.string("Grid icon")
+        }
+    }
+
+    var systemImageName: String? {
+        switch self {
+        case .appIcon: return nil
+        case .clock: return "clock.fill"
+        case .sparkles: return "sparkles"
+        case .bolt: return "bolt.fill"
+        case .grid: return "circle.grid.2x2.fill"
+        }
+    }
+}
+
 struct MenuBarFormatSettings: Codable, Equatable {
     var mode: MenuBarFormatMode
     var clockCycle: ClockCycle
@@ -79,6 +119,8 @@ struct MenuBarFormatSettings: Codable, Equatable {
     var segmentOrder: MenuBarSegmentOrder
     var advancedDatePattern: String
     var advancedTimePattern: String
+    var statusItemContent: StatusBarContent
+    var statusItemIcon: StatusBarIcon
 
     static let compatibilityDefault = MenuBarFormatSettings(
         mode: .structured,
@@ -90,6 +132,49 @@ struct MenuBarFormatSettings: Codable, Equatable {
         advancedDatePattern: "EEE MMM d",
         advancedTimePattern: "HH:mm:ss"
     )
+
+    init(
+        mode: MenuBarFormatMode,
+        clockCycle: ClockCycle,
+        showsSeconds: Bool,
+        dateStyle: MenuBarDateStyle,
+        weekdayStyle: WeekdayStyle,
+        segmentOrder: MenuBarSegmentOrder,
+        advancedDatePattern: String,
+        advancedTimePattern: String,
+        statusItemContent: StatusBarContent = .clock,
+        statusItemIcon: StatusBarIcon = .appIcon
+    ) {
+        self.mode = mode
+        self.clockCycle = clockCycle
+        self.showsSeconds = showsSeconds
+        self.dateStyle = dateStyle
+        self.weekdayStyle = weekdayStyle
+        self.segmentOrder = segmentOrder
+        self.advancedDatePattern = advancedDatePattern
+        self.advancedTimePattern = advancedTimePattern
+        self.statusItemContent = statusItemContent
+        self.statusItemIcon = statusItemIcon
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case mode, clockCycle, showsSeconds, dateStyle, weekdayStyle, segmentOrder
+        case advancedDatePattern, advancedTimePattern, statusItemContent, statusItemIcon
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        mode = try values.decodeIfPresent(MenuBarFormatMode.self, forKey: .mode) ?? .structured
+        clockCycle = try values.decodeIfPresent(ClockCycle.self, forKey: .clockCycle) ?? .twentyFourHour
+        showsSeconds = try values.decodeIfPresent(Bool.self, forKey: .showsSeconds) ?? true
+        dateStyle = try values.decodeIfPresent(MenuBarDateStyle.self, forKey: .dateStyle) ?? .abbreviated
+        weekdayStyle = try values.decodeIfPresent(WeekdayStyle.self, forKey: .weekdayStyle) ?? .short
+        segmentOrder = try values.decodeIfPresent(MenuBarSegmentOrder.self, forKey: .segmentOrder) ?? .dateThenTime
+        advancedDatePattern = try values.decodeIfPresent(String.self, forKey: .advancedDatePattern) ?? "EEE MMM d"
+        advancedTimePattern = try values.decodeIfPresent(String.self, forKey: .advancedTimePattern) ?? "HH:mm:ss"
+        statusItemContent = try values.decodeIfPresent(StatusBarContent.self, forKey: .statusItemContent) ?? .clock
+        statusItemIcon = try values.decodeIfPresent(StatusBarIcon.self, forKey: .statusItemIcon) ?? .appIcon
+    }
 }
 
 struct ClockEntry: Codable, Equatable, Identifiable {

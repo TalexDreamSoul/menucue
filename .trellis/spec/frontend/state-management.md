@@ -495,3 +495,17 @@ var id: UInt64 = 0
 let status = getDeviceID(device, &id)
 if status != 0 || id == 0 { id = UInt64(UInt(bitPattern: device)) }
 ```
+
+## Scenario: Configurable status-bar content and unified cleaning mode
+
+### Contracts
+
+- `MenuBarFormatSettings.statusItemContent` is the persisted choice between the rotating clock and an icon; `statusItemIcon` selects the app logo or a bundled SF Symbol and defaults to the app logo. Older format payloads decode to clock content and app-logo defaults.
+- `StatusBarController` owns the AppKit projection: icon mode clears the attributed title and sets only the configured image; switching back to clock mode removes the image before restoring the clock renderer. Clicking the status item continues to open the popover in either mode.
+- `BuiltInQuickActionID.cleaningMode` is the single cleaning action. Legacy `builtin:cleanScreen` and `builtin:cleanKeyboard` references normalize to `builtin:cleaningMode`, preserving saved pins and gesture/hotkey routes.
+- Cleaning mode uses one full-screen overlay set plus one keyboard event blocker. Accessibility denial exposes the System Settings remediation; event-tap creation failure remains retryable and does not masquerade as a permission denial.
+
+### Tests Required
+
+- Settings tests cover default values, icon round-trip, and decoding a pre-icon format payload.
+- Action tests cover legacy cleaning-reference normalization and the distinct Accessibility versus event-tap failure states.

@@ -140,6 +140,51 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         XCTAssertEqual(reloaded.statusBarSwitchIntervalSeconds, 8)
     }
 
+    func testMenuBarFormatDefaultsToClockContentAndAppIcon() {
+        let format = MenuBarFormatSettings.compatibilityDefault
+
+        XCTAssertEqual(format.statusItemContent, .clock)
+        XCTAssertEqual(format.statusItemIcon, .appIcon)
+    }
+
+    func testMenuBarFormatPersistsSelectedStatusItemIcon() {
+        var settings = store.load()
+        var format = MenuBarFormatSettings.compatibilityDefault
+        format.statusItemContent = .icon
+        format.statusItemIcon = .sparkles
+        settings.menuBarFormat = format
+
+        store.save(settings)
+
+        let reloaded = SettingsStore(defaults: defaults).load().menuBarFormat
+        XCTAssertEqual(reloaded.statusItemContent, .icon)
+        XCTAssertEqual(reloaded.statusItemIcon, .sparkles)
+    }
+
+    func testLegacyMenuBarFormatPayloadWithoutStatusItemFieldsUsesClockAndAppIcon() throws {
+        let legacyPayload = """
+        {
+          "mode": "advanced",
+          "clockCycle": "twelveHour",
+          "showsSeconds": false,
+          "dateStyle": "iso",
+          "weekdayStyle": "full",
+          "segmentOrder": "timeThenDate",
+          "advancedDatePattern": "yyyy-MM-dd",
+          "advancedTimePattern": "h:mm a"
+        }
+        """
+
+        let decoded = try JSONDecoder().decode(
+            MenuBarFormatSettings.self,
+            from: try XCTUnwrap(legacyPayload.data(using: .utf8))
+        )
+
+        XCTAssertEqual(decoded.mode, .advanced)
+        XCTAssertEqual(decoded.statusItemContent, .clock)
+        XCTAssertEqual(decoded.statusItemIcon, .appIcon)
+    }
+
     func testStatusBarClockRotatesAcrossOrderedClockEntries() {
         var settings = store.load()
         settings.replaceClockEntries([

@@ -40,7 +40,7 @@ final class QuickActionAuthorizationTests: XCTestCase {
     XCTAssertFalse(PowerHelperRegistrationState.enabled.needsProminentRemediation)
   }
 
-  func testCleanKeyboardDistinguishesAccessibilityDenialFromEventTapFailure() {
+  func testCleaningModeDistinguishesAccessibilityDenialFromEventTapFailure() {
     let accessibilityURL = URL(string: "x-test://accessibility")!
     let deniedService = QuickActionService(
       appearanceService: AppearanceService(),
@@ -50,13 +50,13 @@ final class QuickActionAuthorizationTests: XCTestCase {
       )
     )
 
-    let deniedAvailability = deniedService.item(for: .builtIn(.cleanKeyboard)).state.availability
+    let deniedAvailability = deniedService.item(for: .builtIn(.cleaningMode)).state.availability
 
     XCTAssertFalse(deniedAvailability.isAvailable)
     XCTAssertEqual(
       deniedAvailability.reason,
       L10n.string(
-        "Clean Keyboard requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
+        "Cleaning Mode requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
       )
     )
     XCTAssertEqual(deniedAvailability.settingsURL, accessibilityURL)
@@ -69,14 +69,14 @@ final class QuickActionAuthorizationTests: XCTestCase {
       ),
       keyboardEventBlockerFactory: { KeyboardEventBlockerStub(result: .eventTapUnavailable) }
     )
-    eventTapUnavailableService.perform(.builtIn(.cleanKeyboard))
+    eventTapUnavailableService.perform(.builtIn(.cleaningMode))
 
-    let eventTapAvailability = eventTapUnavailableService.item(for: .builtIn(.cleanKeyboard)).state.availability
+    let eventTapAvailability = eventTapUnavailableService.item(for: .builtIn(.cleaningMode)).state.availability
 
     XCTAssertEqual(
       eventTapUnavailableService.feedbackMessage,
       L10n.string(
-        "Clean Keyboard could not start because macOS did not make the keyboard event tap available."
+        "Cleaning Mode could not start because macOS did not make the keyboard event tap available."
       )
     )
     XCTAssertTrue(eventTapAvailability.isAvailable)
@@ -84,7 +84,7 @@ final class QuickActionAuthorizationTests: XCTestCase {
     XCTAssertNil(eventTapAvailability.settingsURL)
   }
 
-  func testCleanKeyboardEventTapFailureCanRetryWithoutSystemSettingsRemediation() {
+  func testCleaningModeEventTapFailureCanRetryWithoutSystemSettingsRemediation() {
     let accessibilityURL = URL(string: "x-test://accessibility")!
     let requester = AccessibilityPermissionRequesterStub(status: .granted, settingsURL: accessibilityURL)
     let blocker = SequencedKeyboardEventBlockerStub(
@@ -96,19 +96,19 @@ final class QuickActionAuthorizationTests: XCTestCase {
       keyboardEventBlockerFactory: { blocker }
     )
 
-    service.perform(.builtIn(.cleanKeyboard))
-    let afterFailure = service.item(for: .builtIn(.cleanKeyboard)).state.availability
+    service.perform(.builtIn(.cleaningMode))
+    let afterFailure = service.item(for: .builtIn(.cleaningMode)).state.availability
 
     XCTAssertTrue(afterFailure.isAvailable)
     XCTAssertNil(afterFailure.settingsURL)
 
     requester.setStatus(.denied)
-    service.perform(.builtIn(.cleanKeyboard))
+    service.perform(.builtIn(.cleaningMode))
 
     XCTAssertEqual(
       service.feedbackMessage,
       L10n.string(
-        "Clean Keyboard requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
+        "Cleaning Mode requires Accessibility access. Open System Settings and turn on MenuCue under Privacy & Security → Accessibility."
       )
     )
   }

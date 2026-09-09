@@ -55,8 +55,7 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
   case autoHideDock
   case hideNotch
   case autoHideMenuBar
-  case cleanScreen
-  case cleanKeyboard
+  case cleaningMode
   case emptyTrash
 
   var id: String { rawValue }
@@ -74,8 +73,7 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
     case .autoHideDock: return L10n.string("Auto-hide Dock")
     case .hideNotch: return L10n.string("Hide Notch")
     case .autoHideMenuBar: return L10n.string("Auto-hide Menu Bar")
-    case .cleanScreen: return L10n.string("Clean Screen")
-    case .cleanKeyboard: return L10n.string("Clean Keyboard")
+    case .cleaningMode: return L10n.string("Cleaning Mode")
     case .emptyTrash: return L10n.string("Empty Trash")
     }
   }
@@ -93,8 +91,7 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
     case .autoHideDock: return "dock.arrow.down.rectangle"
     case .hideNotch: return "laptopcomputer"
     case .autoHideMenuBar: return "menubar.arrow.up.rectangle"
-    case .cleanScreen: return "sparkles.rectangle.stack"
-    case .cleanKeyboard: return "keyboard"
+    case .cleaningMode: return "sparkles.rectangle.stack"
     case .emptyTrash: return "trash"
     }
   }
@@ -106,7 +103,7 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
       return .toggle
     case .turnOffDisplays, .lockScreen, .screenSaver, .emptyTrash:
       return .button
-    case .cleanScreen, .cleanKeyboard:
+    case .cleaningMode:
       return .mode
     }
   }
@@ -118,7 +115,7 @@ enum BuiltInQuickActionID: String, CaseIterable, Identifiable {
       return .display
     case .lockScreen, .lowPowerMode, .preventLidSleep, .autoHideDock, .emptyTrash:
       return .system
-    case .cleanScreen, .cleanKeyboard:
+    case .cleaningMode:
       return .cleaning
     }
   }
@@ -166,8 +163,13 @@ enum QuickActionReference: Hashable, Identifiable {
   init?(storageValue: String) {
     if storageValue.hasPrefix(Self.builtInPrefix) {
       let rawValue = String(storageValue.dropFirst(Self.builtInPrefix.count))
-      guard let actionID = BuiltInQuickActionID(rawValue: rawValue) else { return nil }
-      self = .builtIn(actionID)
+      switch rawValue {
+      case "cleanScreen", "cleanKeyboard":
+        self = .builtIn(.cleaningMode)
+      default:
+        guard let actionID = BuiltInQuickActionID(rawValue: rawValue) else { return nil }
+        self = .builtIn(actionID)
+      }
       return
     }
 

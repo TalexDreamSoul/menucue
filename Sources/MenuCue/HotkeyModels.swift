@@ -49,6 +49,9 @@ struct HotkeyBinding: Codable, Equatable, Identifiable {
     var result = self
     result.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
     result.actionItemID = actionItemID.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let reference = QuickActionReference(storageValue: result.actionItemID) {
+      result.actionItemID = reference.storageValue
+    }
     return result
   }
 

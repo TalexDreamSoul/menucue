@@ -123,6 +123,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private let preciseScrollThreshold: CGFloat = 12
   static let wheelSwitchCooldown: TimeInterval = 0.16
   private let preciseGestureResetInterval: TimeInterval = 0.35
+  private var displayedStatusIcon: StatusBarIcon?
+
 
   @MainActor
   init(
@@ -338,20 +340,60 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let now = Date()
     let clocks = model.settings.clockTimeZones
     let clock = currentStatusClock(at: now)
-    let attributedTitle = NSMutableAttributedString(string: " ")
-    appendClock(clock, at: now, includeLabel: clocks.count > 1, to: attributedTitle)
-    attributedTitle.append(NSAttributedString(string: " ", attributes: Self.baseTitleAttributes))
-    let shouldAnimate = currentStatusClockID != nil && currentStatusClockID != clock.id
-    applyStatusTitle(
-      attributedTitle,
-      clockID: clock.id,
-      animated: shouldAnimate,
-      transitionOrigin: transitionOrigin
-    )
+    if let button = statusItem.button {
+      button.toolTip = model.settings.menuBarFormat.statusItemContent == .icon
+        ? L10n.string("MenuCue — click to open")
+        : L10n.string("MenuCue Clock — scroll to switch clocks")
+    }
+
+    if model.settings.menuBarFormat.statusItemContent == .icon {
+      applyStatusIcon(model.settings.menuBarFormat.statusItemIcon, clockID: clock.id)
+    } else {
+      let attributedTitle = NSMutableAttributedString(string: " ")
+      appendClock(clock, at: now, includeLabel: clocks.count > 1, to: attributedTitle)
+      attributedTitle.append(NSAttributedString(string: " ", attributes: Self.baseTitleAttributes))
+      let shouldAnimate = currentStatusClockID != nil && currentStatusClockID != clock.id
+      applyStatusTitle(
+        attributedTitle,
+        clockID: clock.id,
+        animated: shouldAnimate,
+        transitionOrigin: transitionOrigin
+      )
+    }
+
     let buttonBounds = statusItem.button?.bounds ?? .zero
     if let interactionView, interactionView.frame != buttonBounds {
       interactionView.frame = buttonBounds
     }
+  }
+
+  private func applyStatusIcon(_ icon: StatusBarIcon, clockID: String) {
+    guard let button = statusItem.button else { return }
+    guard displayedStatusIcon != icon || button.image == nil else {
+      currentStatusClockID = clockID
+      return
+    }
+
+    button.image = statusItemImage(for: icon)
+    button.imagePosition = .imageOnly
+    button.attributedTitle = NSAttributedString(string: "")
+    displayedStatusIcon = icon
+    currentStatusClockID = clockID
+  }
+
+  private func statusItemImage(for icon: StatusBarIcon) -> NSImage? {
+    if icon == .appIcon {
+      guard let image = NSApp.applicationIconImage.copy() as? NSImage else { return nil }
+      image.size = NSSize(width: 16, height: 16)
+      return image
+    }
+    guard let systemImageName = icon.systemImageName else { return nil }
+    let image = NSImage(
+      systemSymbolName: systemImageName,
+      accessibilityDescription: icon.title
+    )
+    image?.isTemplate = true
+    return image
   }
 
   /// A `SwipeForwardingController` pins an appearance on the hosted view as well as on
@@ -414,6 +456,11 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     transitionOrigin: ClockTransitionOrigin
   ) {
     guard let button = statusItem.button else { return }
+    if displayedStatusIcon != nil {
+      button.image = nil
+      button.imagePosition = .noImage
+      displayedStatusIcon = nil
+    }
     // Assigning the title re-measures the cell and lays the button out again, so a refresh
     // that produced the same title has to stop here. A clock switch always changes it.
     // This comparison only holds because `DateCapsuleCache` hands back the same attributed
