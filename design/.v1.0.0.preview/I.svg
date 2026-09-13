@@ -1,161 +1,161 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1036" viewBox="0 0 900 1036">
-<rect width="900" height="1036" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="900.0" height="1036.0" rx="10" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="212.0" height="1036.0" rx="0" fill="#191A1F"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1066" viewBox="0 0 900 1066">
+<rect width="900" height="1066" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="1066.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="1066.0" rx="0" fill="#191A1F"/>
 <ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
 <ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
 <ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
-<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
-<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="12.0" y="43.0" width="188.0" height="30.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
-<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
-<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
-<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
-<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
-<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
-<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
-<rect x="12.0" y="266.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
-<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">快捷键</text>
-<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
-<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
-<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
-<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
-<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
-<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
-<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
-<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
-<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="21.0" y="100.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="118.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="128.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="151.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="161.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="184.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="194.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="232.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="250.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="260.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="12.0" y="273.0" width="188.0" height="31.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="283.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="293.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">快捷键</text>
+<rect x="23.2" y="316.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="326.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="364.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="382.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="392.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="430.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="448.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="458.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="23.2" y="481.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="491.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="23.2" y="514.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="524.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="23.2" y="547.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="557.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="26.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">快捷键</text>
-<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">在任意应用中按下即可运行本机动作。</text>
-<rect x="745.8" y="30.0" width="130.2" height="23.0" rx="12" fill="#26272D"/>
-<ellipse cx="759.3" cy="41.5" rx="3.5" ry="3.5" fill="#32D74B"/>
-<text x="768.8" y="46.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#A6A7AF">4 个已注册 · 0 冲突</text>
-<rect x="236.0" y="79.0" width="640.0" height="216.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="105.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">全局快捷键</text>
-<text x="250.0" y="124.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">源码只有逐条启用，没有总开关——v1.0.0 补一个，避免逐条关闭。</text>
-<text x="250.0" y="151.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">启用全局快捷键</text>
-<text x="250.0" y="170.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">关闭后所有绑定保留但不再注册。</text>
-<rect x="826.0" y="145.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="836.0" cy="155.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="183.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="238.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前</text>
-<rect x="777.5" y="194.0" width="84.5" height="21.0" rx="5" fill="#0A84FF" fill-opacity="0.149"/>
-<rect x="787.2" y="200.7" width="7.7" height="7.7" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="800.5" y="209.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#0A84FF">4 个已注册</text>
-<rect x="790.5" y="223.0" width="58.5" height="21.0" rx="5" fill="#2F3037"/>
-<text x="798.5" y="238.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">0 个冲突</text>
-<rect x="777.5" y="252.0" width="84.5" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="787.2" y="258.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="800.5" y="267.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">1 个不可用</text>
-<rect x="236.0" y="309.0" width="640.0" height="288.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="335.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">快捷键</text>
-<text x="250.0" y="354.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">动作来自统一动作库；快捷键只定义触发方式。</text>
-<rect x="769.0" y="324.0" width="93.0" height="30.0" rx="7" fill="#0A84FF"/>
-<text x="783.0" y="344.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">添加快捷键</text>
-<rect x="236.0" y="357.0" width="640.0" height="29.0" rx="0" fill="#1B1C21"/>
-<text x="250.0" y="376.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">组合键</text>
-<text x="372.0" y="376.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">动作</text>
-<text x="574.0" y="376.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">名称</text>
-<text x="676.0" y="376.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">状态</text>
-<text x="788.0" y="376.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A"></text>
-<rect x="250.0" y="395.0" width="110.0" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="258.0" y="410.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ ↑</text>
-<rect x="373.9" y="400.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="391.0" y="410.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">最大化窗口</text>
-<text x="574.0" y="410.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
-<rect x="676.0" y="395.0" width="100.0" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="685.6" y="401.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="699.0" y="410.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
-<rect x="788.0" y="395.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="798.0" cy="405.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="836.1" y="400.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="425.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<rect x="250.0" y="435.0" width="110.0" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="258.0" y="450.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ ↓</text>
-<rect x="373.9" y="440.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="391.0" y="450.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">还原窗口</text>
-<text x="574.0" y="450.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
-<rect x="676.0" y="435.0" width="100.0" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="685.6" y="441.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="699.0" y="450.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
-<rect x="788.0" y="435.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="798.0" cy="445.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="836.1" y="440.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="465.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<rect x="250.0" y="475.0" width="110.0" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="258.0" y="490.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ →</text>
-<rect x="373.9" y="480.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="391.0" y="490.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">移到下一显示器</text>
-<text x="574.0" y="490.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
-<rect x="676.0" y="475.0" width="100.0" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="685.6" y="481.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="699.0" y="490.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
-<rect x="788.0" y="475.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="798.0" cy="485.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="836.1" y="480.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="505.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<rect x="250.0" y="515.0" width="110.0" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="258.0" y="530.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ [</text>
-<rect x="373.9" y="521.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="391.0" y="530.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">上一标签页</text>
-<text x="574.0" y="530.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
-<rect x="676.0" y="515.0" width="100.0" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="685.6" y="521.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="699.0" y="530.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
-<rect x="788.0" y="515.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="798.0" cy="525.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="836.1" y="520.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="545.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<rect x="250.0" y="555.0" width="110.0" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="258.0" y="570.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">未设置</text>
-<rect x="373.9" y="561.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="391.0" y="570.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#A6A7AF">隐藏刘海</text>
-<text x="574.0" y="570.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">刘海屏</text>
-<rect x="676.0" y="555.0" width="100.0" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="685.6" y="561.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="699.0" y="570.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">此设备不可用</text>
-<rect x="788.0" y="555.5" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
-<ellipse cx="798.0" cy="565.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="836.1" y="560.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="611.0" width="640.0" height="57.0" rx="9" fill="#26272D"/>
-<rect x="236.0" y="611.0" width="640.0" height="57.0" rx="9" fill="none" stroke="#3A3B42" stroke-width="1"/>
-<rect x="252.2" y="634.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="275.0" y="635.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">窗口与标签动作需要辅助功能权限</text>
-<text x="275.0" y="654.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">摆放或移动窗口、上一/下一标签页的动作会在首次运行时申请授权。</text>
-<rect x="756.0" y="624.5" width="106.0" height="30.0" rx="7" fill="#2F3037"/>
-<text x="770.0" y="644.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">打开系统设置</text>
-<rect x="236.0" y="682.0" width="640.0" height="212.0" rx="10" fill="#1B1C21"/>
-<text x="250.0" y="708.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">动作来自动作库</text>
-<text x="250.0" y="736.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库</text>
-<text x="250.0" y="755.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">快捷键、手势与面板引用同一套动作定义。</text>
-<text x="730.0" y="744.7" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">查看全部动作与引用关系</text>
-<rect x="236.0" y="768.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="793.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">需要 ⌘、⌃ 或 ⌥</text>
-<text x="250.0" y="812.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">不含修饰键的组合会拦截日常输入，保存时会被拒绝。</text>
-<rect x="802.0" y="786.5" width="60.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="810.0" y="801.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">校验规则</text>
-<rect x="236.0" y="825.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="850.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">系统占用提示</text>
-<text x="250.0" y="869.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">被 macOS 或其他应用占用的组合仍归它们所有，本快捷键不会响应。</text>
-<rect x="802.0" y="843.5" width="60.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="810.0" y="858.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">无法检测</text>
-<rect x="236.0" y="908.0" width="640.0" height="110.0" rx="10" fill="#1B1C21"/>
-<text x="250.0" y="934.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">内置默认</text>
-<text x="250.0" y="953.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">6 条默认绑定在存储版本落后时静默合并；v1.0.0 给出显式入口。</text>
-<rect x="250.0" y="966.0" width="106.0" height="30.0" rx="7" fill="#2F3037"/>
-<text x="264.0" y="986.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">恢复内置默认</text>
-<text x="366.0" y="985.6" font-family="Inter" font-size="11" font-weight="n" letter-spacing="0" fill="#90919A">只补齐缺失的默认绑定，不覆盖你自定义的组合键。</text>
+<text x="236.0" y="63.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">在任意应用中按下即可运行本机动作。</text>
+<rect x="745.8" y="31.0" width="130.2" height="24.0" rx="12" fill="#26272D"/>
+<ellipse cx="759.3" cy="43.0" rx="3.5" ry="3.5" fill="#32D74B"/>
+<text x="768.8" y="47.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#A6A7AF">4 个已注册 · 0 冲突</text>
+<rect x="236.0" y="82.0" width="640.0" height="223.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="108.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">全局快捷键</text>
+<text x="250.0" y="128.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">源码只有逐条启用，没有总开关——v1.0.0 补一个，避免逐条关闭。</text>
+<text x="250.0" y="156.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">启用全局快捷键</text>
+<text x="250.0" y="176.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">关闭后所有绑定保留但不再注册。</text>
+<rect x="826.0" y="151.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="161.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="190.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="246.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前</text>
+<rect x="777.5" y="201.0" width="84.5" height="22.0" rx="5" fill="#0A84FF" fill-opacity="0.149"/>
+<rect x="787.2" y="208.2" width="7.7" height="7.7" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="800.5" y="216.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#0A84FF">4 个已注册</text>
+<rect x="790.5" y="231.0" width="58.5" height="22.0" rx="5" fill="#2F3037"/>
+<text x="798.5" y="246.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">0 个冲突</text>
+<rect x="777.5" y="261.0" width="84.5" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="787.2" y="268.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="800.5" y="276.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">1 个不可用</text>
+<rect x="236.0" y="319.0" width="640.0" height="296.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="345.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">快捷键</text>
+<text x="250.0" y="365.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">动作来自统一动作库；快捷键只定义触发方式。</text>
+<rect x="769.0" y="334.5" width="93.0" height="31.0" rx="7" fill="#0A84FF"/>
+<text x="783.0" y="354.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">添加快捷键</text>
+<rect x="236.0" y="369.0" width="640.0" height="30.0" rx="0" fill="#1B1C21"/>
+<text x="250.0" y="388.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">组合键</text>
+<text x="372.0" y="388.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">动作</text>
+<text x="574.0" y="388.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">名称</text>
+<text x="676.0" y="388.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">状态</text>
+<text x="788.0" y="388.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A"></text>
+<rect x="250.0" y="408.0" width="110.0" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="258.0" y="423.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ ↑</text>
+<rect x="373.9" y="414.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="391.0" y="423.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">最大化窗口</text>
+<text x="574.0" y="423.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
+<rect x="676.0" y="408.0" width="100.0" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="685.6" y="415.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="699.0" y="423.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
+<rect x="788.0" y="409.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="798.0" cy="419.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="836.1" y="414.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="439.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="449.0" width="110.0" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="258.0" y="464.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ ↓</text>
+<rect x="373.9" y="455.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="391.0" y="464.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">还原窗口</text>
+<text x="574.0" y="464.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
+<rect x="676.0" y="449.0" width="100.0" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="685.6" y="456.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="699.0" y="464.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
+<rect x="788.0" y="450.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="798.0" cy="460.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="836.1" y="455.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="480.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="490.0" width="110.0" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="258.0" y="505.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ →</text>
+<rect x="373.9" y="496.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="391.0" y="505.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">移到下一显示器</text>
+<text x="574.0" y="505.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
+<rect x="676.0" y="490.0" width="100.0" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="685.6" y="497.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="699.0" y="505.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
+<rect x="788.0" y="491.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="798.0" cy="501.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="836.1" y="496.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="521.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="531.0" width="110.0" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="258.0" y="546.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">⌘ ⇧ [</text>
+<rect x="373.9" y="537.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="391.0" y="546.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">上一标签页</text>
+<text x="574.0" y="546.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">—</text>
+<rect x="676.0" y="531.0" width="100.0" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="685.6" y="538.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="699.0" y="546.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已注册</text>
+<rect x="788.0" y="532.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="798.0" cy="542.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="836.1" y="537.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="562.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="572.0" width="110.0" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="258.0" y="587.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">未设置</text>
+<rect x="373.9" y="578.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="391.0" y="587.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#A6A7AF">隐藏刘海</text>
+<text x="574.0" y="587.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#90919A">刘海屏</text>
+<rect x="676.0" y="572.0" width="100.0" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="685.6" y="579.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="699.0" y="587.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">此设备不可用</text>
+<rect x="788.0" y="573.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="798.0" cy="583.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="836.1" y="578.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="629.0" width="640.0" height="59.0" rx="9" fill="#26272D"/>
+<rect x="236.0" y="629.0" width="640.0" height="59.0" rx="9" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<rect x="252.2" y="653.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="275.0" y="653.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">窗口与标签动作需要辅助功能权限</text>
+<text x="275.0" y="673.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">摆放或移动窗口、上一/下一标签页的动作会在首次运行时申请授权。</text>
+<rect x="756.0" y="643.0" width="106.0" height="31.0" rx="7" fill="#2F3037"/>
+<text x="770.0" y="663.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">打开系统设置</text>
+<rect x="236.0" y="702.0" width="640.0" height="219.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="728.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">动作来自动作库</text>
+<text x="250.0" y="757.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库</text>
+<text x="250.0" y="777.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">快捷键、手势与面板引用同一套动作定义。</text>
+<text x="730.0" y="766.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">查看全部动作与引用关系</text>
+<rect x="236.0" y="791.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="816.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">需要 ⌘、⌃ 或 ⌥</text>
+<text x="250.0" y="836.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">不含修饰键的组合会拦截日常输入，保存时会被拒绝。</text>
+<rect x="802.0" y="810.0" width="60.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="810.0" y="825.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">校验规则</text>
+<rect x="236.0" y="850.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="875.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">系统占用提示</text>
+<text x="250.0" y="895.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">被 macOS 或其他应用占用的组合仍归它们所有，本快捷键不会响应。</text>
+<rect x="802.0" y="869.0" width="60.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="810.0" y="884.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">无法检测</text>
+<rect x="236.0" y="935.0" width="640.0" height="113.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="961.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">内置默认</text>
+<text x="250.0" y="981.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">6 条默认绑定在存储版本落后时静默合并；v1.0.0 给出显式入口。</text>
+<rect x="250.0" y="995.0" width="106.0" height="31.0" rx="7" fill="#2F3037"/>
+<text x="264.0" y="1015.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">恢复内置默认</text>
+<text x="366.0" y="1014.6" font-family="Inter" font-size="11" font-weight="n" letter-spacing="0" fill="#90919A">只补齐缺失的默认绑定，不覆盖你自定义的组合键。</text>
 <line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
 <text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
 </svg>

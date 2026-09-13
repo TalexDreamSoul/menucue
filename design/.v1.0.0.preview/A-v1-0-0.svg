@@ -1,129 +1,129 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1356" viewBox="0 0 1180 1356">
-<rect width="1180" height="1356" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="1180.0" height="1356.0" rx="10" fill="#1E1F24"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1408" viewBox="0 0 1180 1408">
+<rect width="1180" height="1408" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="1180.0" height="1408.0" rx="10" fill="#1E1F24"/>
 <text x="24.0" y="46.0" font-family="Inter" font-size="20" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue 设置 · 信息架构重构</text>
-<text x="24.0" y="70.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">分类的问题不是名字不好听，而是同一件事被放在两个地方、两件事被塞进一个地方。下面每一项都能在源码里找到证据。</text>
-<text x="26.0" y="107.4" font-family="Inter" font-size="14" font-weight="600" letter-spacing="0" fill="#FF453A">现状 · 3 组 10 项</text>
-<text x="24.0" y="135.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">分组按实现层划分，同一件事被拆到不同组，跨组语义互相污染。</text>
-<text x="26.0" y="164.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#A6A7AF">界面</text>
-<rect x="24.0" y="174.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="191.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">菜单栏</text>
-<text x="78.0" y="191.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">却内含 macOS 系统时区</text>
-<rect x="24.0" y="204.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="221.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">面板</text>
-<text x="66.0" y="221.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">却内含全应用动效</text>
-<rect x="24.0" y="234.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="251.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">日历</text>
-<rect x="24.0" y="264.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="281.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">操作中心</text>
-<text x="90.0" y="281.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">动作库不是界面外观</text>
-<text x="26.0" y="315.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#A6A7AF">输入</text>
-<rect x="24.0" y="325.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="342.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">触控板</text>
-<rect x="24.0" y="355.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="372.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷键</text>
-<rect x="24.0" y="385.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="402.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则</text>
-<text x="90.0" y="402.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">监控与投递，与输入无关</text>
-<text x="26.0" y="436.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#A6A7AF">系统</text>
-<rect x="24.0" y="446.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="463.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源</text>
-<rect x="24.0" y="476.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="493.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">通用</text>
-<text x="66.0" y="493.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">启动/更新/外观/语言/iCloud 混装</text>
-<rect x="24.0" y="506.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="34.0" y="523.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">关于</text>
-<rect x="589.5" y="92.0" width="1.0" height="500.0" rx="0" fill="#3A3B42"/>
-<text x="618.5" y="107.4" font-family="Inter" font-size="14" font-weight="600" letter-spacing="0" fill="#32D74B">v1.0.0 · 4 组 11 项</text>
-<text x="616.5" y="135.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">按用户意图分组：显示什么 → 怎么触发 → 何时提醒 → 系统层面。</text>
-<text x="618.5" y="164.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">显示</text>
-<rect x="616.5" y="174.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="191.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">菜单栏</text>
-<text x="670.5" y="191.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">时钟格式 · 轮播 · 世界时钟</text>
-<rect x="616.5" y="204.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="221.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">面板</text>
-<text x="658.5" y="221.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">标签 · 状态卡片 · 采样</text>
-<rect x="616.5" y="234.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="251.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">日历</text>
-<text x="658.5" y="251.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">事件源 · 月视图 · 节假日</text>
-<text x="618.5" y="285.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">交互与动作</text>
-<rect x="616.5" y="295.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="312.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">触控板</text>
-<text x="670.5" y="312.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">手势规则 = 触发器 → 动作</text>
-<rect x="616.5" y="325.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="342.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷键</text>
-<text x="670.5" y="342.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">全局快捷键绑定</text>
-<rect x="616.5" y="355.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="372.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库</text>
-<text x="670.5" y="372.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">原「操作中心」；被三方引用</text>
-<text x="618.5" y="406.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">提醒</text>
-<rect x="616.5" y="416.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="433.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则</text>
-<text x="682.5" y="433.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">指标监控 · 渠道 · 模板</text>
-<text x="618.5" y="467.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">系统</text>
-<rect x="616.5" y="477.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="494.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源</text>
-<text x="658.5" y="494.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">助手 · pmset · 唤醒历史</text>
-<rect x="616.5" y="507.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="524.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">时间与区域</text>
-<text x="694.5" y="524.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">新增：应用时区 + 系统时区 + 语言地区</text>
-<rect x="616.5" y="537.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="554.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">通用</text>
-<text x="658.5" y="554.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">启动 · 更新 · 外观 · iCloud</text>
-<rect x="616.5" y="567.0" width="539.5" height="25.0" rx="6" fill="#1B1C21"/>
-<text x="626.5" y="584.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">关于</text>
-<rect x="24.0" y="610.0" width="1132.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="24.0" y="643.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">六处修正</text>
-<rect x="25.8" y="655.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="666.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">操作中心 → 动作库</text>
-<text x="44.0" y="684.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">它被面板、手势、快捷键共同引用，与外观无关；与触控板/快捷键同组。</text>
-<rect x="25.8" y="695.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="706.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则 → 提醒组</text>
-<text x="44.0" y="724.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">它读取系统观测值并向外投递，不采集用户输入。</text>
-<rect x="25.8" y="735.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="746.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">动效 → 通用 › 外观</text>
-<text x="44.0" y="764.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">它影响整个应用（含设置窗口），不属于面板。</text>
-<rect x="25.8" y="775.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="786.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">系统时区 → 时间与区域</text>
-<text x="44.0" y="804.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">原先藏在菜单栏页，属机器级设置。</text>
-<rect x="25.8" y="815.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="826.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">macOS 语言地区 → 时间与区域</text>
-<text x="44.0" y="844.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">原先混在通用页，与同步/更新无关。</text>
-<rect x="25.8" y="855.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="866.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">通用不再当垃圾桶</text>
-<text x="44.0" y="884.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只保留启动、更新、外观、iCloud 四件事。</text>
-<rect x="24.0" y="905.0" width="1132.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="24.0" y="938.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">深链迁移（旧标识符 → 新归属）</text>
-<text x="24.0" y="960.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">dashboard</text>
-<text x="81.1" y="960.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">仪表盘窗口（非设置页）</text>
-<text x="24.0" y="982.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">overview</text>
-<text x="76.7" y="982.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">面板</text>
-<text x="24.0" y="1004.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">dateAndTime</text>
-<text x="96.0" y="1004.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
-<text x="24.0" y="1026.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">quickActions</text>
-<text x="94.5" y="1026.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">动作库</text>
-<text x="24.0" y="1048.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">notifications</text>
-<text x="91.8" y="1048.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
-<text x="24.0" y="1070.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">appearance</text>
-<text x="86.8" y="1070.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">通用 › 外观</text>
-<text x="24.0" y="1092.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">language / iCloud</text>
-<text x="118.2" y="1092.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">时间与区域 / 通用 › iCloud</text>
-<text x="24.0" y="1128.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">v1.0.0 新增的界面元素（源码中不存在，属提案）</text>
-<rect x="25.8" y="1140.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="1151.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则 › 全局启用</text>
-<text x="44.0" y="1169.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">源码只有逐渠道、逐规则开关，没有总开关。</text>
-<rect x="25.8" y="1180.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="1191.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库 › 搜索与来源筛选之外的动作详情</text>
-<text x="44.0" y="1209.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">展示动作被哪些规则/快捷键引用。</text>
-<rect x="25.8" y="1220.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="1231.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库 › 破坏性动作运行前确认</text>
-<text x="44.0" y="1249.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">清空废纸篓已确认；其余保持显式「运行」。</text>
-<rect x="25.8" y="1260.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="1271.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源 › 移除助手确认</text>
-<text x="44.0" y="1289.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">现状是立即移除、无确认。</text>
-<rect x="25.8" y="1300.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="1311.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷键 › 恢复内置默认</text>
-<text x="44.0" y="1329.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">现状只有静默合并，无恢复入口。</text>
+<text x="24.0" y="71.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">分类的问题不是名字不好听，而是同一件事被放在两个地方、两件事被塞进一个地方。下面每一项都能在源码里找到证据。</text>
+<text x="26.0" y="109.4" font-family="Inter" font-size="14" font-weight="600" letter-spacing="0" fill="#FF453A">现状 · 3 组 10 项</text>
+<text x="24.0" y="139.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">分组按实现层划分，同一件事被拆到不同组，跨组语义互相污染。</text>
+<text x="26.0" y="169.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#A6A7AF">界面</text>
+<rect x="24.0" y="180.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="197.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">菜单栏</text>
+<text x="78.0" y="197.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">却内含 macOS 系统时区</text>
+<rect x="24.0" y="211.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="228.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">面板</text>
+<text x="66.0" y="228.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">却内含全应用动效</text>
+<rect x="24.0" y="242.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="259.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">日历</text>
+<rect x="24.0" y="273.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="290.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">操作中心</text>
+<text x="90.0" y="290.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">动作库不是界面外观</text>
+<text x="26.0" y="325.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#A6A7AF">输入</text>
+<rect x="24.0" y="336.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="353.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">触控板</text>
+<rect x="24.0" y="367.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="384.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷键</text>
+<rect x="24.0" y="398.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="415.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则</text>
+<text x="90.0" y="415.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">监控与投递，与输入无关</text>
+<text x="26.0" y="450.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#A6A7AF">系统</text>
+<rect x="24.0" y="461.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="478.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源</text>
+<rect x="24.0" y="492.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="509.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">通用</text>
+<text x="66.0" y="509.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">启动/更新/外观/语言/iCloud 混装</text>
+<rect x="24.0" y="523.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="34.0" y="540.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">关于</text>
+<rect x="589.5" y="94.0" width="1.0" height="518.0" rx="0" fill="#3A3B42"/>
+<text x="618.5" y="109.4" font-family="Inter" font-size="14" font-weight="600" letter-spacing="0" fill="#32D74B">v1.0.0 · 4 组 11 项</text>
+<text x="616.5" y="139.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">按用户意图分组：显示什么 → 怎么触发 → 何时提醒 → 系统层面。</text>
+<text x="618.5" y="169.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">显示</text>
+<rect x="616.5" y="180.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="197.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">菜单栏</text>
+<text x="670.5" y="197.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">时钟格式 · 轮播 · 世界时钟</text>
+<rect x="616.5" y="211.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="228.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">面板</text>
+<text x="658.5" y="228.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">标签 · 状态卡片 · 采样</text>
+<rect x="616.5" y="242.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="259.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">日历</text>
+<text x="658.5" y="259.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">事件源 · 月视图 · 节假日</text>
+<text x="618.5" y="294.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">交互与动作</text>
+<rect x="616.5" y="305.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="322.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">触控板</text>
+<text x="670.5" y="322.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">手势规则 = 触发器 → 动作</text>
+<rect x="616.5" y="336.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="353.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷键</text>
+<text x="670.5" y="353.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">全局快捷键绑定</text>
+<rect x="616.5" y="367.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="384.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库</text>
+<text x="670.5" y="384.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">原「操作中心」；被三方引用</text>
+<text x="618.5" y="419.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">提醒</text>
+<rect x="616.5" y="430.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="447.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则</text>
+<text x="682.5" y="447.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">指标监控 · 渠道 · 模板</text>
+<text x="618.5" y="482.1" font-family="Inter" font-size="11" font-weight="600" letter-spacing="0" fill="#0A84FF">系统</text>
+<rect x="616.5" y="493.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="510.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源</text>
+<text x="658.5" y="510.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">助手 · pmset · 唤醒历史</text>
+<rect x="616.5" y="524.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="541.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">时间与区域</text>
+<text x="694.5" y="541.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">新增：应用时区 + 系统时区 + 语言地区</text>
+<rect x="616.5" y="555.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="572.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">通用</text>
+<text x="658.5" y="572.1" font-family="Inter" font-size="11" font-weight="note" letter-spacing="0" fill="#90919A">启动 · 更新 · 外观 · iCloud</text>
+<rect x="616.5" y="586.0" width="539.5" height="26.0" rx="6" fill="#1B1C21"/>
+<text x="626.5" y="603.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">关于</text>
+<rect x="24.0" y="630.0" width="1132.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="24.0" y="663.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">六处修正</text>
+<rect x="25.8" y="676.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="687.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">操作中心 → 动作库</text>
+<text x="44.0" y="706.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">它被面板、手势、快捷键共同引用，与外观无关；与触控板/快捷键同组。</text>
+<rect x="25.8" y="718.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="729.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则 → 提醒组</text>
+<text x="44.0" y="748.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">它读取系统观测值并向外投递，不采集用户输入。</text>
+<rect x="25.8" y="760.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="771.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">动效 → 通用 › 外观</text>
+<text x="44.0" y="790.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">它影响整个应用（含设置窗口），不属于面板。</text>
+<rect x="25.8" y="802.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="813.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">系统时区 → 时间与区域</text>
+<text x="44.0" y="832.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">原先藏在菜单栏页，属机器级设置。</text>
+<rect x="25.8" y="844.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="855.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">macOS 语言地区 → 时间与区域</text>
+<text x="44.0" y="874.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">原先混在通用页，与同步/更新无关。</text>
+<rect x="25.8" y="886.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="897.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">通用不再当垃圾桶</text>
+<text x="44.0" y="916.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只保留启动、更新、外观、iCloud 四件事。</text>
+<rect x="24.0" y="938.0" width="1132.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="24.0" y="971.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">深链迁移（旧标识符 → 新归属）</text>
+<text x="24.0" y="994.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">dashboard</text>
+<text x="81.1" y="994.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">仪表盘窗口（非设置页）</text>
+<text x="24.0" y="1017.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">overview</text>
+<text x="76.7" y="1017.6" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">面板</text>
+<text x="24.0" y="1040.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">dateAndTime</text>
+<text x="96.0" y="1040.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<text x="24.0" y="1063.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">quickActions</text>
+<text x="94.5" y="1063.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="24.0" y="1086.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">notifications</text>
+<text x="91.8" y="1086.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="24.0" y="1109.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">appearance</text>
+<text x="86.8" y="1109.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">通用 › 外观</text>
+<text x="24.0" y="1132.6" font-family="Inter" font-size="11" font-weight="k" letter-spacing="0" fill="#90919A">language / iCloud</text>
+<text x="118.2" y="1132.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">时间与区域 / 通用 › iCloud</text>
+<text x="24.0" y="1169.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">v1.0.0 新增的界面元素（源码中不存在，属提案）</text>
+<rect x="25.8" y="1182.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="1193.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">提醒规则 › 全局启用</text>
+<text x="44.0" y="1212.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">源码只有逐渠道、逐规则开关，没有总开关。</text>
+<rect x="25.8" y="1224.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="1235.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库 › 搜索与来源筛选之外的动作详情</text>
+<text x="44.0" y="1254.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">展示动作被哪些规则/快捷键引用。</text>
+<rect x="25.8" y="1266.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="1277.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">动作库 › 破坏性动作运行前确认</text>
+<text x="44.0" y="1296.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">清空废纸篓已确认；其余保持显式「运行」。</text>
+<rect x="25.8" y="1308.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="1319.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源 › 移除助手确认</text>
+<text x="44.0" y="1338.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">现状是立即移除、无确认。</text>
+<rect x="25.8" y="1350.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="1361.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷键 › 恢复内置默认</text>
+<text x="44.0" y="1380.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">现状只有静默合并，无恢复入口。</text>
 <line x1="0" y1="680" x2="1180" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
 <text x="1172" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
 </svg>

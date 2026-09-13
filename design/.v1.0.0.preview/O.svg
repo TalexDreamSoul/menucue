@@ -5,65 +5,65 @@
 <ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
 <ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
 <ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
-<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
-<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="12.0" y="43.0" width="188.0" height="30.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
-<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
-<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
-<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
-<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
-<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
-<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
-<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
-<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
-<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
-<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
-<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
-<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
-<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
-<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
-<rect x="12.0" y="522.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
-<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">关于</text>
-<rect x="238.6" y="94.0" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="261.0" y="107.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">关于</text>
-<text x="236.0" y="130.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">版本、链接与法律信息。</text>
-<rect x="236.0" y="148.0" width="640.0" height="136.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="174.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue</text>
-<rect x="250.0" y="199.0" width="52.0" height="52.0" rx="13" fill="#0A84FF"/>
-<rect x="253.3" y="217.3" width="15.4" height="15.4" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="316.0" y="208.7" font-family="Inter" font-size="17" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue</text>
-<text x="316.0" y="230.6" font-family="Inter" font-size="11.5" font-weight="v" letter-spacing="0" fill="#90919A">版本 1.0.0（Build 42）</text>
-<rect x="316.0" y="239.0" width="75.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="21.0" y="100.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="118.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="128.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="151.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="161.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="184.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="194.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="232.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="250.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="260.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="23.2" y="283.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="293.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="316.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="326.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="364.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="382.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="392.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="430.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="448.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="458.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="23.2" y="481.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="491.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="23.2" y="514.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="524.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="12.0" y="537.0" width="188.0" height="31.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="547.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="557.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">关于</text>
+<rect x="238.6" y="87.5" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="261.0" y="100.4" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">关于</text>
+<text x="236.0" y="124.7" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">版本、链接与法律信息。</text>
+<rect x="236.0" y="143.5" width="640.0" height="141.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="169.8" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue</text>
+<rect x="250.0" y="197.5" width="52.0" height="52.0" rx="13" fill="#0A84FF"/>
+<rect x="253.3" y="215.8" width="15.4" height="15.4" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="316.0" y="205.2" font-family="Inter" font-size="17" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue</text>
+<text x="316.0" y="229.1" font-family="Inter" font-size="11.5" font-weight="v" letter-spacing="0" fill="#90919A">版本 1.0.0（Build 42）</text>
+<rect x="316.0" y="238.5" width="75.0" height="22.0" rx="5" fill="#2F3037"/>
 <rect x="325.6" y="245.7" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="339.0" y="254.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已是最新</text>
-<rect x="399.0" y="239.0" width="162.8" height="21.0" rx="5" fill="#2F3037"/>
+<text x="339.0" y="253.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已是最新</text>
+<rect x="399.0" y="238.5" width="162.8" height="22.0" rx="5" fill="#2F3037"/>
 <rect x="408.6" y="245.7" width="7.7" height="7.7" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="422.0" y="254.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">Developer ID 签名 · 已公证</text>
-<rect x="782.0" y="210.0" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
-<text x="796.0" y="230.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">检查更新</text>
-<rect x="236.0" y="298.0" width="640.0" height="179.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="324.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">链接</text>
-<text x="250.0" y="355.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">源码与问题</text>
-<text x="799.8" y="355.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">GitHub 仓库</text>
-<rect x="236.0" y="373.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="401.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">更新日志</text>
-<text x="814.0" y="401.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">发行说明</text>
-<rect x="236.0" y="419.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="447.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">开源许可</text>
-<text x="802.0" y="447.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">第三方声明</text>
-<rect x="236.0" y="491.0" width="640.0" height="102.0" rx="10" fill="#1B1C21"/>
-<text x="250.0" y="517.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">法律</text>
-<text x="250.0" y="545.6" font-family="Inter" font-size="11.5" font-weight="t" letter-spacing="0" fill="#A6A7AF">© 2026 MenuCue</text>
-<text x="250.0" y="566.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">MenuCue 仅在本机运行；唤醒历史、进程采样与提醒规则数据都保存在本机，iCloud 同步只同步可移植偏好。</text>
+<text x="422.0" y="253.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">Developer ID 签名 · 已公证</text>
+<rect x="782.0" y="208.0" width="80.0" height="31.0" rx="7" fill="#2F3037"/>
+<text x="796.0" y="228.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">检查更新</text>
+<rect x="236.0" y="298.5" width="640.0" height="183.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="324.8" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">链接</text>
+<text x="250.0" y="357.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">源码与问题</text>
+<text x="799.8" y="356.7" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">GitHub 仓库</text>
+<rect x="236.0" y="375.5" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="404.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">更新日志</text>
+<text x="814.0" y="403.7" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">发行说明</text>
+<rect x="236.0" y="422.5" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="451.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">开源许可</text>
+<text x="802.0" y="450.7" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">第三方声明</text>
+<rect x="236.0" y="495.5" width="640.0" height="105.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="521.8" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">法律</text>
+<text x="250.0" y="551.1" font-family="Inter" font-size="11.5" font-weight="t" letter-spacing="0" fill="#A6A7AF">© 2026 MenuCue</text>
+<text x="250.0" y="572.6" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">MenuCue 仅在本机运行；唤醒历史、进程采样与提醒规则数据都保存在本机，iCloud 同步只同步可移植偏好。</text>
 </svg>

@@ -1,122 +1,122 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="947" viewBox="0 0 900 947">
-<rect width="900" height="947" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="900.0" height="947.0" rx="10" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="212.0" height="947.0" rx="0" fill="#191A1F"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="972" viewBox="0 0 900 972">
+<rect width="900" height="972" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="972.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="972.0" rx="0" fill="#191A1F"/>
 <ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
 <ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
 <ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
-<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
-<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="12.0" y="43.0" width="188.0" height="30.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
-<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
-<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
-<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
-<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
-<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
-<rect x="12.0" y="234.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
-<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">触控板</text>
-<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
-<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
-<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
-<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
-<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
-<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
-<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
-<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
-<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
-<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="21.0" y="100.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="118.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="128.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="151.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="161.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="184.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="194.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="232.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="12.0" y="240.0" width="188.0" height="31.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="250.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="260.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">触控板</text>
+<rect x="23.2" y="283.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="293.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="316.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="326.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="364.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="382.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="392.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="430.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="448.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="458.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="23.2" y="481.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="491.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="23.2" y="514.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="524.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="23.2" y="547.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="557.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="26.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">触控板</text>
-<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">手势规则 = 触发器 → 动作；动作取自统一动作库。</text>
-<rect x="236.0" y="79.0" width="640.0" height="187.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="105.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">运行状态</text>
-<text x="250.0" y="124.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只有启用后才开始原始触控观测；关闭时输入完全透传。</text>
-<text x="250.0" y="151.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">启用手势</text>
-<text x="250.0" y="170.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">默认关闭。启用后触控引擎开始观测，并在兼容时申请辅助功能权限。</text>
-<rect x="826.0" y="145.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="836.0" cy="155.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="183.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="224.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前</text>
-<rect x="721.2" y="194.0" width="140.8" height="21.0" rx="5" fill="#0A84FF" fill-opacity="0.149"/>
-<rect x="730.9" y="200.7" width="7.7" height="7.7" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="744.2" y="209.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#0A84FF">引擎运行中 · 1 台设备</text>
-<rect x="728.6" y="223.0" width="126.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="736.6" y="238.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">复制点击已在下方控制</text>
-<rect x="236.0" y="283.0" width="74.0" height="31.0" rx="7" fill="#2F3037"/>
-<text x="248.0" y="303.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">手势规则</text>
-<text x="326.0" y="303.8" font-family="Inter" font-size="12.5" font-weight="normal" letter-spacing="0" fill="#90919A">反馈与参数</text>
-<text x="416.5" y="303.8" font-family="Inter" font-size="12.5" font-weight="normal" letter-spacing="0" fill="#90919A">运行时与诊断</text>
-<rect x="236.0" y="331.0" width="640.0" height="208.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="357.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">手势规则</text>
-<text x="250.0" y="376.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">指定 App 的规则先于全局规则执行；同级按列表顺序。</text>
-<rect x="782.0" y="346.0" width="80.0" height="30.0" rx="7" fill="#0A84FF"/>
-<text x="796.0" y="366.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">新建规则</text>
-<rect x="236.0" y="379.0" width="640.0" height="29.0" rx="0" fill="#1B1C21"/>
-<text x="250.0" y="398.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">规则</text>
-<text x="462.0" y="398.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">动作</text>
-<text x="624.0" y="398.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">范围</text>
-<text x="746.0" y="398.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A"></text>
-<text x="250.0" y="432.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">三指轻点</text>
-<rect x="308.0" y="417.0" width="70.8" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="316.0" y="432.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">接触 · 3 指</text>
-<rect x="463.9" y="422.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="481.0" y="432.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">音量 +</text>
-<text x="624.0" y="432.2" font-family="Inter" font-size="12" font-weight="s" letter-spacing="0" fill="#90919A">所有应用</text>
-<rect x="746.0" y="417.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="756.0" cy="427.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="794.1" y="422.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="447.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="472.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">四指下滑</text>
-<rect x="308.0" y="457.0" width="94.1" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="316.0" y="472.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">滑动 · 4 指 · 下</text>
-<rect x="463.9" y="462.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="481.0" y="472.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">最大化窗口</text>
-<text x="624.0" y="472.2" font-family="Inter" font-size="12" font-weight="s" letter-spacing="0" fill="#90919A">所有应用</text>
-<rect x="746.0" y="457.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="756.0" cy="467.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="794.1" y="462.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="487.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="512.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">左边缘连续滑动</text>
-<rect x="345.5" y="497.0" width="92.8" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="353.5" y="512.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">连续边缘 · 2 指</text>
-<rect x="463.9" y="502.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="481.0" y="512.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">连续音量</text>
-<text x="624.0" y="512.2" font-family="Inter" font-size="12" font-weight="s" letter-spacing="0" fill="#90919A">除「音乐」</text>
-<rect x="746.0" y="497.5" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="756.0" cy="507.5" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="794.1" y="502.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="236.0" y="553.0" width="640.0" height="167.0" rx="10" fill="#1B1C21"/>
-<text x="250.0" y="579.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">规则集</text>
-<text x="250.0" y="598.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">导入导出使用带版本号的本地 JSON；无效条目会被独立归一化。</text>
-<rect x="250.0" y="611.0" width="90.1" height="30.0" rx="7" fill="#2F3037"/>
-<text x="264.0" y="631.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">导入 JSON</text>
-<rect x="350.1" y="611.0" width="90.1" height="30.0" rx="7" fill="#2F3037"/>
-<text x="364.1" y="631.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">导出 JSON</text>
-<rect x="450.3" y="611.0" width="93.0" height="30.0" rx="7" fill="#26272D"/>
-<text x="464.3" y="631.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">重置为预设</text>
-<text x="553.3" y="630.6" font-family="Inter" font-size="11" font-weight="n" letter-spacing="0" fill="#90919A">重置会替换整套规则列表。</text>
-<rect x="236.0" y="651.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="676.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前规则数</text>
-<text x="250.0" y="695.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">3 条自定义 · 0 条禁用。</text>
-<rect x="839.8" y="669.5" width="22.2" height="21.0" rx="5" fill="#2F3037"/>
-<text x="847.8" y="684.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">3</text>
-<rect x="236.0" y="734.0" width="640.0" height="195.0" rx="10" fill="#1B1C21"/>
-<text x="250.0" y="760.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">空状态（变体）</text>
-<rect x="548.3" y="789.3" width="15.4" height="15.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="510.5" y="830.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#A6A7AF">还没有手势规则</text>
-<text x="250.0" y="854.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">添加一条规则，把触控手势连接到系统或应用动作。</text>
-<rect x="503.0" y="865.0" width="106.0" height="30.0" rx="7" fill="#2F3037"/>
-<text x="517.0" y="885.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">新建手势规则</text>
+<text x="236.0" y="63.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">手势规则 = 触发器 → 动作；动作取自统一动作库。</text>
+<rect x="236.0" y="82.0" width="640.0" height="193.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="108.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">运行状态</text>
+<text x="250.0" y="128.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只有启用后才开始原始触控观测；关闭时输入完全透传。</text>
+<text x="250.0" y="156.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">启用手势</text>
+<text x="250.0" y="176.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">默认关闭。启用后触控引擎开始观测，并在兼容时申请辅助功能权限。</text>
+<rect x="826.0" y="151.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="161.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="190.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="231.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前</text>
+<rect x="721.2" y="201.0" width="140.8" height="22.0" rx="5" fill="#0A84FF" fill-opacity="0.149"/>
+<rect x="730.9" y="208.2" width="7.7" height="7.7" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="744.2" y="216.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#0A84FF">引擎运行中 · 1 台设备</text>
+<rect x="728.6" y="231.0" width="126.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="736.6" y="246.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">复制点击已在下方控制</text>
+<rect x="236.0" y="292.0" width="74.0" height="32.0" rx="7" fill="#2F3037"/>
+<text x="248.0" y="312.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">手势规则</text>
+<text x="326.0" y="312.8" font-family="Inter" font-size="12.5" font-weight="normal" letter-spacing="0" fill="#90919A">反馈与参数</text>
+<text x="416.5" y="312.8" font-family="Inter" font-size="12.5" font-weight="normal" letter-spacing="0" fill="#90919A">运行时与诊断</text>
+<rect x="236.0" y="341.0" width="640.0" height="214.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="367.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">手势规则</text>
+<text x="250.0" y="387.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">指定 App 的规则先于全局规则执行；同级按列表顺序。</text>
+<rect x="782.0" y="356.5" width="80.0" height="31.0" rx="7" fill="#0A84FF"/>
+<text x="796.0" y="376.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">新建规则</text>
+<rect x="236.0" y="391.0" width="640.0" height="30.0" rx="0" fill="#1B1C21"/>
+<text x="250.0" y="410.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">规则</text>
+<text x="462.0" y="410.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">动作</text>
+<text x="624.0" y="410.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">范围</text>
+<text x="746.0" y="410.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A"></text>
+<text x="250.0" y="445.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">三指轻点</text>
+<rect x="308.0" y="430.0" width="70.8" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="316.0" y="445.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">接触 · 3 指</text>
+<rect x="463.9" y="436.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="481.0" y="445.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">音量 +</text>
+<text x="624.0" y="445.2" font-family="Inter" font-size="12" font-weight="s" letter-spacing="0" fill="#90919A">所有应用</text>
+<rect x="746.0" y="431.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="756.0" cy="441.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="794.1" y="436.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="461.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="486.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">四指下滑</text>
+<rect x="308.0" y="471.0" width="94.1" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="316.0" y="486.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">滑动 · 4 指 · 下</text>
+<rect x="463.9" y="477.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="481.0" y="486.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">最大化窗口</text>
+<text x="624.0" y="486.2" font-family="Inter" font-size="12" font-weight="s" letter-spacing="0" fill="#90919A">所有应用</text>
+<rect x="746.0" y="472.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="756.0" cy="482.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="794.1" y="477.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="502.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="527.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">左边缘连续滑动</text>
+<rect x="345.5" y="512.0" width="92.8" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="353.5" y="527.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">连续边缘 · 2 指</text>
+<rect x="463.9" y="518.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="481.0" y="527.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">连续音量</text>
+<text x="624.0" y="527.2" font-family="Inter" font-size="12" font-weight="s" letter-spacing="0" fill="#90919A">除「音乐」</text>
+<rect x="746.0" y="513.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="756.0" cy="523.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="794.1" y="518.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="569.0" width="640.0" height="172.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="595.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">规则集</text>
+<text x="250.0" y="615.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">导入导出使用带版本号的本地 JSON；无效条目会被独立归一化。</text>
+<rect x="250.0" y="629.0" width="90.1" height="31.0" rx="7" fill="#2F3037"/>
+<text x="264.0" y="649.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">导入 JSON</text>
+<rect x="350.1" y="629.0" width="90.1" height="31.0" rx="7" fill="#2F3037"/>
+<text x="364.1" y="649.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">导出 JSON</text>
+<rect x="450.3" y="629.0" width="93.0" height="31.0" rx="7" fill="#26272D"/>
+<text x="464.3" y="649.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">重置为预设</text>
+<text x="553.3" y="648.6" font-family="Inter" font-size="11" font-weight="n" letter-spacing="0" fill="#90919A">重置会替换整套规则列表。</text>
+<rect x="236.0" y="670.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="695.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前规则数</text>
+<text x="250.0" y="715.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">3 条自定义 · 0 条禁用。</text>
+<rect x="839.8" y="689.0" width="22.2" height="22.0" rx="5" fill="#2F3037"/>
+<text x="847.8" y="704.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">3</text>
+<rect x="236.0" y="755.0" width="640.0" height="199.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="781.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">空状态（变体）</text>
+<rect x="548.3" y="811.3" width="15.4" height="15.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="510.5" y="852.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#A6A7AF">还没有手势规则</text>
+<text x="250.0" y="877.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">添加一条规则，把触控手势连接到系统或应用动作。</text>
+<rect x="503.0" y="889.0" width="106.0" height="31.0" rx="7" fill="#2F3037"/>
+<text x="517.0" y="909.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">新建手势规则</text>
 <line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
 <text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
 </svg>

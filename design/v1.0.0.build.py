@@ -498,7 +498,7 @@ def _tokenize(s: str) -> list[str]:
     return out
 
 
-LINE_H = 1.38
+LINE_H = 1.47  # measured off Pen's own renderer: a single line box is fontSize x 1.46-1.48
 
 
 def resolve(node: dict, comps: dict[str, dict]) -> dict:
@@ -884,11 +884,27 @@ def _strip_private(node: dict) -> None:
         _strip_private(c)
 
 
+def _bake_root_height(node: dict) -> None:
+    """Ship a root screen's solved height as a number.
+
+    A root frame left with no `height` is resolved by Pen to `fit_content(0)`,
+    which collapses the screen to 0px and — because its children are
+    `fill_container` on the cross axis — takes everything inside down with it
+    (verified: screen C rendered 1800x1 px, i.e. blank). The SVG previews never
+    caught this because they draw the solver's own `_box`, so they agree with
+    the builder by construction and are not an independent check.
+    """
+    if node.get("height") is None:
+        node["height"] = round(solve(node, COMPS)["_box"][3])
+
+
 def build_document(pages: list[dict], extras: list[dict]) -> dict:
     global COMPS, doc_notes
     comps = list(C.values())  # built once, up front, so refs can carry real ids
     COMPS = {c["id"]: c for c in comps}
     doc_notes = []
+    for node in pages + extras:
+        _bake_root_height(node)
     layout_pages(extras, pages)
     children = json.loads(json.dumps(comps + extras + pages + doc_notes))
     for node in children:
@@ -2310,7 +2326,6 @@ def page_menu_bar() -> dict:
                     rows(
                         row_stepper("切换间隔", "5 秒", "2–30 秒；在菜单栏时钟上滚动可临时切换。"),
                         list_row("系统时钟", "GMT-07:00 · Los Angeles", [
-                            text_field("", 120, False, placeholder=True),
                             chip("自定义标签", "$bg-elevated", "$text-tertiary"),
                             icon("minus-circle", 15, "$danger", "del"),
                         ]),

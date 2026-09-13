@@ -1,57 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="360" height="620" viewBox="0 0 360 620">
 <rect width="360" height="620" fill="#1E1F24"/>
 <rect x="0.0" y="0.0" width="360.0" height="620.0" rx="12" fill="#1E1F24"/>
-<rect x="14.0" y="12.0" width="194.0" height="31.0" rx="7" fill="#1B1C21"/>
-<rect x="16.0" y="14.0" width="46.0" height="27.0" rx="5" fill="#0A84FF"/>
+<rect x="14.0" y="12.0" width="194.0" height="32.0" rx="7" fill="#1B1C21"/>
+<rect x="16.0" y="14.0" width="46.0" height="28.0" rx="5" fill="#0A84FF"/>
 <text x="27.0" y="32.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">状态</text>
 <text x="75.0" y="32.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">日历</text>
 <text x="123.0" y="32.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">电源</text>
 <text x="171.0" y="32.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">操作</text>
-<text x="14.0" y="72.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷操作</text>
-<text x="70.0" y="72.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">全部</text>
-<rect x="14.0" y="88.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
-<rect x="46.5" y="103.0" width="11.9" height="11.9" rx="2" fill="none" stroke="#F5F5F7" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="27.5" y="134.5" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">关闭显示器</text>
-<rect x="99.0" y="88.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
-<rect x="131.6" y="103.0" width="11.9" height="11.9" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="117.5" y="134.5" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">深色模式</text>
-<rect x="184.0" y="88.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
-<rect x="216.6" y="103.0" width="11.9" height="11.9" rx="2" fill="none" stroke="#F5F5F7" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="197.5" y="134.5" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">清空废纸篓</text>
-<rect x="269.0" y="88.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
-<rect x="301.6" y="103.0" width="11.9" height="11.9" rx="2" fill="none" stroke="#F5F5F7" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="287.5" y="134.5" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">锁定屏幕</text>
-<rect x="14.0" y="160.0" width="162.0" height="97.0" rx="10" fill="#26272D"/>
-<rect x="26.9" y="173.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="183.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">CPU</text>
-<text x="25.0" y="209.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">23%</text>
-<rect x="25.0" y="221.0" width="32.0" height="4.0" rx="2" fill="#0A84FF"/>
-<rect x="57.0" y="221.0" width="108.0" height="4.0" rx="2" fill="#2F3037"/>
-<text x="25.0" y="243.6" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">M4 Pro · 10 核 · 48°C</text>
-<rect x="184.0" y="160.0" width="162.0" height="97.0" rx="10" fill="#26272D"/>
-<rect x="196.9" y="173.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="214.0" y="183.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">内存</text>
-<text x="195.0" y="209.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">11.2 GB</text>
-<rect x="195.0" y="221.0" width="66.0" height="4.0" rx="2" fill="#0A84FF"/>
-<rect x="261.0" y="221.0" width="74.0" height="4.0" rx="2" fill="#2F3037"/>
-<text x="195.0" y="243.6" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">共 24 GB · 47%</text>
-<rect x="14.0" y="267.0" width="162.0" height="97.0" rx="10" fill="#26272D"/>
-<rect x="26.9" y="280.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="44.0" y="290.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">磁盘</text>
-<text x="25.0" y="316.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">312 GB</text>
-<rect x="25.0" y="328.0" width="85.0" height="4.0" rx="2" fill="#0A84FF"/>
-<rect x="110.0" y="328.0" width="55.0" height="4.0" rx="2" fill="#2F3037"/>
-<text x="25.0" y="350.5" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">Macintosh HD · 61%</text>
-<rect x="184.0" y="267.0" width="162.0" height="97.0" rx="10" fill="#26272D"/>
-<rect x="196.9" y="280.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="214.0" y="290.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">网络</text>
-<text x="195.0" y="316.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">1.2 MB/s</text>
-<rect x="195.0" y="328.0" width="56.0" height="4.0" rx="2" fill="#0A84FF"/>
-<rect x="251.0" y="328.0" width="84.0" height="4.0" rx="2" fill="#2F3037"/>
-<text x="195.0" y="350.5" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">↑ 240 KB/s · 192.168.1.8</text>
-<rect x="0.0" y="584.0" width="360.0" height="1.0" rx="0" fill="#3A3B42"/>
-<rect x="15.8" y="598.3" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="32.0" y="607.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">已运行 3 天 4 小时</text>
-<rect x="304.2" y="597.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<rect x="333.2" y="597.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="14.0" y="73.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">快捷操作</text>
+<text x="70.0" y="73.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">全部</text>
+<rect x="14.0" y="90.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
+<rect x="46.5" y="104.5" width="11.9" height="11.9" rx="2" fill="none" stroke="#F5F5F7" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="27.5" y="136.0" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">关闭显示器</text>
+<rect x="99.0" y="90.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
+<rect x="131.6" y="104.5" width="11.9" height="11.9" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="117.5" y="136.0" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">深色模式</text>
+<rect x="184.0" y="90.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
+<rect x="216.6" y="104.5" width="11.9" height="11.9" rx="2" fill="none" stroke="#F5F5F7" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="197.5" y="136.0" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">清空废纸篓</text>
+<rect x="269.0" y="90.0" width="77.0" height="62.0" rx="10" fill="#26272D"/>
+<rect x="301.6" y="104.5" width="11.9" height="11.9" rx="2" fill="none" stroke="#F5F5F7" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="287.5" y="136.0" font-family="Inter" font-size="10" font-weight="l" letter-spacing="0" fill="#A6A7AF">锁定屏幕</text>
+<rect x="14.0" y="162.0" width="162.0" height="100.0" rx="10" fill="#26272D"/>
+<rect x="26.9" y="176.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="185.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">CPU</text>
+<text x="25.0" y="212.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">23%</text>
+<rect x="25.0" y="225.0" width="32.0" height="4.0" rx="2" fill="#0A84FF"/>
+<rect x="57.0" y="225.0" width="108.0" height="4.0" rx="2" fill="#2F3037"/>
+<text x="25.0" y="247.6" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">M4 Pro · 10 核 · 48°C</text>
+<rect x="184.0" y="162.0" width="162.0" height="100.0" rx="10" fill="#26272D"/>
+<rect x="196.9" y="176.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="214.0" y="185.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">内存</text>
+<text x="195.0" y="212.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">11.2 GB</text>
+<rect x="195.0" y="225.0" width="66.0" height="4.0" rx="2" fill="#0A84FF"/>
+<rect x="261.0" y="225.0" width="74.0" height="4.0" rx="2" fill="#2F3037"/>
+<text x="195.0" y="247.6" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">共 24 GB · 47%</text>
+<rect x="14.0" y="272.0" width="162.0" height="100.0" rx="10" fill="#26272D"/>
+<rect x="26.9" y="286.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="44.0" y="295.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">磁盘</text>
+<text x="25.0" y="322.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">312 GB</text>
+<rect x="25.0" y="335.0" width="85.0" height="4.0" rx="2" fill="#0A84FF"/>
+<rect x="110.0" y="335.0" width="55.0" height="4.0" rx="2" fill="#2F3037"/>
+<text x="25.0" y="357.5" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">Macintosh HD · 61%</text>
+<rect x="184.0" y="272.0" width="162.0" height="100.0" rx="10" fill="#26272D"/>
+<rect x="196.9" y="286.4" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="214.0" y="295.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">网络</text>
+<text x="195.0" y="322.5" font-family="Inter" font-size="15" font-weight="600" letter-spacing="0" fill="#F5F5F7">1.2 MB/s</text>
+<rect x="195.0" y="335.0" width="56.0" height="4.0" rx="2" fill="#0A84FF"/>
+<rect x="251.0" y="335.0" width="84.0" height="4.0" rx="2" fill="#2F3037"/>
+<text x="195.0" y="357.5" font-family="Inter" font-size="10.5" font-weight="s" letter-spacing="0" fill="#90919A">↑ 240 KB/s · 192.168.1.8</text>
+<rect x="0.0" y="583.0" width="360.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="15.8" y="597.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="32.0" y="606.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">已运行 3 天 4 小时</text>
+<rect x="304.2" y="596.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="333.2" y="596.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
 </svg>

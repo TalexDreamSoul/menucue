@@ -1,155 +1,155 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1443" viewBox="0 0 900 1443">
-<rect width="900" height="1443" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="900.0" height="1443.0" rx="10" fill="#1E1F24"/>
-<rect x="0.0" y="0.0" width="212.0" height="1443.0" rx="0" fill="#191A1F"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1483" viewBox="0 0 900 1483">
+<rect width="900" height="1483" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="1483.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="1483.0" rx="0" fill="#191A1F"/>
 <ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
 <ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
 <ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
-<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
-<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="12.0" y="43.0" width="188.0" height="30.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.5" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
-<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
-<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
-<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
-<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
-<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
-<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
-<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
-<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
-<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
-<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
-<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
-<rect x="12.0" y="426.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
-<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">电源</text>
-<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
-<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
-<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
-<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="21.0" y="100.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="118.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="128.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="151.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="161.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="184.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="194.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="232.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="250.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="260.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="23.2" y="283.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="293.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="316.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="326.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="364.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="382.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="392.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="430.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="12.0" y="438.0" width="188.0" height="31.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="448.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="458.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">电源</text>
+<rect x="23.2" y="481.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="491.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="23.2" y="514.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="524.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="23.2" y="547.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="557.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="26.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
 <text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">电源</text>
-<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">Power Helper、系统电源设置与唤醒历史。</text>
-<rect x="788.0" y="30.0" width="88.0" height="23.0" rx="12" fill="#26272D"/>
-<ellipse cx="801.5" cy="41.5" rx="3.5" ry="3.5" fill="#32D74B"/>
-<text x="811.0" y="46.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#A6A7AF">助手已启用</text>
-<rect x="236.0" y="79.0" width="640.0" height="173.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="105.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">后台监控</text>
-<text x="250.0" y="124.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只有打开这个开关才会在后台记录唤醒与进程采样。</text>
-<text x="250.0" y="151.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">后台记录唤醒与进程</text>
-<text x="250.0" y="170.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">关闭时，唤醒历史与「持续运行」只覆盖面板打开期间。</text>
-<rect x="826.0" y="145.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
-<ellipse cx="836.0" cy="155.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="183.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="208.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">采样节奏</text>
-<text x="250.0" y="227.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">进程采样约每 300 秒一次；低电量模式下至少 900 秒。</text>
-<rect x="768.1" y="201.5" width="93.9" height="21.0" rx="5" fill="#2F3037"/>
-<text x="776.1" y="216.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">300 秒 / 900 秒</text>
-<rect x="236.0" y="266.0" width="640.0" height="115.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="292.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">Power Helper</text>
-<text x="250.0" y="311.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">系统电源设置与系统时区都通过它写入，需要管理员授权。</text>
-<rect x="252.4" y="335.9" width="11.2" height="11.2" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="276.0" y="338.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">已启用</text>
-<text x="276.0" y="356.1" font-family="Inter" font-size="11" font-weight="d" letter-spacing="0" fill="#90919A">版本 3 · 支持电源设置与进程控制</text>
-<rect x="585.0" y="331.0" width="97.0" height="21.0" rx="5" fill="#2F3037"/>
-<rect x="594.6" y="337.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="608.0" y="346.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">移除前需确认</text>
-<rect x="692.0" y="326.5" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
-<text x="706.0" y="346.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">刷新助手</text>
-<rect x="782.0" y="326.5" width="80.0" height="30.0" rx="7" fill="#26272D"/>
-<text x="796.0" y="346.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">移除助手</text>
-<rect x="236.0" y="395.0" width="640.0" height="332.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="421.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">系统电源设置</text>
-<text x="250.0" y="440.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只写入 Helper 支持的四个布尔开关；混合取值会先确认。</text>
-<text x="250.0" y="473.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源来源</text>
-<rect x="692.0" y="453.0" width="170.0" height="31.0" rx="7" fill="#1B1C21"/>
-<text x="705.0" y="473.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">电池</text>
-<rect x="742.0" y="455.0" width="70.0" height="27.0" rx="5" fill="#0A84FF"/>
-<text x="753.0" y="473.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">外接电源</text>
-<text x="825.0" y="473.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">全部</text>
-<rect x="236.0" y="494.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="520.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源小盹（powernap）</text>
-<rect x="826.0" y="505.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="836.0" cy="515.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="535.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="561.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">网络访问唤醒（womp）</text>
-<rect x="826.0" y="546.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
-<ellipse cx="836.0" cy="556.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="576.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="602.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">待机（standby）</text>
-<rect x="826.0" y="587.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="836.0" cy="597.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="617.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="643.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">TCP Keepalive</text>
-<rect x="826.0" y="628.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
-<ellipse cx="836.0" cy="638.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
-<rect x="236.0" y="658.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="683.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电池与外接电源取值不同</text>
-<text x="250.0" y="702.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">「全部」下改为「应用开 / 应用关」并弹出确认。</text>
-<rect x="813.0" y="676.5" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="821.0" y="691.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">需确认</text>
-<rect x="236.0" y="741.0" width="640.0" height="230.0" rx="10" fill="#1B1C21"/>
-<text x="250.0" y="767.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">只读读数</text>
-<text x="250.0" y="786.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">解析出来但从未渲染的三个值，v1.0.0 上屏。</text>
-<text x="250.0" y="813.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源模式</text>
-<text x="250.0" y="832.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">pmset 报告的当前模式。</text>
-<rect x="824.0" y="806.5" width="38.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="832.0" y="821.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">正常</text>
-<rect x="236.0" y="845.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="870.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">磁盘睡眠</text>
-<text x="250.0" y="889.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">解析自 pmset custom，当前无任何控制入口。</text>
-<rect x="808.4" y="863.5" width="53.6" height="21.0" rx="5" fill="#2F3037"/>
-<text x="816.4" y="878.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">10 分钟</text>
-<rect x="236.0" y="902.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="927.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示器睡眠</text>
-<text x="250.0" y="946.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">解析自 pmset custom，当前无任何控制入口。</text>
-<rect x="814.5" y="920.5" width="47.5" height="21.0" rx="5" fill="#2F3037"/>
-<text x="822.5" y="935.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">5 分钟</text>
-<rect x="236.0" y="985.0" width="640.0" height="264.0" rx="10" fill="#26272D"/>
-<text x="250.0" y="1011.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">唤醒历史</text>
-<text x="250.0" y="1030.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">本机保存最近 30 天的睡眠与唤醒事件。</text>
-<text x="250.0" y="1062.6" font-family="Inter" font-size="11" font-weight="m" letter-spacing="0" fill="#90919A">最近 30 天 · 本机保存 · 128 KB</text>
-<rect x="416.0" y="1047.5" width="71.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="424.0" y="1062.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">清空前确认</text>
-<rect x="497.0" y="1043.0" width="80.0" height="30.0" rx="7" fill="#26272D"/>
-<text x="511.0" y="1063.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">清空历史</text>
-<rect x="236.0" y="1083.0" width="640.0" height="29.0" rx="0" fill="#1B1C21"/>
-<text x="250.0" y="1102.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">时间</text>
-<text x="422.0" y="1102.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">类型</text>
-<text x="554.0" y="1102.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">原因</text>
-<text x="250.0" y="1136.2" font-family="Inter" font-size="12" font-weight="t" letter-spacing="0" fill="#F5F5F7">11:02</text>
-<rect x="422.0" y="1121.0" width="120.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="430.0" y="1136.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">用户唤醒</text>
-<text x="554.0" y="1136.2" font-family="Inter" font-size="12" font-weight="r" letter-spacing="0" fill="#90919A">Lid Open</text>
-<rect x="236.0" y="1151.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="1176.2" font-family="Inter" font-size="12" font-weight="t2" letter-spacing="0" fill="#F5F5F7">09:41</text>
-<rect x="422.0" y="1161.0" width="120.0" height="21.0" rx="5" fill="#1B1C21"/>
-<text x="430.0" y="1176.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">深色唤醒</text>
-<text x="554.0" y="1176.2" font-family="Inter" font-size="12" font-weight="r2" letter-spacing="0" fill="#90919A">DarkWake from Deep Idle</text>
-<rect x="236.0" y="1191.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
-<text x="250.0" y="1219.1" font-family="Inter" font-size="11" font-weight="n" letter-spacing="0" fill="#90919A">清空后隐藏了 12 条更早的记录</text>
-<text x="410.9" y="1219.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">显示它们</text>
-<rect x="468.9" y="1204.0" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
-<text x="476.9" y="1219.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">可恢复</text>
-<rect x="236.0" y="1263.0" width="640.0" height="162.0" rx="10" fill="#26272D"/>
-<text x="264.0" y="1289.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">进入本页会发生什么</text>
-<rect x="251.8" y="1301.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="270.0" y="1312.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">前台读取</text>
-<text x="270.0" y="1330.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">打开本页会立即读取一次 pmset 与电池状态；不写入历史。</text>
-<rect x="251.8" y="1341.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="270.0" y="1352.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">后台采样</text>
-<text x="270.0" y="1370.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只有打开「后台记录」才会持续采样。</text>
-<rect x="251.8" y="1381.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
-<text x="270.0" y="1392.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">清空历史可撤销</text>
-<text x="270.0" y="1410.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">文件保留，仅用时间水印隐藏，可随时恢复。</text>
+<text x="236.0" y="63.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">Power Helper、系统电源设置与唤醒历史。</text>
+<rect x="788.0" y="31.0" width="88.0" height="24.0" rx="12" fill="#26272D"/>
+<ellipse cx="801.5" cy="43.0" rx="3.5" ry="3.5" fill="#32D74B"/>
+<text x="811.0" y="47.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#A6A7AF">助手已启用</text>
+<rect x="236.0" y="82.0" width="640.0" height="179.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="108.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">后台监控</text>
+<text x="250.0" y="128.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只有打开这个开关才会在后台记录唤醒与进程采样。</text>
+<text x="250.0" y="156.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">后台记录唤醒与进程</text>
+<text x="250.0" y="176.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">关闭时，唤醒历史与「持续运行」只覆盖面板打开期间。</text>
+<rect x="826.0" y="151.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="836.0" cy="161.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="190.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="215.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">采样节奏</text>
+<text x="250.0" y="235.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">进程采样约每 300 秒一次；低电量模式下至少 900 秒。</text>
+<rect x="768.1" y="209.0" width="93.9" height="22.0" rx="5" fill="#2F3037"/>
+<text x="776.1" y="224.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">300 秒 / 900 秒</text>
+<rect x="236.0" y="275.0" width="640.0" height="119.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="301.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">Power Helper</text>
+<text x="250.0" y="321.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">系统电源设置与系统时区都通过它写入，需要管理员授权。</text>
+<rect x="252.4" y="347.9" width="11.2" height="11.2" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="276.0" y="349.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">已启用</text>
+<text x="276.0" y="368.1" font-family="Inter" font-size="11" font-weight="d" letter-spacing="0" fill="#90919A">版本 3 · 支持电源设置与进程控制</text>
+<rect x="585.0" y="342.5" width="97.0" height="22.0" rx="5" fill="#2F3037"/>
+<rect x="594.6" y="349.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="608.0" y="357.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">移除前需确认</text>
+<rect x="692.0" y="338.0" width="80.0" height="31.0" rx="7" fill="#2F3037"/>
+<text x="706.0" y="358.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">刷新助手</text>
+<rect x="782.0" y="338.0" width="80.0" height="31.0" rx="7" fill="#26272D"/>
+<text x="796.0" y="358.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">移除助手</text>
+<rect x="236.0" y="408.0" width="640.0" height="337.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="434.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">系统电源设置</text>
+<text x="250.0" y="454.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只写入 Helper 支持的四个布尔开关；混合取值会先确认。</text>
+<text x="250.0" y="488.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源来源</text>
+<rect x="692.0" y="468.0" width="170.0" height="32.0" rx="7" fill="#1B1C21"/>
+<text x="705.0" y="488.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">电池</text>
+<rect x="742.0" y="470.0" width="70.0" height="28.0" rx="5" fill="#0A84FF"/>
+<text x="753.0" y="488.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">外接电源</text>
+<text x="825.0" y="488.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">全部</text>
+<rect x="236.0" y="510.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="535.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源小盹（powernap）</text>
+<rect x="826.0" y="521.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="531.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="551.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="576.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">网络访问唤醒（womp）</text>
+<rect x="826.0" y="562.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="836.0" cy="572.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="592.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="617.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">待机（standby）</text>
+<rect x="826.0" y="603.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="613.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="633.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="658.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">TCP Keepalive</text>
+<rect x="826.0" y="644.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="654.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="674.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="699.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电池与外接电源取值不同</text>
+<text x="250.0" y="719.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">「全部」下改为「应用开 / 应用关」并弹出确认。</text>
+<rect x="813.0" y="693.0" width="49.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="821.0" y="708.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">需确认</text>
+<rect x="236.0" y="759.0" width="640.0" height="238.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="785.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">只读读数</text>
+<text x="250.0" y="805.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">解析出来但从未渲染的三个值，v1.0.0 上屏。</text>
+<text x="250.0" y="833.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">电源模式</text>
+<text x="250.0" y="853.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">pmset 报告的当前模式。</text>
+<rect x="824.0" y="827.0" width="38.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="832.0" y="842.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">正常</text>
+<rect x="236.0" y="867.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="892.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">磁盘睡眠</text>
+<text x="250.0" y="912.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">解析自 pmset custom，当前无任何控制入口。</text>
+<rect x="808.4" y="886.0" width="53.6" height="22.0" rx="5" fill="#2F3037"/>
+<text x="816.4" y="901.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">10 分钟</text>
+<rect x="236.0" y="926.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="951.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示器睡眠</text>
+<text x="250.0" y="971.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">解析自 pmset custom，当前无任何控制入口。</text>
+<rect x="814.5" y="945.0" width="47.5" height="22.0" rx="5" fill="#2F3037"/>
+<text x="822.5" y="960.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">5 分钟</text>
+<rect x="236.0" y="1011.0" width="640.0" height="271.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="1037.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">唤醒历史</text>
+<text x="250.0" y="1057.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">本机保存最近 30 天的睡眠与唤醒事件。</text>
+<text x="250.0" y="1090.6" font-family="Inter" font-size="11" font-weight="m" letter-spacing="0" fill="#90919A">最近 30 天 · 本机保存 · 128 KB</text>
+<rect x="416.0" y="1075.5" width="71.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="424.0" y="1090.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">清空前确认</text>
+<rect x="497.0" y="1071.0" width="80.0" height="31.0" rx="7" fill="#26272D"/>
+<text x="511.0" y="1091.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">清空历史</text>
+<rect x="236.0" y="1112.0" width="640.0" height="30.0" rx="0" fill="#1B1C21"/>
+<text x="250.0" y="1131.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">时间</text>
+<text x="422.0" y="1131.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">类型</text>
+<text x="554.0" y="1131.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">原因</text>
+<text x="250.0" y="1166.2" font-family="Inter" font-size="12" font-weight="t" letter-spacing="0" fill="#F5F5F7">11:02</text>
+<rect x="422.0" y="1151.0" width="120.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="430.0" y="1166.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">用户唤醒</text>
+<text x="554.0" y="1166.2" font-family="Inter" font-size="12" font-weight="r" letter-spacing="0" fill="#90919A">Lid Open</text>
+<rect x="236.0" y="1182.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1207.2" font-family="Inter" font-size="12" font-weight="t2" letter-spacing="0" fill="#F5F5F7">09:41</text>
+<rect x="422.0" y="1192.0" width="120.0" height="22.0" rx="5" fill="#1B1C21"/>
+<text x="430.0" y="1207.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">深色唤醒</text>
+<text x="554.0" y="1207.2" font-family="Inter" font-size="12" font-weight="r2" letter-spacing="0" fill="#90919A">DarkWake from Deep Idle</text>
+<rect x="236.0" y="1223.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1251.1" font-family="Inter" font-size="11" font-weight="n" letter-spacing="0" fill="#90919A">清空后隐藏了 12 条更早的记录</text>
+<text x="410.9" y="1251.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">显示它们</text>
+<rect x="468.9" y="1236.0" width="49.0" height="22.0" rx="5" fill="#2F3037"/>
+<text x="476.9" y="1251.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">可恢复</text>
+<rect x="236.0" y="1296.0" width="640.0" height="169.0" rx="10" fill="#26272D"/>
+<text x="264.0" y="1322.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">进入本页会发生什么</text>
+<rect x="251.8" y="1335.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="270.0" y="1346.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">前台读取</text>
+<text x="270.0" y="1365.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">打开本页会立即读取一次 pmset 与电池状态；不写入历史。</text>
+<rect x="251.8" y="1377.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="270.0" y="1388.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">后台采样</text>
+<text x="270.0" y="1407.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只有打开「后台记录」才会持续采样。</text>
+<rect x="251.8" y="1419.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="270.0" y="1430.7" font-family="Inter" font-size="11.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">清空历史可撤销</text>
+<text x="270.0" y="1449.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">文件保留，仅用时间水印隐藏，可随时恢复。</text>
 <line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
 <text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
 </svg>
