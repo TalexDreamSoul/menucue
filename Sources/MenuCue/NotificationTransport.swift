@@ -4,6 +4,7 @@ import Foundation
 // MARK: - Channel-neutral contracts
 
 enum NotificationChannelKind: String, CaseIterable, Codable, Hashable, Sendable {
+  case system
   case feishu
   case webhook
   case bark
@@ -65,6 +66,7 @@ enum NotificationDeliveryError: Error, Equatable, Sendable {
   case invalidConfiguration
   case missingSecret
   case credentialUnavailable
+  case permissionDenied
   case payloadTooLarge
   case responseTooLarge
   case invalidResponse
@@ -105,6 +107,8 @@ extension NotificationDeliveryError: LocalizedError {
       return "A required notification credential is missing."
     case .credentialUnavailable:
       return "The notification credential is temporarily unavailable."
+    case .permissionDenied:
+      return "System notification permission was denied."
     case .payloadTooLarge:
       return "The notification message is too long."
     case .responseTooLarge:
@@ -634,6 +638,7 @@ private struct TelegramResponse: Decodable {
 // MARK: - Factory
 
 enum NotificationChannelDescriptor: Sendable {
+  case system
   case feishu(webhookKey: NotificationSecretKey, signingSecretKey: NotificationSecretKey?)
   case webhook(endpointKey: NotificationSecretKey, bearerTokenKey: NotificationSecretKey?)
   case bark(serverBaseURL: URL, deviceKey: NotificationSecretKey, group: String?)
@@ -647,6 +652,8 @@ enum NotificationChannelFactory {
     transport: any NotificationHTTPTransport = URLSessionNotificationHTTPTransport()
   ) throws -> any NotificationChannel {
     switch descriptor {
+    case .system:
+      return SystemNotificationChannel()
     case .feishu(let webhookKey, let signingSecretKey):
       let webhook = try requiredSecret(webhookKey, from: secrets)
       guard let url = URL(string: webhook) else {

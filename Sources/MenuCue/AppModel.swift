@@ -163,7 +163,7 @@ final class AppModel: ObservableObject {
         self.hotkeyService.configure { [weak self] binding in
             self?.runHotkeyBinding(binding)
         }
-        self.hotkeyService.apply(bindings: settings.hotkeyBindings)
+        self.hotkeyService.apply(bindings: settings.registeredHotkeyBindings)
         refreshCalendarData()
 
         self.preferenceSyncService.configure(
@@ -253,6 +253,21 @@ final class AppModel: ObservableObject {
             }
             settings.hotkeyBindings[index].isEnabled = isEnabled
         }
+    }
+
+    /// Re-runs the built-in defaults merge on demand, for shortcuts the user deleted or never
+    /// received. Returns how many bindings came back, so the pane can say something truthful
+    /// instead of silently doing nothing.
+    @discardableResult
+    func restoreBuiltInHotkeyDefaults() -> Int {
+        let missing = HotkeyBuiltInDefaults.missing(from: settings.hotkeyBindings)
+        guard !missing.isEmpty else { return 0 }
+        updateSettings { settings in
+            settings.hotkeyBindings = AppSettings.normalizedHotkeyBindings(
+                settings.hotkeyBindings + missing
+            )
+        }
+        return missing.count
     }
 
     /// A press runs through the same executor a gesture would, so a shortcut and a rule
@@ -564,15 +579,15 @@ final class AppModel: ObservableObject {
 
     private func applySettings(_ nextSettings: AppSettings) {
         let previousTrackpadSettings = settings.trackpadGestureSettings
-        let previousHotkeyBindings = settings.hotkeyBindings
+        let previousHotkeyBindings = settings.registeredHotkeyBindings
         settings = nextSettings
         settingsStore.save(nextSettings)
         appearanceService.apply(settings: nextSettings)
         if previousTrackpadSettings != nextSettings.trackpadGestureSettings {
             trackpadGestureService.apply(settings: nextSettings.trackpadGestureSettings)
         }
-        if previousHotkeyBindings != nextSettings.hotkeyBindings {
-            hotkeyService.apply(bindings: nextSettings.hotkeyBindings)
+        if previousHotkeyBindings != nextSettings.registeredHotkeyBindings {
+            hotkeyService.apply(bindings: nextSettings.registeredHotkeyBindings)
         }
         configureNotificationServices(nextSettings.notificationSettings)
         refreshCalendarData()
@@ -585,6 +600,7 @@ final class AppModel: ObservableObject {
         Task { @MainActor [weak self, weak monitor, weak dispatcher] in
             guard let self, let monitor, let dispatcher else { return }
             await dispatcher.update(settings: notificationSettings)
+            await monitor.setGloballyEnabled(notificationSettings.isGloballyEnabled)
             await monitor.setDeviceName(
                 notificationSettings.resolvedDeviceName(systemName: Host.current().localizedName)
             )
@@ -594,9 +610,10 @@ final class AppModel: ObservableObject {
             try? await monitor.updateRules(notificationSettings.rules)
             await monitor.start()
             self.configureDarkWakeBridge(
-                enabled: notificationSettings.rules.contains {
-                    $0.isEnabled && $0.metricID == "event.darkWake"
-                },
+                enabled: notificationSettings.isGloballyEnabled
+                    && notificationSettings.rules.contains {
+                        $0.isEnabled && $0.metricID == "event.darkWake"
+                    },
                 monitor: monitor
             )
         }

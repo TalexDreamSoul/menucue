@@ -758,6 +758,77 @@ final class TrackpadGestureEngineTests: XCTestCase {
     )
   }
 
+  /// Two fingers spreading apart are a pinch, not a translation. Without the guard the edge
+  /// rule reads the pinch's centroid drift as a deliberate two-finger volume slide, so the
+  /// same travel with a still partner must still emit and the pinching copy must stay silent.
+  func testSpreadPinchAcrossTheLeftEdgeDoesNotEmitContinuousVolume() {
+    let pinching = makeEngine(rules: [edgeContinuousRule()])
+    let pinchMatches = consume(pinching, [
+      frame(1, 0, [contact(1, .touch, 0.07, 0.50), contact(2, .touch, 0.19, 0.50)]),
+      // The fingers move in opposite directions: the pair spreads by ~0.057 while the
+      // centroid climbs 0.05, over two steps of the 0.02 threshold.
+      frame(2, 0.05, [contact(1, .touch, 0.07, 0.65), contact(2, .touch, 0.19, 0.45)]),
+    ])
+
+    let translating = makeEngine(rules: [edgeContinuousRule()])
+    let translationMatches = consume(translating, [
+      frame(1, 0, [contact(1, .touch, 0.07, 0.50), contact(2, .touch, 0.19, 0.50)]),
+      frame(2, 0.05, [contact(1, .touch, 0.07, 0.65), contact(2, .touch, 0.19, 0.50)]),
+    ])
+
+    XCTAssertFalse(
+      translationMatches.isEmpty,
+      "the rule is live for the same centroid travel when the pair is not spreading"
+    )
+    XCTAssertTrue(
+      translationMatches.allSatisfy {
+        $0.action.systemControl == .continuousVolume && $0.direction == .up
+      },
+      "the same travel without a pinch is an upward volume adjustment"
+    )
+    XCTAssertTrue(
+      pinchMatches.isEmpty,
+      "a pinch spread must never be read as a continuous volume slide"
+    )
+  }
+
+  /// The shipped anchored-slide preset is the first continuous rule most users meet. A pinch
+  /// moves the anchor opposite the nominated finger — the posture the guard exists to reject.
+  /// The same slider travel with a still anchor is a step, and the pinching copy is nothing.
+  func testSpreadPinchDoesNotLetTheShippedAnchoredSlideEmitVolume() throws {
+    let preset = try XCTUnwrap(
+      TrackpadGestureSettings.presetRules.first { $0.trigger.kind == .anchoredSlide }
+    )
+
+    let pinching = makeEngine(rules: [preset])
+    let pinchMatches = consume(pinching, [
+      frame(1, 0, [contact(1, .touch, 0.45, 0.50), contact(2, .touch, 0.55, 0.50)]),
+      // The nominated finger climbs 0.15 while the anchor travels 0.02 the other way.
+      frame(2, 0.06, [contact(1, .touch, 0.45, 0.65), contact(2, .touch, 0.55, 0.48)]),
+    ])
+
+    let translating = makeEngine(rules: [preset])
+    let translationMatches = consume(translating, [
+      frame(1, 0, [contact(1, .touch, 0.45, 0.50), contact(2, .touch, 0.55, 0.50)]),
+      frame(2, 0.06, [contact(1, .touch, 0.45, 0.65), contact(2, .touch, 0.55, 0.50)]),
+    ])
+
+    XCTAssertFalse(
+      translationMatches.isEmpty,
+      "the shipped preset is live for the same slide when the anchor is still"
+    )
+    XCTAssertTrue(
+      translationMatches.allSatisfy {
+        $0.action.systemControl == .continuousVolume && $0.direction == .up
+      },
+      "the same slide without a pinch is an upward volume adjustment"
+    )
+    XCTAssertTrue(
+      pinchMatches.isEmpty,
+      "a pinch spread must never be read as an anchored-slide volume step"
+    )
+  }
+
   func testAnchoredSlideRateLimitsItsStepsAndReleasesTheWithheldTravel() {
     let engine = makeEngine(rules: [anchoredSlideRule()])
 

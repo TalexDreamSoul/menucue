@@ -530,6 +530,17 @@ final class TrackpadEdgeContinuousRecognizer: TrackpadGestureRecognizer {
         continue
       }
 
+      guard !TrackpadGeometry.isPinching(
+        from: activeHistories.map { $0.history.start },
+        to: activeHistories.map { $0.contact.position },
+        minimumSpreadChange: max(0.01, trigger.movementTolerance * 0.5)
+      ) else {
+        state.cancelledRuleIDs.insert(rule.id)
+        state.remainders.removeValue(forKey: rule.id)
+        state.lastPositions.removeValue(forKey: rule.id)
+        continue
+      }
+
       guard let previousPosition = state.lastPositions[rule.id] else {
         state.lastPositions[rule.id] = currentCentroid
         continue
@@ -653,6 +664,17 @@ final class TrackpadAnchoredSlideRecognizer: TrackpadGestureRecognizer {
       let trigger = rule.trigger.normalized
       guard landed.indices.contains(trigger.selectedFingerIndex) else { continue }
       let selected = landed[trigger.selectedFingerIndex]
+      guard !TrackpadGeometry.isPinching(
+        from: landed.map { $0.history.start },
+        to: landed.map { $0.contact.position },
+        minimumSpreadChange: max(0.01, trigger.movementTolerance * 0.5)
+      ) else {
+        state.cancelledRuleIDs.insert(rule.id)
+        state.remainders.removeValue(forKey: rule.id)
+        state.lastPositions.removeValue(forKey: rule.id)
+        continue
+      }
+
       let anchorsHeld = landed.enumerated().allSatisfy { index, entry in
         index == trigger.selectedFingerIndex || entry.history.maxTravel <= trigger.movementTolerance
       }

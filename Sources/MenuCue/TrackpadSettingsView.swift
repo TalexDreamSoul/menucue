@@ -81,110 +81,152 @@ struct TrackpadSettingsView: View {
   private var tabContent: some View {
     switch tab {
     case .rules:
-      VStack(alignment: .leading, spacing: 24) {
-        rulesSection
-        Divider()
-        managementSection
+      VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+        rulesCard
+        ruleSetCard
       }
     case .feedback:
-      feedbackAndEdgeSection
+      VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+        feedbackCard
+        gestureParametersCard
+      }
     case .diagnostics:
-      VStack(alignment: .leading, spacing: 24) {
-        runtimeSection
+      VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+        runtimeCard
+        clickSuppressionCard
         if settings.isEnabled {
-          Divider()
           TrackpadLivePreviewCard(service: service)
         }
       }
     }
   }
 
-  private var runtimeSection: some View {
-    SettingsGroup(spacing: 12) {
-      HStack(alignment: .top, spacing: 10) {
-        Image(systemName: runtimeStatusSymbol)
-          .font(.title3)
-          .foregroundStyle(runtimeStatusColor)
-          .frame(width: 24)
-          .accessibilityHidden(true)
+  /// Runtime state, input ownership, and click suppression each get their own card: the
+  /// design document reads the status banner as a fact, the suppression switch as a
+  /// decision, and the ownership pause as a condition on the first.
+  private var runtimeCard: some View {
+    SettingsCard(
+      L10n.string("Runtime"),
+      desc: L10n.string(
+        "Raw touch observation remains pass-through. MenuCue consumes native input only for an explicitly enabled click rule or while a configured continuous edge gesture is active. Input suppression requires Accessibility; volume and supported display brightness do not."
+      ),
+      content: {
+        SettingsRows {
+          runtimeStatusRow
 
-        VStack(alignment: .leading, spacing: 3) {
-          HStack(spacing: 7) {
-            Text(runtimeStatusTitle)
-              .font(.subheadline.weight(.semibold))
-            if case .starting = service.status {
-              MotionAwareProgressIndicator(scale: 0.8)
-            }
+          switch service.inputOwnership {
+          case .local:
+            EmptyView()
+          case .mirroredDisplay:
+            ownershipPauseRow(
+              desc: L10n.string(
+                "AirPlay display mirroring is active. MenuCue pauses local gesture automation so system input remains pass-through."
+              )
+            )
+          case .remoteOrUnknown:
+            ownershipPauseRow(
+              desc: L10n.string(
+                "The pointer is outside this Mac's displays. MenuCue pauses local gesture automation so cross-Mac input is not captured here."
+              )
+            )
           }
-          Text(runtimeStatusDetail)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
+      }
+    )
+  }
 
-        Spacer(minLength: 10)
-        Button("Retry") {
+  /// The design document's status row: state icon, state title, its explanation, and the
+  /// one action that can change the state. The starting spinner keeps its place beside the
+  /// action so a state that resolves on its own still says so.
+  private var runtimeStatusRow: some View {
+    SettingsBanner(
+      runtimeStatusTitle,
+      desc: runtimeStatusDetail,
+      systemImage: runtimeStatusSymbol,
+      tint: runtimeStatusColor
+    ) {
+      HStack(spacing: 8) {
+        if case .starting = service.status {
+          MotionAwareProgressIndicator(scale: 0.8)
+        }
+        Button(L10n.string("Retry")) {
           service.retry()
         }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
         .disabled(!settings.isEnabled || isRuntimeStarting)
         .help("Retry trackpad detection and optional capabilities")
         .accessibilityHint("Rechecks trackpad support without changing your rules.")
       }
-      .accessibilityElement(children: .combine)
-      .accessibilityLabel(runtimeAccessibilityLabel)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(runtimeAccessibilityLabel)
+  }
 
-      Label(
-        "Raw touch observation remains pass-through. MenuCue consumes native input only for an explicitly enabled click rule or while a configured continuous edge gesture is active. Input suppression requires Accessibility; volume and supported display brightness do not.",
-        systemImage: "hand.raised"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
+  /// One of the two input-ownership pauses. The sentence is the one the pane already
+  /// showed; the pause is stated as a chip, which is how the design document reads the
+  /// same fact without a second status icon.
+  private func ownershipPauseRow(desc: String) -> some View {
+    SettingsRow(L10n.string("Local Gestures Paused"), desc: desc) {
+      SettingsChip(L10n.string("Paused"), systemImage: "pause.fill", tint: .orange)
+    }
+  }
 
-      switch service.inputOwnership {
-      case .local:
-        EmptyView()
-      case .mirroredDisplay:
-        Label(
-          "AirPlay display mirroring is active. MenuCue pauses local gesture automation so system input remains pass-through.",
-          systemImage: "airplayvideo.badge.exclamationmark"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      case .remoteOrUnknown:
-        Label(
-          "The pointer is outside this Mac's displays. MenuCue pauses local gesture automation so cross-Mac input is not captured here.",
-          systemImage: "rectangle.portrait.and.arrow.right"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
+  private var clickSuppressionCard: some View {
+    SettingsCard(
+      L10n.string("Click Suppression"),
+      desc: L10n.string(
+        "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility."
+      ),
+      content: {
+        SettingsRows {
+          SettingsRowToggle(
+            L10n.string("Suppress the left click after a multi-finger tap"),
+            desc: L10n.string(
+              "Native scrolling is suppressed while an enabled continuous edge rule owns the trackpad. Click suppression remains optional."
+            ),
+            isOn: clickSuppressionBinding
+          )
+          .help("Only the matching click immediately after a recognized multi-finger tap is consumed.")
 
-      Divider()
-
-      VStack(alignment: .leading, spacing: 8) {
-        Toggle(
-          "Suppress the left click after a multi-finger tap",
-          isOn: clickSuppressionBinding
-        )
-        .help("Only the matching click immediately after a recognized multi-finger tap is consumed.")
-
-        Text(
-          "Native scrolling is suppressed while an enabled continuous edge rule owns the trackpad. Click suppression remains optional."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-        if settings.suppressesClickAfterMultiFingerTap {
-          clickSuppressionStatus
-        }
-        if suppressesNativeScrolling {
-          edgeScrollSuppressionStatus
+          if settings.suppressesClickAfterMultiFingerTap {
+            clickSuppressionStatus
+          }
+          if suppressesNativeScrolling {
+            edgeScrollSuppressionStatus
+          }
         }
       }
+    )
+  }
+
+  /// A suppression state as one design-system row: the state's sentence with its chip, and
+  /// any remediation buttons on their own line, because two buttons never fit beside a
+  /// label this long in a 560pt pane.
+  private func suppressionStatusRow<Actions: View>(
+    _ title: String,
+    desc: String,
+    chip: String,
+    systemImage: String,
+    tint: Color,
+    @ViewBuilder actions: () -> Actions
+  ) -> some View {
+    SettingsStackedRow(title, desc: desc) {
+      HStack(spacing: 8) {
+        SettingsChip(chip, systemImage: systemImage, tint: tint)
+        Spacer(minLength: 8)
+        actions()
+      }
+    }
+  }
+
+  /// What an unavailable suppression offers instead: recheck the runtime, or open the
+  /// pane that grants the permission.
+  private var suppressionRetryButtons: some View {
+    HStack(spacing: 8) {
+      Button(L10n.string("Retry")) { service.retry() }
+        .disabled(!settings.isEnabled)
+      Button(L10n.string("Open System Settings")) { service.openAccessibilitySettings() }
     }
   }
 
@@ -192,44 +234,48 @@ struct TrackpadSettingsView: View {
   private var clickSuppressionStatus: some View {
     switch service.clickSuppressionStatus {
     case .disabled:
-      Label(
-        settings.isEnabled ? "Click suppression is starting" : "Click suppression starts with the module",
-        systemImage: "pause.circle"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
+      suppressionStatusRow(
+        L10n.string("Click Suppression"),
+        desc: settings.isEnabled
+          ? L10n.string("Click suppression is starting")
+          : L10n.string("Click suppression starts with the module"),
+        chip: settings.isEnabled ? L10n.string("Starting") : L10n.string("Inactive"),
+        systemImage: "pause.circle",
+        tint: .secondary
+      ) { EmptyView() }
 
     case .active:
-      Label("Click suppression is active", systemImage: "checkmark.circle.fill")
-        .font(.caption)
-        .foregroundStyle(.green)
+      suppressionStatusRow(
+        L10n.string("Click Suppression"),
+        desc: L10n.string("Click suppression is active"),
+        chip: L10n.string("Active"),
+        systemImage: "checkmark.circle.fill",
+        tint: .green
+      ) { EmptyView() }
 
     case .requiresAccessibility:
-      VStack(alignment: .leading, spacing: 8) {
-        Label(
-          "Accessibility permission is required for click suppression.",
-          systemImage: "exclamationmark.shield.fill"
-        )
-        .font(.caption)
-        .foregroundStyle(.orange)
-        .fixedSize(horizontal: false, vertical: true)
+      suppressionStatusRow(
+        L10n.string("Accessibility Permission"),
+        desc: L10n.string("Accessibility permission is required for click suppression."),
+        chip: L10n.string("Needs Authorization"),
+        systemImage: "exclamationmark.shield.fill",
+        tint: .orange
+      ) {
         if !suppressesNativeScrolling {
           suppressionPermissionButtons
         }
       }
 
     case .unavailable(let reason):
-      VStack(alignment: .leading, spacing: 8) {
-        Label(L10n.string(reason), systemImage: "exclamationmark.triangle.fill")
-          .font(.caption)
-          .foregroundStyle(.orange)
-          .fixedSize(horizontal: false, vertical: true)
+      suppressionStatusRow(
+        L10n.string("Click Suppression"),
+        desc: L10n.string(reason),
+        chip: L10n.string("Unavailable"),
+        systemImage: "exclamationmark.triangle.fill",
+        tint: .orange
+      ) {
         if !suppressesNativeScrolling {
-          HStack(spacing: 8) {
-            Button("Retry") { service.retry() }
-              .disabled(!settings.isEnabled)
-            Button("Open System Settings") { service.openAccessibilitySettings() }
-          }
+          suppressionRetryButtons
         }
       }
     }
@@ -239,46 +285,47 @@ struct TrackpadSettingsView: View {
   private var edgeScrollSuppressionStatus: some View {
     switch service.edgeScrollSuppressionStatus {
     case .disabled:
-      Label(
-        settings.isEnabled
-          ? "Edge scroll suppression is starting"
-          : "Edge scroll suppression starts with the module",
-        systemImage: "pause.circle"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
+      suppressionStatusRow(
+        L10n.string("Edge Scroll Suppression"),
+        desc: settings.isEnabled
+          ? L10n.string("Edge scroll suppression is starting")
+          : L10n.string("Edge scroll suppression starts with the module"),
+        chip: settings.isEnabled ? L10n.string("Starting") : L10n.string("Inactive"),
+        systemImage: "pause.circle",
+        tint: .secondary
+      ) { EmptyView() }
 
     case .active:
-      Label(
-        "Native scrolling is suppressed during matching edge gestures",
-        systemImage: "checkmark.circle.fill"
-      )
-      .font(.caption)
-      .foregroundStyle(.green)
+      suppressionStatusRow(
+        L10n.string("Edge Scroll Suppression"),
+        desc: L10n.string("Native scrolling is suppressed during matching edge gestures"),
+        chip: L10n.string("Active"),
+        systemImage: "checkmark.circle.fill",
+        tint: .green
+      ) { EmptyView() }
 
     case .requiresAccessibility:
-      VStack(alignment: .leading, spacing: 8) {
-        Label(
-          "Accessibility permission is required to suppress native scrolling during edge gestures.",
-          systemImage: "exclamationmark.shield.fill"
-        )
-        .font(.caption)
-        .foregroundStyle(.orange)
-        .fixedSize(horizontal: false, vertical: true)
+      suppressionStatusRow(
+        L10n.string("Accessibility Permission"),
+        desc: L10n.string(
+          "Accessibility permission is required to suppress native scrolling during edge gestures."
+        ),
+        chip: L10n.string("Needs Authorization"),
+        systemImage: "exclamationmark.shield.fill",
+        tint: .orange
+      ) {
         suppressionPermissionButtons
       }
 
     case .unavailable(let reason):
-      VStack(alignment: .leading, spacing: 8) {
-        Label(L10n.string(reason), systemImage: "exclamationmark.triangle.fill")
-          .font(.caption)
-          .foregroundStyle(.orange)
-          .fixedSize(horizontal: false, vertical: true)
-        HStack(spacing: 8) {
-          Button("Retry") { service.retry() }
-            .disabled(!settings.isEnabled)
-          Button("Open System Settings") { service.openAccessibilitySettings() }
-        }
+      suppressionStatusRow(
+        L10n.string("Edge Scroll Suppression"),
+        desc: L10n.string(reason),
+        chip: L10n.string("Unavailable"),
+        systemImage: "exclamationmark.triangle.fill",
+        tint: .orange
+      ) {
+        suppressionRetryButtons
       }
     }
   }
@@ -296,135 +343,186 @@ struct TrackpadSettingsView: View {
     }
   }
 
-  private var feedbackAndEdgeSection: some View {
-    SettingsGroup(spacing: 12) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Feedback and Edge Control")
-          .font(.headline)
-        Text("Feedback is local to this Mac. Edge values apply to every edge-based rule.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
+  private var feedbackCard: some View {
+    SettingsCard(
+      L10n.string("Feedback and Edge Control"),
+      desc: L10n.string("Feedback is local to this Mac. Edge values apply to every edge-based rule."),
+      content: {
+        SettingsRows {
+          SettingsRowToggle(
+            L10n.string("Haptic feedback"),
+            desc: L10n.string("Gives a light tap after a successful action."),
+            isOn: settingBinding(\.hapticFeedbackEnabled)
+          )
 
-      Toggle("Haptic feedback", isOn: settingBinding(\.hapticFeedbackEnabled))
-      Toggle("Feedback HUD", isOn: settingBinding(\.feedbackHUDEnabled))
+          SettingsRowToggle(
+            L10n.string("Feedback HUD"),
+            desc: L10n.string("Shows a brief 236 × 64 hint near the bottom of the screen."),
+            isOn: settingBinding(\.feedbackHUDEnabled)
+          )
 
-      TrackpadLabeledSlider(
-        title: L10n.string("Edge width"),
-        value: settingBinding(\.edgeWidth),
-        range: 0.03...0.20,
-        step: 0.01,
-        valueText: TrackpadUIFormat.percent(settings.edgeWidth)
-      )
-
-      TrackpadLabeledSlider(
-        title: L10n.string("Sensitivity"),
-        value: settingBinding(\.sensitivity),
-        range: 0.25...4,
-        step: 0.05,
-        valueText: TrackpadUIFormat.multiplier(settings.sensitivity)
-      )
-    }
-  }
-
-  private var rulesSection: some View {
-    SettingsGroup(spacing: 12) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Gesture Rules")
-            .font(.headline)
-          Text("Rules with a specific app scope run before global rules; ties follow the list order.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        Spacer()
-        Button(action: addRule) {
-          Label("Add Rule", systemImage: "plus")
-        }
-      }
-
-      if settings.rules.isEmpty {
-        VStack(spacing: 8) {
-          Image(systemName: "hand.tap")
-            .font(.title2)
-            .foregroundStyle(.secondary)
-          Text("No Gesture Rules")
-            .font(.headline)
-          Text("Add a rule to connect a touch gesture to a system or app action.")
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-          Button("Add Gesture Rule", action: addRule)
-        }
-        .frame(maxWidth: .infinity, minHeight: 150)
-      } else {
-        // Resolved once for the whole list: every rule's answer depends on the same
-        // permission state, and this pane redraws with live touch input.
-        let availabilities = service.availabilities(for: settings.rules.map(\.action))
-        VStack(alignment: .leading, spacing: 0) {
-          TrackpadRuleTableHeader()
-
-          ForEach(Array(settings.rules.enumerated()), id: \.element.id) { index, rule in
-            Divider()
-
-            TrackpadRuleRow(
-              rule: rule,
-              availability: availabilities[index],
-              index: index,
-              ruleCount: settings.rules.count,
-              onToggle: { enabled in
-                updateRule(rule.id) { $0.isEnabled = enabled }
-              },
-              onEdit: { editingTarget = TrackpadRuleSheetTarget(rule: rule, isNew: false) },
-              onDuplicate: { duplicateRule(rule) },
-              onDelete: { deleteRule(rule.id) },
-              onMoveUp: { moveRule(at: index, by: -1) },
-              onMoveDown: { moveRule(at: index, by: 1) }
+          SettingsRow(
+            L10n.string("HUD Preview"),
+            desc: L10n.string(
+              "Shown near the bottom of the screen for 1.6 seconds, then faded out over 0.18 seconds. Duration and position are not configurable."
             )
+          ) {
+            SettingsChip(L10n.string("Not Configurable"))
           }
         }
       }
-    }
+    )
   }
 
-  private var managementSection: some View {
-    SettingsGroup(spacing: 10) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text("Rule Set")
-          .font(.headline)
-        Text("Import and export use a versioned local JSON file. Invalid neighbors are normalized independently.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
+  private var gestureParametersCard: some View {
+    SettingsCard(
+      L10n.string("Global Gesture Parameters"),
+      desc: L10n.string(
+        "Continuous actions such as volume and brightness scale as a whole with the sensitivity."
+      ),
+      content: {
+        SettingsRows {
+          TrackpadSliderRow(
+            title: L10n.string("Edge width"),
+            desc: L10n.string("Edge width runs 3%–20%, in steps of 1%. Every edge-entry and continuous rule shares this value."),
+            value: settingBinding(\.edgeWidth),
+            range: 0.03...0.20,
+            step: 0.01,
+            valueLabel: TrackpadUIFormat.percent(settings.edgeWidth)
+          )
 
-      HStack(spacing: 8) {
-        Button(action: importRuleSet) {
-          Label("Import JSON", systemImage: "square.and.arrow.down")
-        }
-        Button(action: exportRuleSet) {
-          Label("Export JSON", systemImage: "square.and.arrow.up")
-        }
-        Spacer()
-        Button("Reset Presets", role: .destructive) {
-          showsResetConfirmation = true
+          TrackpadSliderRow(
+            title: L10n.string("Sensitivity"),
+            desc: L10n.string("0.25×–4.00× in 0.05× steps."),
+            value: settingBinding(\.sensitivity),
+            range: 0.25...4,
+            step: 0.05,
+            valueLabel: TrackpadUIFormat.multiplier(settings.sensitivity)
+          )
         }
       }
+    )
+  }
 
-      if let feedbackMessage {
-        Label(
-          feedbackMessage,
-          systemImage: feedbackIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
-        )
-        .font(.caption)
-        .foregroundStyle(feedbackIsError ? Color.red : Color.green)
-        .fixedSize(horizontal: false, vertical: true)
-        .transition(motion.revealTransition(edge: .top))
+  private var rulesCard: some View {
+    SettingsCard(
+      L10n.string("Gesture Rules"),
+      desc: L10n.string("Rules with a specific app scope run before global rules; ties follow the list order."),
+      action: {
+        Button(action: addRule) {
+          Label(L10n.string("Add Rule"), systemImage: "plus")
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+      },
+      content: {
+        if settings.rules.isEmpty {
+          SettingsEmptyState(
+            L10n.string("No Gesture Rules"),
+            desc: L10n.string("Add a rule to connect a touch gesture to a system or app action."),
+            systemImage: "hand.tap"
+          ) {
+            Button(L10n.string("Add Gesture Rule"), action: addRule)
+          }
+        } else {
+          // Resolved once for the whole list: every rule's answer depends on the same
+          // permission state, and this pane redraws with live touch input.
+          let availabilities = service.availabilities(for: settings.rules.map(\.action))
+          SettingsTable(columns: [
+            SettingsTableColumn(L10n.string("Rule"), weight: 200),
+            SettingsTableColumn(L10n.string("Action"), weight: 175),
+            SettingsTableColumn(L10n.string("Scope"), weight: 100),
+            SettingsTableColumn("", weight: 80),
+          ]) {
+            ForEach(Array(settings.rules.enumerated()), id: \.element.id) { index, rule in
+              TrackpadRuleRow(
+                rule: rule,
+                availability: availabilities[index],
+                index: index,
+                ruleCount: settings.rules.count,
+                onToggle: { enabled in
+                  updateRule(rule.id) { $0.isEnabled = enabled }
+                },
+                onEdit: { editingTarget = TrackpadRuleSheetTarget(rule: rule, isNew: false) },
+                onDuplicate: { duplicateRule(rule) },
+                onDelete: { deleteRule(rule.id) },
+                onMoveUp: { moveRule(at: index, by: -1) },
+                onMoveDown: { moveRule(at: index, by: 1) }
+              )
+            }
+          }
+        }
       }
-    }
+    )
+  }
+
+  private var ruleSetCard: some View {
+    SettingsCard(
+      L10n.string("Rule Set"),
+      desc: L10n.string(
+        "Import and export use a versioned local JSON file. Invalid neighbors are normalized independently."
+      ),
+      tone: .inset,
+      content: {
+        SettingsRows {
+          SettingsStackedRow(
+            L10n.string("Rule Set File"),
+            desc: L10n.string("This replaces the current rule list with MenuCue's editable presets.")
+          ) {
+            HStack(spacing: 8) {
+              Button(action: importRuleSet) {
+                Label(L10n.string("Import JSON"), systemImage: "square.and.arrow.down")
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.small)
+
+              Button(action: exportRuleSet) {
+                Label(L10n.string("Export JSON"), systemImage: "square.and.arrow.up")
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.small)
+
+              Spacer(minLength: 8)
+
+              Button(L10n.string("Reset Presets"), role: .destructive) {
+                showsResetConfirmation = true
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.small)
+              .tint(.red)
+            }
+          }
+
+          SettingsRow(
+            L10n.string("Current Rule Count"),
+            desc: L10n.format("%1$d enabled · %2$d disabled", enabledRuleCount, disabledRuleCount)
+          ) {
+            SettingsChip(String(settings.rules.count))
+          }
+
+          if let feedbackMessage {
+            SettingsRow(feedbackMessage) {
+              Image(
+                systemName: feedbackIsError
+                  ? "exclamationmark.triangle.fill"
+                  : "checkmark.circle.fill"
+              )
+              .foregroundStyle(feedbackIsError ? Color.red : Color.green)
+              .accessibilityHidden(true)
+            }
+            .transition(motion.revealTransition(edge: .top))
+          }
+        }
+      }
+    )
+  }
+
+  private var enabledRuleCount: Int {
+    settings.rules.filter(\.isEnabled).count
+  }
+
+  private var disabledRuleCount: Int {
+    settings.rules.count - enabledRuleCount
   }
 
   private var enabledBinding: Binding<Bool> {
@@ -730,35 +828,28 @@ private struct TrackpadLivePreviewCard: View {
   @StateObject private var gate = VisibilityGate()
 
   var body: some View {
-    SettingsGroup(spacing: 10) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Live Touch Preview")
-            .font(.headline)
-          Text("Contact dots are published at a bounded rate of up to 30 Hz.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+    SettingsCard(
+      L10n.string("Live Touch Preview"),
+      desc: L10n.string("Contact dots are published at a bounded rate of up to 30 Hz."),
+      content: {
+        SettingsRows {
+          SettingsStackedRow(L10n.string("Contact Preview")) {
+            TrackpadLiveContactPreview(contacts: service.liveContacts)
+          }
+
+          SettingsRow(
+            L10n.string("Current Contacts"),
+            desc: L10n.string("Contact positions update without consuming normal pointer input.")
+          ) {
+            HStack(spacing: 6) {
+              SettingsChip(L10n.format("%d contacts", activeContactCount))
+              SettingsChip(L10n.format("Last recognized: %@", lastRecognitionTitle))
+            }
+            .accessibilityElement(children: .combine)
+          }
         }
-        Spacer()
-        Text(L10n.format("%d contacts", activeContactCount))
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(.secondary)
-          .monospacedDigit()
       }
-
-      TrackpadLiveContactPreview(contacts: service.liveContacts)
-
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Text("Last recognized")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-        Text(lastRecognitionTitle)
-          .font(.caption.weight(.medium))
-          .lineLimit(2)
-        Spacer(minLength: 0)
-      }
-      .accessibilityElement(children: .combine)
-    }
+    )
     .onAppear {
       gate.connect(
         to: router.visibility(of: .settings),
@@ -787,8 +878,8 @@ private struct TrackpadLivePreviewCard: View {
 }
 
 enum TrackpadSettingsLayout {
-  /// What `SettingsGroup` gives every card, applied to the pane itself so the header and
-  /// the tab bar line up with the cards below them.
+  /// The width the design system's cards settle on, applied to the pane itself so the
+  /// header and the tab bar line up with the cards below them.
   static let paneWidth: CGFloat = 560
   static let previewHeight: CGFloat = 210
   static let drawingHeight: CGFloat = 180
@@ -871,40 +962,12 @@ private struct TrackpadRuleSheetTarget: Identifiable {
   var id: UUID { rule.id }
 }
 
-/// What each rule row's columns mean. The rows carry no labels of their own, so a table
-/// this wide needs the header to stay readable.
-private struct TrackpadRuleTableHeader: View {
-  var body: some View {
-    HStack(spacing: TrackpadRuleTableLayout.columnSpacing) {
-      Text("Rule")
-        .frame(maxWidth: .infinity, alignment: .leading)
-      Text("Action")
-        .frame(width: TrackpadRuleTableLayout.actionWidth, alignment: .leading)
-      Text("Scope")
-        .frame(width: TrackpadRuleTableLayout.scopeWidth, alignment: .leading)
-      Color.clear
-        .frame(width: TrackpadRuleTableLayout.controlsWidth, height: 1)
-    }
-    .font(.caption2.weight(.medium))
-    .foregroundStyle(.secondary)
-    .padding(.leading, TrackpadRuleTableLayout.toggleWidth + TrackpadRuleTableLayout.columnSpacing)
-    .padding(.bottom, 6)
-    .accessibilityHidden(true)
-  }
-}
-
-/// The rule column stays elastic and everything else is fixed, because the pane is only
-/// 560pt wide: a name that truncates is a worse row than a scope that does.
-private enum TrackpadRuleTableLayout {
-  static let toggleWidth: CGFloat = 32
-  static let actionWidth: CGFloat = 132
-  static let scopeWidth: CGFloat = 84
-  static let controlsWidth: CGFloat = 58
-  static let columnSpacing: CGFloat = 9
-}
-
 /// One row of the rule table. Everything but the enable switch and the row menu opens the
 /// editor sheet: the row states what the rule does, and the sheet is where it is changed.
+///
+/// The three labelled cells share the row with the trailing controls, so they stay on the
+/// header's columns; the rule's own accessibility lives on the first cell, which keeps the
+/// row one element for assistive technology rather than three.
 private struct TrackpadRuleRow: View {
   let rule: TrackpadGestureRule
   let availability: ActionAvailability
@@ -918,47 +981,44 @@ private struct TrackpadRuleRow: View {
   let onMoveDown: () -> Void
 
   var body: some View {
-    HStack(alignment: .center, spacing: TrackpadRuleTableLayout.columnSpacing) {
-      Toggle(
-        "Enabled",
-        isOn: Binding(get: { rule.isEnabled }, set: onToggle)
-      )
-      .labelsHidden()
-      .frame(width: TrackpadRuleTableLayout.toggleWidth, alignment: .leading)
-      .accessibilityLabel(L10n.format("Enable %@", rule.settingsDisplayName))
-
-      Button(action: onEdit) {
-        HStack(spacing: TrackpadRuleTableLayout.columnSpacing) {
-          ruleColumn
-          actionColumn
-          scopeColumn
-        }
-        .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel(rule.settingsDisplayName)
-      .accessibilityValue(
-        L10n.format("%@, %@", rule.trigger.settingsSummary, rule.action.settingsSummary)
-      )
-      .accessibilityHint("Edit rule")
-
+    SettingsTableRow {
+      editCell(ruleColumn, isPrimary: true)
+      editCell(actionColumn, isPrimary: false)
+      editCell(scopeColumn, isPrimary: false)
       trailingControls
     }
-    .padding(.vertical, 8)
     .opacity(rule.isEnabled ? 1 : 0.68)
     .contextMenu {
       rowCommands
     }
   }
 
+  /// Clicking anywhere in the rule's three columns opens the editor, exactly as it did
+  /// before the redesign. The cells other than the first are hidden from assistive
+  /// technology so the row is read once, with the same label and value it always had.
+  private func editCell<Content: View>(_ content: Content, isPrimary: Bool) -> some View {
+    Button(action: onEdit) {
+      content.contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityLabel(rule.settingsDisplayName)
+    .accessibilityValue(
+      L10n.format("%@, %@", rule.trigger.settingsSummary, rule.action.settingsSummary)
+    )
+    .accessibilityHint("Edit rule")
+    .accessibilityHidden(!isPrimary)
+  }
+
   /// Name above, trigger badges below: what the rule is called and what sets it off are
-  /// the two things a row is scanned for.
+  /// the two things a row is scanned for. The summary's two badges read as one chip,
+  /// because four equal columns leave the name cell too narrow for two pills side by side.
   private var ruleColumn: some View {
     VStack(alignment: .leading, spacing: 3) {
       HStack(spacing: 5) {
         Text(rule.settingsDisplayName)
           .font(.subheadline.weight(.medium))
-          .lineLimit(1)
+          .lineLimit(2)
         if rule.activatesWindowUnderPointer {
           Image(systemName: "cursorarrow.motionlines")
             .font(.caption)
@@ -968,16 +1028,9 @@ private struct TrackpadRuleRow: View {
         }
       }
 
-      HStack(spacing: 4) {
-        ForEach(TrackpadRuleSummary.triggerBadges(for: rule.trigger), id: \.self) { badge in
-          Text(badge)
-            .font(.caption2)
-            .lineLimit(1)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(Color.secondary.opacity(0.15)))
-        }
-      }
+      SettingsChip(
+        TrackpadRuleSummary.triggerBadges(for: rule.trigger).joined(separator: " · ")
+      )
       .help(rule.trigger.settingsSummary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -988,7 +1041,7 @@ private struct TrackpadRuleRow: View {
       .font(.caption2)
       .foregroundStyle(.tertiary)
       .lineLimit(2)
-      .frame(width: TrackpadRuleTableLayout.scopeWidth, alignment: .leading)
+      .frame(maxWidth: .infinity, alignment: .leading)
       .help(rule.applicationScope.settingsSummary)
   }
 
@@ -1003,7 +1056,7 @@ private struct TrackpadRuleRow: View {
         .lineLimit(1)
       Spacer(minLength: 0)
     }
-    .frame(width: TrackpadRuleTableLayout.actionWidth, alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .combine)
   }
 
@@ -1014,6 +1067,14 @@ private struct TrackpadRuleRow: View {
       if !availability.isAvailable {
         ActionUnavailableBadge(reason: availability.reason, settingsURL: availability.settingsURL)
       }
+
+      Toggle(
+        "Enabled",
+        isOn: Binding(get: { rule.isEnabled }, set: onToggle)
+      )
+      .labelsHidden()
+      .toggleStyle(.switch)
+      .accessibilityLabel(L10n.format("Enable %@", rule.settingsDisplayName))
 
       Menu {
         rowCommands
@@ -1034,31 +1095,36 @@ private struct TrackpadRuleRow: View {
       .help("Edit rule")
       .accessibilityLabel("Edit rule")
     }
-    .frame(width: TrackpadRuleTableLayout.controlsWidth, alignment: .trailing)
+    .frame(maxWidth: .infinity, alignment: .trailing)
   }
 
   /// Reordering, duplication, and deletion stay reachable from both the row menu and a
-  /// right-click, now that the row itself is the way into the editor.
+  /// right-click, now that the row itself is the way into the editor. The menu's own
+  /// groups supply the separators, so the pane never threads a divider by hand.
   @ViewBuilder
   private var rowCommands: some View {
-    Button(action: onEdit) {
-      Label("Edit Rule", systemImage: "slider.horizontal.3")
+    Section {
+      Button(action: onEdit) {
+        Label("Edit Rule", systemImage: "slider.horizontal.3")
+      }
     }
-    Divider()
-    Button(action: onMoveUp) {
-      Label("Move up", systemImage: "chevron.up")
+    Section {
+      Button(action: onMoveUp) {
+        Label("Move up", systemImage: "chevron.up")
+      }
+      .disabled(index == 0)
+      Button(action: onMoveDown) {
+        Label("Move down", systemImage: "chevron.down")
+      }
+      .disabled(index == ruleCount - 1)
+      Button(action: onDuplicate) {
+        Label("Duplicate Rule", systemImage: "plus.square.on.square")
+      }
     }
-    .disabled(index == 0)
-    Button(action: onMoveDown) {
-      Label("Move down", systemImage: "chevron.down")
-    }
-    .disabled(index == ruleCount - 1)
-    Button(action: onDuplicate) {
-      Label("Duplicate Rule", systemImage: "plus.square.on.square")
-    }
-    Divider()
-    Button(role: .destructive, action: onDelete) {
-      Label("Delete Gesture Rule", systemImage: "trash")
+    Section {
+      Button(role: .destructive, action: onDelete) {
+        Label("Delete Gesture Rule", systemImage: "trash")
+      }
     }
   }
 }
@@ -1127,6 +1193,36 @@ struct TrackpadLabeledSlider: View {
       }
     } label: {
       Text(title)
+    }
+  }
+}
+
+/// The design system's slider row, plus the `step` the pane's two sliders need: edge width
+/// is stored in 1% steps and sensitivity in 0.05× steps, and both values are written
+/// straight back to the recognizer, so a continuous slider would let a value persist that
+/// the editor sheet and the recognizer never produce. `SettingsRowSlider` has no step
+/// parameter, so the row is rebuilt here with its layout and its label/value readout.
+private struct TrackpadSliderRow: View {
+  let title: String
+  let desc: String?
+  @Binding var value: Double
+  let range: ClosedRange<Double>
+  let step: Double
+  let valueLabel: String
+  var sliderWidth: CGFloat = 200
+
+  var body: some View {
+    SettingsRow(title, desc: desc) {
+      HStack(spacing: 10) {
+        Text(valueLabel)
+          .font(.system(size: 12, design: .monospaced))
+          .foregroundStyle(.secondary)
+          .frame(minWidth: 46, alignment: .trailing)
+        Slider(value: $value, in: range, step: step)
+          .frame(width: sliderWidth)
+          .accessibilityLabel(title)
+          .accessibilityValue(valueLabel)
+      }
     }
   }
 }

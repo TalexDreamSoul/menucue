@@ -11,145 +11,299 @@ struct NotificationSettingsView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 24) {
+    VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
       if let message = model.notificationRuntimeErrorMessage {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
-          .foregroundStyle(.red)
-          .fixedSize(horizontal: false, vertical: true)
-        Divider()
+        SettingsBanner(message, systemImage: "exclamationmark.triangle.fill", tint: .red)
       }
-      identitySection
-      Divider()
-      channelSection
-      Divider()
-      ruleSection
+      runtimeCard
+      channelCard
+      rulesCard
+      if let rule = selectedRule {
+        AlertRuleEditor(model: model, rule: rule)
+          .id(rule.id)
+      }
+      identityCard
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .onAppear {
       if selectedRuleID == nil {
-        selectedRuleID = model.settings.notificationSettings.rules.first?.id
+        selectedRuleID = rules.first?.id
       }
     }
   }
 
-  private var identitySection: some View {
-    SettingsGroup(spacing: 12) {
-      Text("Device Identity").font(.headline)
-      HStack(spacing: 10) {
-        TextField("Device name", text: deviceNameBinding)
-          .textFieldStyle(.roundedBorder)
-          .frame(maxWidth: 360)
-        Button("Reset") {
-          model.updateNotificationSettings { $0.setDeviceNameOverride(nil) }
-        }
-        .disabled(model.settings.notificationSettings.deviceNameOverride == nil)
-      }
-      Text(
-        model.settings.notificationSettings.resolvedDeviceName(
-          systemName: Host.current().localizedName)
+  private var rules: [AlertRule] {
+    model.settings.notificationSettings.rules
+  }
+
+  private var selectedRule: AlertRule? {
+    guard let selectedRuleID else { return nil }
+    return rules.first { $0.id == selectedRuleID }
+  }
+
+  /// The master switch sits above the channels: it is about whether anything samples and
+  /// delivers at all, not about one channel or one rule.
+  private var runtimeCard: some View {
+    SettingsCard(
+      L10n.string("Runtime"),
+      desc: L10n.string(
+        "MenuCue samples the metrics its rules name and delivers to the channels those rules list."
       )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-    }
-  }
+    ) {
+      SettingsRows {
+        SettingsRowToggle(
+          L10n.string("Enable Alert Monitoring"),
+          desc: L10n.string(
+            "Off keeps every rule and channel configured but stops sampling and delivery."
+          ),
+          isOn: model.settingsBinding(\.notificationSettings.isGloballyEnabled)
+        )
 
-  private var channelSection: some View {
-    SettingsGroup(spacing: 14) {
-      Text("Channels").font(.headline)
-      ForEach(NotificationChannelKind.allCases, id: \.self) { kind in
-        NotificationChannelRow(model: model, configuration: configuration, kind: kind)
-        if kind != NotificationChannelKind.allCases.last { Divider() }
-      }
-    }
-  }
-
-  private var ruleSection: some View {
-    SettingsGroup(spacing: 14) {
-      HStack {
-        Text("Alert Rules").font(.headline)
-        Spacer()
-        Button {
-          addRule()
-        } label: {
-          Label("Add Rule", systemImage: "plus")
-        }
-      }
-
-      if model.settings.notificationSettings.rules.isEmpty {
-        VStack(spacing: 8) {
-          Image(systemName: "bell.slash")
-            .font(.title2)
-            .foregroundStyle(.secondary)
-          Text("No Alert Rules")
-            .font(.headline)
-          Text("Add a rule to monitor system metrics or dark wakes.")
-            .font(.callout)
-            .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 150)
-      } else {
-        HStack(alignment: .top, spacing: 20) {
-          ruleList
-            .frame(minWidth: 190, idealWidth: 220, maxWidth: 250)
-          Divider()
-          if let selectedRuleID,
-            let rule = model.settings.notificationSettings.rules.first(where: {
-              $0.id == selectedRuleID
-            })
-          {
-            AlertRuleEditor(model: model, rule: rule)
-              .id(rule.id)
-              .frame(maxWidth: .infinity, alignment: .leading)
-          } else {
-            Text("Select a rule")
-              .foregroundStyle(.secondary)
-              .frame(maxWidth: .infinity, minHeight: 180)
-          }
-        }
-      }
-    }
-  }
-
-  private var ruleList: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      ForEach(model.settings.notificationSettings.rules) { rule in
-        Button {
-          selectedRuleID = rule.id
-        } label: {
+        SettingsStackedRow(L10n.string("Current")) {
           HStack(spacing: 8) {
-            Image(systemName: rule.isEnabled ? "bell.fill" : "bell.slash")
-              .foregroundStyle(rule.isEnabled ? Color.accentColor : Color.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-              Text(rule.name).lineLimit(1)
-              Text(rule.metricID.displayTitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            }
-            Spacer(minLength: 0)
+            SettingsChip(
+              L10n.format("%d channels ready", readyChannelCount),
+              systemImage: "checkmark",
+              tint: .accentColor,
+              prominent: true
+            )
+            .fixedSize(horizontal: true, vertical: false)
+            SettingsChip(L10n.format("%d rules enabled", model.settings.notificationSettings.enabledRuleCount))
+              .fixedSize(horizontal: true, vertical: false)
+            SettingsChip(
+              alertsAreRunning ? L10n.string("Sampling") : L10n.string("Paused"),
+              systemImage: alertsAreRunning ? "activity" : "pause"
+            )
+            .fixedSize(horizontal: true, vertical: false)
           }
-          .padding(.horizontal, 8)
-          .frame(height: 44)
-          .background(
-            selectedRuleID == rule.id ? Color.accentColor.opacity(0.12) : Color.clear
-          )
-          .clipShape(RoundedRectangle(cornerRadius: 6))
         }
-        .buttonStyle(.plain)
-      }
-
-      if let selectedRuleID {
-        Button(role: .destructive) {
-          model.updateNotificationSettings { settings in
-            settings.rules.removeAll { $0.id == selectedRuleID }
-          }
-          self.selectedRuleID = model.settings.notificationSettings.rules.first?.id
-        } label: {
-          Label("Delete Rule", systemImage: "trash")
-        }
-        .buttonStyle(.borderless)
-        .padding(.top, 4)
       }
     }
+  }
+
+  private var alertsAreRunning: Bool {
+    model.settings.notificationSettings.isGloballyEnabled
+  }
+
+  /// A channel counts as ready only when it is switched on *and* its credentials are still
+  /// present: an enabled channel whose key was removed delivers nothing.
+  private var readyChannelCount: Int {
+    let settings = model.settings.notificationSettings
+    return NotificationChannelKind.allCases.filter { kind in
+      settings.channel(kind).isEnabled && configuration.canEnable(kind, settings: settings)
+    }.count
+  }
+
+  private var channelCard: some View {
+    SettingsCard(
+      L10n.string("Channels"),
+      desc: L10n.string(
+        "Credentials must be saved to the Keychain before a channel can be enabled; disabling a channel removes it from every rule."
+      )
+    ) {
+      SettingsRows {
+        ForEach(NotificationChannelKind.allCases, id: \.self) { kind in
+          NotificationChannelRow(model: model, configuration: configuration, kind: kind)
+        }
+      }
+    }
+  }
+
+  private var rulesCard: some View {
+    SettingsCard(
+      L10n.string("Alert Rules"),
+      desc: L10n.string(
+        "Thresholds use each metric's own unit; percentage metrics are compared internally on a 0–1 scale."
+      ),
+      action: {
+        HStack(spacing: 8) {
+          Button(L10n.string("Delete Rule")) {
+            deleteSelectedRule()
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+          .tint(.red)
+          .disabled(selectedRule == nil)
+
+          Button(L10n.string("Add Rule")) {
+            addRule()
+          }
+          .buttonStyle(.borderedProminent)
+          .controlSize(.small)
+        }
+      }
+    ) {
+      if rules.isEmpty {
+        SettingsEmptyState(
+          L10n.string("No Alert Rules"),
+          desc: L10n.string("Add a rule to monitor system metrics or dark wakes."),
+          systemImage: "bell.slash"
+        )
+      } else {
+        SettingsTable(columns: rulesColumns) {
+          ForEach(rules) { rule in
+            Button {
+              selectedRuleID = rule.id
+            } label: {
+              ruleTableRow(rule)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(rule.name)
+          }
+        }
+        if selectedRule == nil {
+          SettingsEmptyState(
+            L10n.string("Select a rule"),
+            desc: L10n.string("Choose a rule in the table to edit it."),
+            systemImage: "hand.point.up.left"
+          )
+        }
+      }
+    }
+  }
+
+  /// The document's six columns. The document sizes them for its Chinese sample rows; the
+  /// app renders metric identifiers (`sensor.thermal.temperature` and friends), so the
+  /// metric column takes the width the condition column does not need in English.
+  private var rulesColumns: [SettingsTableColumn] {
+    [
+      SettingsTableColumn(L10n.string("Rule"), weight: 120),
+      SettingsTableColumn(L10n.string("Metric"), weight: 205),
+      SettingsTableColumn(L10n.string("Condition"), weight: 92),
+      SettingsTableColumn(L10n.string("Sustained"), weight: 36),
+      SettingsTableColumn(L10n.string("Cooldown"), weight: 36),
+      SettingsTableColumn("", weight: 50, alignment: .trailing),
+    ]
+  }
+
+  private func ruleTableRow(_ rule: AlertRule) -> some View {
+    SettingsTableRow {
+      HStack(spacing: 6) {
+        Image(systemName: rule.isEnabled ? "bell.fill" : "bell.slash")
+          .font(.system(size: 11))
+          .foregroundStyle(rule.isEnabled ? Color.accentColor : Color.secondary)
+        Text(rule.name)
+          .font(.system(size: 12.5, weight: .medium))
+          .lineLimit(1)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(rule.metricID.rawValue)
+        .font(.system(size: 11.5, design: .monospaced))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(conditionSummary(rule))
+        .font(.system(size: 12))
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(sustainedSummary(rule))
+        .font(.system(size: 12))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(secondsSummary(rule.cooldown))
+        .font(.system(size: 12))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Group {
+        if selectedRule?.id == rule.id {
+          Image(systemName: "checkmark")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Color.accentColor)
+        } else {
+          Color.clear.frame(width: 11, height: 11)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+  }
+
+  private func conditionSummary(_ rule: AlertRule) -> String {
+    let definition = AlertMetricCatalog.definition(for: rule.metricID)
+    switch rule.condition {
+    case .numeric(let comparison, let threshold):
+      let value = AlertMetricFormatter.string(for: .number(threshold), definition: definition)
+      switch comparison {
+      case .above: return L10n.format("Above %@", value)
+      case .below: return L10n.format("Below %@", value)
+      case .atLeast: return L10n.format("At least %@", value)
+      case .atMost: return L10n.format("At most %@", value)
+      case .equal: return L10n.format("Equals %@", value)
+      case .notEqual: return L10n.format("Does not equal %@", value)
+      case .occurs: return L10n.string("Each occurrence")
+      }
+    case .severity(let comparison, let level):
+      let title = severityTitle(level)
+      switch comparison {
+      case .atLeast: return L10n.format("At least %@", title)
+      case .atMost: return L10n.format("At most %@", title)
+      case .equal: return L10n.format("Equals %@", title)
+      case .notEqual: return L10n.format("Does not equal %@", title)
+      case .above: return L10n.format("Above %@", title)
+      case .below: return L10n.format("Below %@", title)
+      case .occurs: return L10n.string("Each occurrence")
+      }
+    case .boolean(let expected):
+      return expected ? L10n.string("Is true") : L10n.string("Is false")
+    case .event:
+      return L10n.string("Each occurrence")
+    }
+  }
+
+  private func severityTitle(_ level: Int) -> String {
+    switch level {
+    case 1: return L10n.string("Normal")
+    case 3: return L10n.string("Critical")
+    default: return L10n.string("Warning")
+    }
+  }
+
+  private func sustainedSummary(_ rule: AlertRule) -> String {
+    if AlertMetricCatalog.definition(for: rule.metricID)?.valueKind == .event { return "—" }
+    return secondsSummary(rule.alertDuration)
+  }
+
+  private func secondsSummary(_ seconds: TimeInterval) -> String {
+    L10n.format("%d s", Int(seconds))
+  }
+
+  private var identityCard: some View {
+    SettingsCard(L10n.string("Device Identity")) {
+      SettingsRows {
+        SettingsRow(
+          L10n.string("Device name"),
+          desc: L10n.string("Blank uses the system host name.")
+        ) {
+          HStack(spacing: 8) {
+            TextField("", text: deviceNameBinding)
+              .textFieldStyle(.roundedBorder)
+              .frame(width: 190)
+              .accessibilityLabel(L10n.string("Device name"))
+            Button(L10n.string("Reset")) {
+              model.updateNotificationSettings { $0.setDeviceNameOverride(nil) }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(model.settings.notificationSettings.deviceNameOverride == nil)
+          }
+        }
+        SettingsRowValue(
+          L10n.string("Source shown in notifications"),
+          value: resolvedDeviceName
+        )
+      }
+    }
+  }
+
+  private var resolvedDeviceName: String {
+    model.settings.notificationSettings.resolvedDeviceName(
+      systemName: Host.current().localizedName)
   }
 
   private var deviceNameBinding: Binding<String> {
@@ -176,6 +330,14 @@ struct NotificationSettingsView: View {
     model.updateNotificationSettings { $0.rules.append(rule) }
     selectedRuleID = rule.id
   }
+
+  private func deleteSelectedRule() {
+    guard let selectedRuleID else { return }
+    model.updateNotificationSettings { settings in
+      settings.rules.removeAll { $0.id == selectedRuleID }
+    }
+    self.selectedRuleID = model.settings.notificationSettings.rules.first?.id
+  }
 }
 
 private struct NotificationChannelRow: View {
@@ -189,138 +351,222 @@ private struct NotificationChannelRow: View {
   @State private var errorMessage: String?
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 10) {
-        Image(systemName: kind.systemImage)
-          .frame(width: 20)
-          .foregroundStyle(.secondary)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(kind.title).font(.subheadline.weight(.medium))
-          statusText
+    VStack(alignment: .leading, spacing: 1) {
+      SettingsRow(kind.title, desc: statusDescription) {
+        HStack(spacing: 8) {
+          statusChip
+            .fixedSize(horizontal: true, vertical: false)
+          Toggle("", isOn: enabledBinding)
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .accessibilityLabel(L10n.format("Enable %@", kind.title))
+          Button(isExpanded ? L10n.string("Done") : L10n.string("Configure")) {
+            isExpanded.toggle()
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+          .fixedSize(horizontal: true, vertical: false)
+          Button(L10n.string("Send Test")) {
+            Task { await model.testNotificationChannel(kind) }
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+          .fixedSize(horizontal: true, vertical: false)
+          .disabled(
+            !configuration.canEnable(kind, settings: model.settings.notificationSettings)
+              || configuration.testState(for: kind) == .testing
+          )
         }
-        Spacer()
-        Toggle("Enabled", isOn: enabledBinding).labelsHidden()
-          .accessibilityLabel(L10n.format("Enable %@", kind.title))
-        Button(isExpanded ? "Done" : "Configure") { isExpanded.toggle() }
       }
 
       if isExpanded {
-        channelFields
-          .padding(.leading, 30)
+        configurationCard
       }
 
       if let errorMessage {
-        Text(errorMessage)
-          .font(.caption)
-          .foregroundStyle(.red)
-          .padding(.leading, 30)
+        SettingsBanner(errorMessage, systemImage: "exclamationmark.triangle.fill", tint: .red)
       }
     }
   }
 
-  @ViewBuilder
-  private var channelFields: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      switch kind {
-      case .feishu:
-        secretField("Webhook URL", key: NotificationSecretField.feishuWebhook, optional: false)
-        secretField(
-          "Signing secret", key: NotificationSecretField.feishuSigningSecret, optional: true)
-      case .webhook:
-        secretField("Endpoint URL", key: NotificationSecretField.webhookEndpoint, optional: false)
-        secretField(
-          "Bearer token", key: NotificationSecretField.webhookBearerToken, optional: true)
-      case .bark:
-        secretField("Device key", key: NotificationSecretField.barkDeviceKey, optional: false)
-        TextField("Server URL", text: channelBinding(\.barkServerURL))
-          .textFieldStyle(.roundedBorder)
-        TextField("Group", text: channelBinding(\.barkGroup))
-          .textFieldStyle(.roundedBorder)
-      case .telegram:
-        secretField("Bot token", key: NotificationSecretField.telegramBotToken, optional: false)
-        TextField("Chat ID", text: channelBinding(\.telegramChatID))
-          .textFieldStyle(.roundedBorder)
-        TextField("Topic ID (optional)", text: threadIDBinding)
-          .textFieldStyle(.roundedBorder)
-      }
-
-      HStack {
-        Button("Send Test") {
-          Task { await model.testNotificationChannel(kind) }
+  private var configurationCard: some View {
+    SettingsCard(
+      L10n.format("%@ Configuration", kind.title),
+      tone: .inset
+    ) {
+      SettingsRows {
+        switch kind {
+        case .system:
+          SettingsRow(
+            L10n.string("System Notifications"),
+            desc: L10n.string("Delivered on this Mac. macOS asks for permission when you send the first test or alert.")
+          ) {
+            Button(L10n.string("Open Notification Settings")) {
+              SettingsLinkOpener.open("x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+          }
+        case .feishu:
+          secretField(
+            L10n.string("Webhook URL"),
+            desc: L10n.string(
+              "Required; stored in the system Keychain. The interface only shows whether it has been saved."
+            ),
+            key: NotificationSecretField.feishuWebhook,
+            optional: false
+          )
+          secretField(
+            L10n.string("Signing secret"),
+            desc: L10n.string("Optional; used to verify callback signatures."),
+            key: NotificationSecretField.feishuSigningSecret,
+            optional: true
+          )
+        case .webhook:
+          secretField(
+            L10n.string("Endpoint URL"),
+            desc: L10n.string(
+              "Required; stored in the system Keychain. The interface only shows whether it has been saved."
+            ),
+            key: NotificationSecretField.webhookEndpoint,
+            optional: false
+          )
+          secretField(
+            L10n.string("Bearer token"),
+            desc: L10n.string("Optional; stored in the system Keychain."),
+            key: NotificationSecretField.webhookBearerToken,
+            optional: true
+          )
+        case .bark:
+          secretField(
+            L10n.string("Device key"),
+            desc: L10n.string(
+              "Required; stored in the system Keychain. The interface only shows whether it has been saved."
+            ),
+            key: NotificationSecretField.barkDeviceKey,
+            optional: false
+          )
+          SettingsRowField(
+            L10n.string("Server URL"),
+            desc: L10n.string("Defaults to https://api.day.app."),
+            text: channelBinding(\.barkServerURL),
+            monospaced: false
+          )
+          SettingsRowField(
+            L10n.string("Group"),
+            text: channelBinding(\.barkGroup),
+            monospaced: false
+          )
+        case .telegram:
+          secretField(
+            L10n.string("Bot token"),
+            desc: L10n.string(
+              "Required; stored in the system Keychain. The interface only shows whether it has been saved."
+            ),
+            key: NotificationSecretField.telegramBotToken,
+            optional: false
+          )
+          SettingsRowField(
+            L10n.string("Chat ID"),
+            text: channelBinding(\.telegramChatID),
+            monospaced: false
+          )
+          SettingsRowField(
+            L10n.string("Topic ID (optional)"),
+            text: threadIDBinding,
+            monospaced: false
+          )
         }
-        .disabled(
-          !configuration.canEnable(kind, settings: model.settings.notificationSettings)
-            || configuration.testState(for: kind) == .testing
-        )
-        Spacer()
+
+        SettingsRow(
+          L10n.string("Removing a required credential"),
+          desc: L10n.string(
+            "The channel is disabled at the same time and removed from every rule, with no undo."
+          )
+        ) {
+          SettingsChip(
+            L10n.string("Cannot be undone"),
+            systemImage: "exclamationmark.triangle",
+            tint: .orange
+          )
+        }
       }
     }
-    .frame(maxWidth: 460)
   }
 
   private func secretField(
-    _ title: LocalizedStringKey,
+    _ title: String,
+    desc: String?,
     key: NotificationSecretKey,
     optional: Bool
   ) -> some View {
     let binding = optional ? $optionalSecret : $primarySecret
-    return HStack(spacing: 8) {
-      SecureField(title, text: binding)
-        .textFieldStyle(.roundedBorder)
-      Button("Save") {
-        do {
-          try model.saveNotificationSecret(binding.wrappedValue, for: key)
-          binding.wrappedValue = ""
-          errorMessage = nil
-        } catch {
-          errorMessage = L10n.string("Credential could not be saved.")
-        }
-      }
-      .disabled(binding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-      if configuration.hasSavedSecret(key) {
-        Image(systemName: "checkmark.circle.fill")
-          .foregroundStyle(.green)
-          .accessibilityLabel("Saved")
-        Button(role: .destructive) {
+    return SettingsRow(title, desc: desc) {
+      HStack(spacing: 8) {
+        SecureField("", text: binding)
+          .textFieldStyle(.roundedBorder)
+          .frame(width: 190)
+          .accessibilityLabel(title)
+        Button(L10n.string("Save")) {
           do {
-            try model.removeNotificationSecret(key)
-            if NotificationSecretField.required(for: kind).contains(key) {
-              model.updateNotificationSettings { settings in
-                settings.updateChannel(kind) { $0.isEnabled = false }
-                for index in settings.rules.indices {
-                  settings.rules[index].channels.remove(kind)
+            try model.saveNotificationSecret(binding.wrappedValue, for: key)
+            binding.wrappedValue = ""
+            errorMessage = nil
+          } catch {
+            errorMessage = L10n.string("Credential could not be saved.")
+          }
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .disabled(binding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        if configuration.hasSavedSecret(key) {
+          SettingsChip(L10n.string("Saved"), systemImage: "lock.fill", tint: .green)
+          Button(role: .destructive) {
+            do {
+              try model.removeNotificationSecret(key)
+              if NotificationSecretField.required(for: kind).contains(key) {
+                model.updateNotificationSettings { settings in
+                  settings.updateChannel(kind) { $0.isEnabled = false }
+                  for index in settings.rules.indices {
+                    settings.rules[index].channels.remove(kind)
+                  }
                 }
               }
+            } catch {
+              errorMessage = L10n.string("Credential could not be removed.")
             }
-          } catch {
-            errorMessage = L10n.string("Credential could not be removed.")
+          } label: {
+            Image(systemName: "trash")
           }
-        } label: {
-          Image(systemName: "trash")
+          .buttonStyle(.borderless)
+          .help(L10n.string("Remove credential"))
+          .accessibilityLabel(L10n.string("Remove credential"))
         }
-        .buttonStyle(.borderless)
-        .help("Remove credential")
-        .accessibilityLabel("Remove credential")
       }
     }
   }
 
   @ViewBuilder
-  private var statusText: some View {
+  private var statusChip: some View {
     switch configuration.testState(for: kind) {
     case .idle:
-      Text(
-        configuration.canEnable(kind, settings: model.settings.notificationSettings)
-          ? "Ready" : "Not configured"
-      )
-      .font(.caption).foregroundStyle(.secondary)
+      if configuration.canEnable(kind, settings: model.settings.notificationSettings) {
+        SettingsChip(L10n.string("Ready"), systemImage: "checkmark", tint: .green)
+      } else {
+        SettingsChip(L10n.string("Not configured"))
+      }
     case .testing:
-      Text("Testing…").font(.caption).foregroundStyle(.secondary)
+      SettingsChip(L10n.string("Testing…"))
     case .succeeded:
-      Text("Test succeeded").font(.caption).foregroundStyle(.green)
-    case .failed(let message):
-      Text(message).font(.caption).foregroundStyle(.red).lineLimit(2)
+      SettingsChip(L10n.string("Test succeeded"), systemImage: "checkmark", tint: .green)
+    case .failed:
+      SettingsChip(L10n.string("Test failed"), systemImage: "exclamationmark.triangle", tint: .red)
     }
+  }
+
+  private var statusDescription: String? {
+    if case .failed(let message) = configuration.testState(for: kind) { return message }
+    return nil
   }
 
   private var enabledBinding: Binding<Bool> {
@@ -385,120 +631,186 @@ private struct AlertRuleEditor: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      HStack {
-        TextField("Rule name", text: binding(\.name))
-          .textFieldStyle(.roundedBorder)
-        Toggle("Enabled", isOn: binding(\.isEnabled))
-          .toggleStyle(.switch)
-        Button("Save Rule", action: saveRule)
-          .buttonStyle(.borderedProminent)
-          .disabled(!canSave)
-      }
-
-      Picker("Metric", selection: metricBinding) {
-        ForEach(AlertMetricCatalog.all, id: \.id) { metric in
-          Text(metric.id.displayTitle).tag(metric.id)
+    SettingsCard(
+      L10n.format("Rule Editor · %@", rule.name),
+      desc: L10n.string(
+        "Changes are saved only when you click Save Rule; the editor does not show unsaved state."),
+      action: {
+        HStack(spacing: 10) {
+          Toggle(L10n.string("Enabled"), isOn: binding(\.isEnabled))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+          Button(L10n.string("Save Rule"), action: saveRule)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .disabled(!canSave)
         }
       }
-      .frame(maxWidth: 420)
+    ) {
+      SettingsRows {
+        SettingsRowField(
+          L10n.string("Rule name"),
+          text: binding(\.name),
+          fieldWidth: 190,
+          monospaced: false
+        )
 
-      if definition?.supportsTargets == true {
-        TextField("Target ID", text: optionalStringBinding(\.targetID))
-          .textFieldStyle(.roundedBorder)
-          .frame(maxWidth: 420)
-      }
+        SettingsRowSelect(
+          L10n.string("Metric"),
+          selection: metricBinding,
+          options: AlertMetricCatalog.all.map { (value: $0.id, label: $0.id.displayTitle) }
+        )
 
-      conditionControls
-
-      if definition?.valueKind == .event {
-        HStack {
-          Text("Cooldown")
-          TextField("Seconds", text: durationBinding(\.cooldown))
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 110)
-          Text("seconds").foregroundStyle(.secondary)
+        if definition?.supportsTargets == true {
+          SettingsRowField(
+            L10n.string("Target ID"),
+            text: optionalStringBinding(\.targetID),
+            fieldWidth: 190,
+            monospaced: false
+          )
         }
-      } else {
-        timingControls
-      }
 
-      channelControls
-      templateControls
+        conditionRow
+
+        if definition?.valueKind == .event {
+          SettingsRowField(
+            L10n.string("Cooldown"),
+            desc: L10n.string("Minimum number of seconds between two alerts; 0 means no limit."),
+            text: durationBinding(\.cooldown),
+            fieldWidth: 74,
+            monospaced: false
+          )
+        } else {
+          timingRows
+        }
+
+        channelRow
+        messageRow
+
+        SettingsRowField(
+          L10n.string("Title template"),
+          text: titleTemplateBinding,
+          fieldWidth: 260,
+          monospaced: false
+        )
+
+        SettingsStackedRow(L10n.string("Body template")) {
+          TextEditor(text: bodyTemplateBinding)
+            .font(.body)
+            .frame(minHeight: 72)
+            .padding(5)
+            .overlay(
+              RoundedRectangle(cornerRadius: 6)
+                .stroke(Color(nsColor: .separatorColor))
+            )
+        }
+
+        previewRow
+      }
     }
   }
 
   @ViewBuilder
-  private var conditionControls: some View {
+  private var conditionRow: some View {
     switch rule.condition {
     case .numeric:
-      HStack {
-        Picker("Condition", selection: numericOperatorBinding) {
-          Text("Above").tag(AlertComparisonOperator.above)
-          Text("Below").tag(AlertComparisonOperator.below)
+      SettingsRow(L10n.string("Condition")) {
+        HStack(spacing: 8) {
+          Picker("", selection: numericOperatorBinding) {
+            Text(L10n.string("Above")).tag(AlertComparisonOperator.above)
+            Text(L10n.string("Below")).tag(AlertComparisonOperator.below)
+          }
+          .labelsHidden()
+          .pickerStyle(.menu)
+          .frame(width: 120)
+          .accessibilityLabel(L10n.string("Condition"))
+          TextField("", text: numericThresholdBinding)
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 90)
+            .accessibilityLabel(L10n.string("Threshold"))
+          Text(definition?.unit.shortTitle ?? "")
+            .foregroundStyle(.secondary)
         }
-        .frame(width: 190)
-        TextField("Threshold", text: numericThresholdBinding)
-          .textFieldStyle(.roundedBorder)
-          .frame(width: 110)
-        Text(definition?.unit.shortTitle ?? "")
-          .foregroundStyle(.secondary)
       }
     case .severity:
-      HStack {
-        Picker("Condition", selection: severityOperatorBinding) {
-          Text("At least").tag(AlertComparisonOperator.atLeast)
-          Text("At most").tag(AlertComparisonOperator.atMost)
-        }
-        Picker("Level", selection: severityThresholdBinding) {
-          Text("Normal").tag(1)
-          Text("Warning").tag(2)
-          Text("Critical").tag(3)
+      SettingsRow(L10n.string("Condition")) {
+        HStack(spacing: 8) {
+          Picker("", selection: severityOperatorBinding) {
+            Text(L10n.string("At least")).tag(AlertComparisonOperator.atLeast)
+            Text(L10n.string("At most")).tag(AlertComparisonOperator.atMost)
+          }
+          .labelsHidden()
+          .pickerStyle(.menu)
+          .frame(width: 120)
+          .accessibilityLabel(L10n.string("Condition"))
+          Picker("", selection: severityThresholdBinding) {
+            Text(L10n.string("Normal")).tag(1)
+            Text(L10n.string("Warning")).tag(2)
+            Text(L10n.string("Critical")).tag(3)
+          }
+          .labelsHidden()
+          .pickerStyle(.menu)
+          .frame(width: 130)
+          .accessibilityLabel(L10n.string("Level"))
         }
       }
     case .boolean:
-      Toggle("Expected value", isOn: booleanBinding)
+      SettingsRowToggle(L10n.string("Expected value"), isOn: booleanBinding)
     case .event:
-      Label("Each new dark wake triggers this rule once.", systemImage: "moon.zzz")
-        .foregroundStyle(.secondary)
+      SettingsRow(
+        L10n.string("Condition"),
+        desc: L10n.string("Each new dark wake triggers this rule once.")
+      ) {
+        SettingsChip(L10n.string("Each occurrence"))
+      }
     }
   }
 
-  private var timingControls: some View {
-    Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
-      GridRow {
-        Text("Sustained")
-        TextField("Seconds", text: durationBinding(\.alertDuration))
-          .textFieldStyle(.roundedBorder)
-        Text("seconds").foregroundStyle(.secondary)
-      }
-      if case .numeric = rule.condition {
-        GridRow {
-          Text("Recovery threshold")
-          TextField("Threshold", text: optionalDoubleBinding(\.recoveryThreshold))
+  @ViewBuilder
+  private var timingRows: some View {
+    SettingsRowField(
+      L10n.string("Sustained"),
+      desc: L10n.string("Alerts only after the condition holds for this many seconds."),
+      text: durationBinding(\.alertDuration),
+      fieldWidth: 74,
+      monospaced: false
+    )
+    if case .numeric = rule.condition {
+      SettingsRow(
+        L10n.string("Recovery threshold"),
+        desc: L10n.string("Leave empty to reuse the alert threshold.")
+      ) {
+        HStack(spacing: 8) {
+          TextField("", text: optionalDoubleBinding(\.recoveryThreshold))
             .textFieldStyle(.roundedBorder)
-          Text(definition?.unit.shortTitle ?? "").foregroundStyle(.secondary)
+            .frame(width: 90)
+            .accessibilityLabel(L10n.string("Recovery threshold"))
+          Text(definition?.unit.shortTitle ?? "")
+            .foregroundStyle(.secondary)
         }
       }
-      GridRow {
-        Text("Recovery sustained")
-        TextField("Seconds", text: durationBinding(\.recoveryDuration))
-          .textFieldStyle(.roundedBorder)
-        Text("seconds").foregroundStyle(.secondary)
-      }
-      GridRow {
-        Text("Cooldown")
-        TextField("Seconds", text: durationBinding(\.cooldown))
-          .textFieldStyle(.roundedBorder)
-        Text("seconds").foregroundStyle(.secondary)
-      }
     }
-    .frame(maxWidth: 430)
+    SettingsRowField(
+      L10n.string("Recovery sustained"),
+      desc: L10n.string("Sends a recovery message after the condition has held for this many seconds."),
+      text: durationBinding(\.recoveryDuration),
+      fieldWidth: 74,
+      monospaced: false
+    )
+    SettingsRowField(
+      L10n.string("Cooldown"),
+      desc: L10n.string("Minimum number of seconds between two alerts; 0 means no limit."),
+      text: durationBinding(\.cooldown),
+      fieldWidth: 74,
+      monospaced: false
+    )
   }
 
-  private var channelControls: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Deliver to").font(.subheadline.weight(.medium))
+  private var channelRow: some View {
+    SettingsRow(
+      L10n.string("Deliver to"),
+      desc: L10n.string("Channels that are not enabled cannot be selected.")
+    ) {
       HStack(spacing: 14) {
         ForEach(NotificationChannelKind.allCases, id: \.self) { kind in
           Toggle(kind.title, isOn: channelBinding(kind))
@@ -508,45 +820,51 @@ private struct AlertRuleEditor: View {
     }
   }
 
-  private var templateControls: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack {
-        Picker("Message", selection: $templateMode) {
-          Text("Alert").tag(NotificationEventState.alert)
+  private var messageRow: some View {
+    SettingsRow(L10n.string("Message"), desc: variableHint) {
+      HStack(spacing: 10) {
+        Picker("", selection: $templateMode) {
+          Text(L10n.string("Alert")).tag(NotificationEventState.alert)
           if definition?.valueKind != .event {
-            Text("Recovery").tag(NotificationEventState.recovery)
+            Text(L10n.string("Recovery")).tag(NotificationEventState.recovery)
           }
         }
+        .labelsHidden()
         .pickerStyle(.segmented)
-        .frame(width: 220)
-        Spacer()
+        .frame(width: 200)
+        .accessibilityLabel(L10n.string("Message"))
         Menu {
           ForEach(NotificationTemplateRenderer.allowedVariables.sorted(), id: \.self) { variable in
             Button("{{\(variable)}}") { appendVariable(variable) }
           }
         } label: {
-          Label("Variable", systemImage: "curlybraces")
+          Label(L10n.string("Variable"), systemImage: "curlybraces")
         }
       }
+    }
+  }
 
-      TextField("Title template", text: titleTemplateBinding)
-        .textFieldStyle(.roundedBorder)
-      TextEditor(text: bodyTemplateBinding)
-        .font(.body)
-        .frame(minHeight: 72)
-        .padding(5)
-        .overlay(
-          RoundedRectangle(cornerRadius: 6)
-            .stroke(Color(nsColor: .separatorColor))
-        )
+  private var variableHint: String? {
+    let preferred = ["rule.name", "metric.value", "device.name"]
+    let available = Set(NotificationTemplateRenderer.allowedVariables)
+    let samples = preferred.filter(available.contains).map { "{{\($0)}}" }
+    return samples.isEmpty ? nil : samples.joined(separator: " · ")
+  }
 
+  private var previewRow: some View {
+    SettingsRow(L10n.string("Preview")) {
       if let templateError {
-        Text(templateError).font(.caption).foregroundStyle(.red)
+        Text(templateError)
+          .font(.system(size: 11))
+          .foregroundStyle(.red)
+          .fixedSize(horizontal: false, vertical: true)
       } else {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Preview").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-          Text(templatePreview.title).font(.subheadline.weight(.medium))
-          Text(templatePreview.body).font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(templatePreview.title)
+            .font(.system(size: 12, weight: .medium))
+          Text(templatePreview.body)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
         }
       }
     }
@@ -806,19 +1124,11 @@ private struct AlertRuleEditor: View {
 extension NotificationChannelKind {
   fileprivate var title: String {
     switch self {
+    case .system: return L10n.string("System Notifications")
     case .feishu: return L10n.string("Feishu")
     case .webhook: return L10n.string("Webhook")
     case .bark: return L10n.string("Bark")
     case .telegram: return L10n.string("Telegram")
-    }
-  }
-
-  fileprivate var systemImage: String {
-    switch self {
-    case .feishu: return "bubble.left.and.text.bubble.right"
-    case .webhook: return "arrow.triangle.branch"
-    case .bark: return "app.badge"
-    case .telegram: return "paperplane"
     }
   }
 }

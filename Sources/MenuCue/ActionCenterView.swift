@@ -6,6 +6,9 @@ import SwiftUI
 /// Nothing runs from a row tap here. Arranging actions and running them are different
 /// jobs, and one of these actions empties the Trash — the popover is the execution
 /// surface, and this pane's Run button is the only way to fire an action from Settings.
+///
+/// Presentation follows the v1.0.0 design document's "J · 动作库" pane: a pinned card and
+/// one catalog card, both built from the shared settings design system.
 struct ActionCenterSettingsView: View {
   @Environment(\.menuCueMotion) private var motion
   @ObservedObject var model: AppModel
@@ -20,10 +23,11 @@ struct ActionCenterSettingsView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 20) {
-      pinnedGroup
-      catalogGroup
+    VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+      pinnedCard
+      catalogCard
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .onAppear {
       service.refreshAll()
     }
@@ -44,156 +48,104 @@ struct ActionCenterSettingsView: View {
     }
   }
 
-  private var pinnedGroup: some View {
-    SettingsGroup(spacing: 12) {
-      HStack {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Pinned actions")
-            .font(.headline)
-          Text("The menu-bar popover shows these actions before the fixed More button.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        Spacer()
-        Text(L10n.format("%d / 7", model.settings.pinnedQuickActions.count))
-          .font(.subheadline.weight(.semibold))
-          .menuCueNumericTransition(value: model.settings.pinnedQuickActions.count)
-          .foregroundStyle(
-            model.settings.pinnedQuickActions.count == 7 ? Color.orange : Color.secondary)
+  private var pinnedCard: some View {
+    SettingsCard(
+      L10n.string("Pinned actions"),
+      desc: L10n.string(
+        "The menu-bar popover shows these actions before the fixed More button. Limit: 7."
+      ),
+      action: {
+        SettingsChip(
+          L10n.format("%d / 7", model.settings.pinnedQuickActions.count),
+          tint: model.settings.pinnedQuickActions.count == 7 ? .orange : nil
+        )
+        .menuCueNumericTransition(value: model.settings.pinnedQuickActions.count)
       }
-
+    ) {
       if model.settings.pinnedQuickActions.isEmpty {
-        Text("No actions are pinned. The popover will show only More.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .padding(.vertical, 8)
+        SettingsRows {
+          SettingsEmptyState(
+            L10n.string("No pinned actions"),
+            desc: L10n.string("The popover will show only its More button."),
+            systemImage: "pin"
+          )
+        }
       } else {
-        ForEach(Array(model.settings.pinnedQuickActions.enumerated()), id: \.element.id) {
-          index, reference in
-          let item = service.item(for: reference)
-          HStack(spacing: 10) {
-            Image(systemName: item.systemImage)
-              .frame(width: 22)
-              .foregroundStyle(
-                item.state.availability.isAvailable ? Color.accentColor : Color.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-              Text(item.title)
-              if let reason = item.state.availability.reason {
-                Text(reason)
-                  .font(.caption2)
-                  .foregroundStyle(.secondary)
-                  .lineLimit(2)
-              }
-            }
-            Spacer()
-            Button {
-              model.movePinnedQuickAction(at: index, by: -1)
-            } label: {
-              Image(systemName: "chevron.up")
-            }
-            .buttonStyle(.borderless)
-            .disabled(index == 0)
-            .help("Move up")
-
-            Button {
-              model.movePinnedQuickAction(at: index, by: 1)
-            } label: {
-              Image(systemName: "chevron.down")
-            }
-            .buttonStyle(.borderless)
-            .disabled(index == model.settings.pinnedQuickActions.count - 1)
-            .help("Move down")
-
-            Button(role: .destructive) {
-              model.removePinnedQuickAction(reference)
-            } label: {
-              Image(systemName: "minus.circle")
-            }
-            .buttonStyle(.borderless)
-            .help("Remove")
+        SettingsRows {
+          ForEach(Array(model.settings.pinnedQuickActions.enumerated()), id: \.element.id) {
+            index, reference in
+            let item = service.item(for: reference)
+            PinnedActionRow(
+              item: item,
+              canMoveUp: index > 0,
+              canMoveDown: index < model.settings.pinnedQuickActions.count - 1,
+              moveUp: { model.movePinnedQuickAction(at: index, by: -1) },
+              moveDown: { model.movePinnedQuickAction(at: index, by: 1) },
+              remove: { model.removePinnedQuickAction(reference) }
+            )
+            .transition(motion.revealTransition(edge: .top))
           }
-          .padding(.vertical, 4)
-          .transition(motion.revealTransition(edge: .top))
         }
       }
     }
     .animation(motion.stateAnimation, value: model.settings.pinnedQuickActions)
   }
 
-  private var catalogGroup: some View {
+  private var catalogCard: some View {
     // Resolved once for the whole pane: each section filters this list rather than
     // re-reading system state for every row it draws.
     let entries = self.entries
-    return SettingsGroup(spacing: 12) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(L10n.string("All actions"))
-          .font(.headline)
-        Text(
-          L10n.string(
-            "Run an action with its Run button. Pin it to reach it from the menu-bar popover."
-          )
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      }
-
-      Picker("Source", selection: $selectedSource) {
-        Text("All").tag(ActionSource?.none)
-        ForEach(ActionSource.allCases) { source in
-          Text(source.title).tag(ActionSource?.some(source))
+    return SettingsCard(
+      L10n.string("All actions"),
+      desc: L10n.string(
+        "Run is the only way to fire an action from Settings; destructive actions confirm before running."
+      )
+    ) {
+      SettingsRows {
+        SettingsRow(L10n.string("Source")) {
+          Picker("", selection: $selectedSource) {
+            Text(L10n.string("All")).tag(ActionSource?.none)
+            ForEach(ActionSource.allCases) { source in
+              Text(source.title).tag(ActionSource?.some(source))
+            }
+          }
+          .labelsHidden()
+          .pickerStyle(.segmented)
         }
-      }
-      .pickerStyle(.segmented)
-      .labelsHidden()
 
-      if let feedbackMessage = service.feedbackMessage {
-        Label(feedbackMessage, systemImage: "info.circle")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .padding(10)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(
-            Color.accentColor.opacity(0.10),
-            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+        if let feedbackMessage = service.feedbackMessage {
+          SettingsBanner(
+            feedbackMessage,
+            systemImage: "info.circle",
+            tint: .accentColor
           )
           .transition(motion.revealTransition(edge: .top))
-      }
+        }
 
-      ForEach(visibleSources) { source in
-        VStack(alignment: .leading, spacing: 4) {
-          Text(source.title)
-            .font(.subheadline.weight(.semibold))
-          if let note = source.note {
-            Text(note)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .fixedSize(horizontal: false, vertical: true)
-          }
-
+        ForEach(visibleSources) { source in
           let sourceEntries = entries.filter { $0.item.source == source }
+          ActionCenterGroupHeader(
+            title: L10n.format("%@ · %d", source.title, sourceEntries.count),
+            note: source.note
+          )
           if sourceEntries.isEmpty {
-            Text("No actions are registered here yet.")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .padding(.vertical, 6)
+            SettingsTableRow {
+              Text(L10n.string("No actions are registered here yet."))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+            }
           } else {
-            VStack(alignment: .leading, spacing: 0) {
-              ForEach(Array(sourceEntries.enumerated()), id: \.element.id) { index, entry in
-                ActionCenterRow(
-                  entry: entry,
-                  isPinned: isPinned(entry),
-                  canPin: canPin(entry),
-                  run: { run(entry) },
-                  togglePin: { togglePin(entry) }
-                )
-                if index < sourceEntries.count - 1 {
-                  Divider()
-                }
-              }
+            ForEach(sourceEntries) { entry in
+              ActionCenterRow(
+                entry: entry,
+                isPinned: isPinned(entry),
+                canPin: canPin(entry),
+                run: { run(entry) },
+                togglePin: { togglePin(entry) }
+              )
             }
           }
         }
-        .padding(.top, 4)
       }
       .animation(motion.stateAnimation, value: service.feedbackMessage)
     }
@@ -297,6 +249,80 @@ private struct ActionCenterEntry: Identifiable {
   }
 }
 
+/// One pinned action: it is ordered by the two chevrons and removed by the minus, and it
+/// carries the same availability reason the popover would report.
+private struct PinnedActionRow: View {
+  let item: QuickActionItem
+  let canMoveUp: Bool
+  let canMoveDown: Bool
+  let moveUp: () -> Void
+  let moveDown: () -> Void
+  let remove: () -> Void
+
+  var body: some View {
+    SettingsListRow(
+      item.title,
+      desc: item.state.availability.reason,
+      systemImage: item.systemImage
+    ) {
+      if item.isDestructive {
+        SettingsChip(
+          L10n.string("Destructive · Confirms before running"),
+          systemImage: "exclamationmark.triangle",
+          tint: .red
+        )
+        .lineLimit(1)
+      }
+
+      Button(action: moveUp) {
+        Image(systemName: "chevron.up")
+      }
+      .buttonStyle(.borderless)
+      .disabled(!canMoveUp)
+      .help(L10n.string("Move up"))
+
+      Button(action: moveDown) {
+        Image(systemName: "chevron.down")
+      }
+      .buttonStyle(.borderless)
+      .disabled(!canMoveDown)
+      .help(L10n.string("Move down"))
+
+      Button(role: .destructive, action: remove) {
+        Image(systemName: "minus.circle")
+      }
+      .buttonStyle(.borderless)
+      .help(L10n.string("Remove"))
+    }
+  }
+}
+
+/// Section heading inside the catalog card: where a group of actions comes from, how many
+/// there are, and the one line of context that a row would otherwise have to repeat.
+private struct ActionCenterGroupHeader: View {
+  @Environment(\.settingsSurface) private var surface
+  let title: String
+  let note: String?
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title)
+        .font(.system(size: 11))
+        .foregroundStyle(.tertiary)
+      if let note {
+        Text(note)
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+    .padding(.vertical, 6)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(surface)
+  }
+}
+
 /// One action, with everything that already depends on it and no way to fire it by
 /// accident: the row is not a control, and Run is a button of its own.
 private struct ActionCenterRow: View {
@@ -307,39 +333,26 @@ private struct ActionCenterRow: View {
   let togglePin: () -> Void
 
   var body: some View {
-    HStack(spacing: 10) {
-      ZStack {
-        RoundedRectangle(cornerRadius: 7, style: .continuous)
-          .fill(entry.isOn == true ? Color.accentColor : Color.primary.opacity(0.06))
-          .frame(width: 26, height: 26)
-        Image(systemName: entry.item.systemImage)
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(iconForeground)
-      }
+    SettingsTableRow {
+      Image(systemName: entry.item.systemImage)
+        .font(.system(size: 14))
+        .foregroundStyle(iconTint)
 
       VStack(alignment: .leading, spacing: 3) {
-        HStack(spacing: 6) {
-          Text(entry.item.title)
-            .font(.body)
-            .foregroundStyle(entry.availability.isAvailable ? .primary : .secondary)
-            .lineLimit(1)
-          if entry.isOn == true {
-            Text("On")
-              .font(.caption2.weight(.semibold))
-              .foregroundStyle(Color.accentColor)
-          }
-        }
-        referenceBadges
+        Text(entry.item.title)
+          .font(.system(size: 13, weight: .medium))
+          .foregroundStyle(entry.availability.isAvailable ? .primary : .secondary)
+          .lineLimit(1)
+        badges
       }
-
-      Spacer(minLength: 8)
+      .frame(maxWidth: .infinity, alignment: .leading)
 
       if entry.isRunning {
         MotionAwareProgressIndicator(scale: 0.7)
       } else if !entry.availability.isAvailable {
         ActionUnavailableBadge(reason: entry.availability.reason)
         if let settingsURL = entry.availability.settingsURL {
-          Button("Open System Settings") {
+          Button(L10n.string("Open System Settings")) {
             WorkspaceOpener.openSettings(settingsURL)
           }
           .buttonStyle(.borderless)
@@ -367,61 +380,59 @@ private struct ActionCenterRow: View {
             : L10n.format("Pin %@", entry.item.title)
         )
 
-        Button("Run", action: run)
+        Button(L10n.string("Run"), action: run)
+          .buttonStyle(.bordered)
+          .controlSize(.small)
           .disabled(!entry.availability.isAvailable || entry.isRunning)
           .accessibilityLabel(L10n.format("Run %@", entry.item.title))
       }
     }
-    .padding(.vertical, 7)
   }
 
-  private var iconForeground: Color {
-    if entry.isOn == true { return .white }
-    return entry.availability.isAvailable ? .primary : .secondary
+  /// Muted for anything that cannot run, warning for a missing platform feature, danger
+  /// for the actions that destroy something.
+  private var iconTint: Color {
+    if !entry.availability.isAvailable { return .orange }
+    if entry.item.isDestructive { return .red }
+    return .secondary
   }
 
   @ViewBuilder
-  private var referenceBadges: some View {
-    if entry.references.isEmpty {
-      Text("Not used yet")
-        .font(.caption2)
-        .foregroundStyle(.tertiary)
-    } else {
-      HStack(spacing: 5) {
+  private var badges: some View {
+    HStack(spacing: 5) {
+      if entry.isOn == true {
+        SettingsChip(L10n.string("On"), prominent: true)
+      }
+      if entry.item.isDestructive {
+        SettingsChip(
+          L10n.string("Destructive · Confirms before running"),
+          systemImage: "exclamationmark.triangle",
+          tint: .red
+        )
+      }
+      if !entry.availability.isAvailable {
+        SettingsChip(
+          entry.availability.reason ?? L10n.string("Unavailable"),
+          systemImage: "exclamationmark.triangle",
+          tint: .orange
+        )
+      }
+      if entry.references.isEmpty {
+        SettingsChip(L10n.string("Not used yet"))
+      } else {
         ForEach(Array(entry.references.enumerated()), id: \.offset) { _, reference in
           switch reference {
           case .pinned:
-            ActionReferenceBadge(title: L10n.string("Pinned"), systemImage: "pin.fill")
+            EmptyView()
           case .gestureRule(let name):
-            ActionReferenceBadge(title: name, systemImage: "hand.tap")
+            SettingsChip(L10n.format("Gesture: %@", name), systemImage: "hand.tap")
           case .hotkey(let shortcut):
-            ActionReferenceBadge(title: shortcut, systemImage: "keyboard")
+            SettingsChip(shortcut, systemImage: "keyboard")
           }
         }
       }
     }
-  }
-}
-
-private struct ActionReferenceBadge: View {
-  let title: String
-  let systemImage: String
-
-  var body: some View {
-    HStack(spacing: 3) {
-      Image(systemName: systemImage)
-        .font(.system(size: 8, weight: .semibold))
-      Text(title)
-        .font(.caption2)
-        .lineLimit(1)
-    }
-    .foregroundStyle(.secondary)
-    .padding(.horizontal, 6)
-    .padding(.vertical, 2)
-    .background(
-      Color.primary.opacity(0.06),
-      in: Capsule()
-    )
+    .lineLimit(1)
   }
 }
 
@@ -437,4 +448,3 @@ private extension ActionSource {
     }
   }
 }
-

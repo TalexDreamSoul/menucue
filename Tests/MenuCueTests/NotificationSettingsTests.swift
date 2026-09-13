@@ -55,7 +55,7 @@ final class NotificationSettingsPersistenceTests: XCTestCase {
 
   func testSettingsPaneRoutesToAlerts() {
     XCTAssertTrue(SettingsPane.allCases.contains(.alerts))
-    XCTAssertEqual(SettingsPane.alerts.title, L10n.string("Alerts"))
+    XCTAssertEqual(SettingsPane.alerts.title, L10n.string("Alert Rules"))
     XCTAssertEqual(SettingsPane.alerts.systemImage, "bell.badge")
     XCTAssertEqual(SettingsPane.migrating(rawValue: "notifications"), .alerts)
   }
@@ -67,6 +67,63 @@ final class NotificationSettingsPersistenceTests: XCTestCase {
     XCTAssertEqual(settings.resolvedDeviceName(systemName: "Office Mac"), "Build Mac")
     settings.setDeviceNameOverride("  ")
     XCTAssertEqual(settings.resolvedDeviceName(systemName: nil), "Mac")
+  }
+
+  /// The master switch was added to a struct that already had channels and rules on disk.
+  /// `SettingsStore` keeps the stored value only when decoding succeeds, so a strict decoder
+  /// would reset every configured channel and rule the first time this build launched.
+  func testStoredPayloadWrittenBeforeTheGlobalSwitchKeptEverythingElse() throws {
+    let suite = "NotificationSettingsUpgradeTests-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+
+    var legacy = NotificationSettings()
+    legacy.updateChannel(.bark) {
+      $0.isEnabled = true
+      $0.barkGroup = "Servers"
+    }
+    let enabledRule = AlertRule(
+      name: "CPU high", metricID: "cpu.total.busy",
+      condition: .numeric(operator: .above, threshold: 0.9), channels: [.bark])
+    var disabledRule = AlertRule(
+      name: "Memory high", metricID: "memory.used.percent",
+      condition: .numeric(operator: .above, threshold: 0.9), channels: [.bark])
+    disabledRule.isEnabled = false
+    legacy.rules = [enabledRule, disabledRule]
+
+    var object = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: JSONEncoder().encode(legacy)) as? [String: Any])
+    object.removeValue(forKey: "isGloballyEnabled")
+    defaults.set(
+      try JSONSerialization.data(withJSONObject: object), forKey: "notificationSettings.v1")
+
+    let loaded = SettingsStore(defaults: defaults).load().notificationSettings
+
+    XCTAssertTrue(
+      loaded.isGloballyEnabled,
+      "a switch nobody ever touched must decode as on, not reset the pane to off")
+    XCTAssertEqual(loaded.channels[.bark]?.isEnabled, true)
+    XCTAssertEqual(loaded.channels[.bark]?.barkGroup, "Servers")
+    XCTAssertEqual(loaded.rules.map(\.id), [enabledRule.id, disabledRule.id])
+    XCTAssertEqual(
+      loaded.enabledRuleCount, 1,
+      "the armed rule count has to follow the stored enabled flag, not the total")
+  }
+
+  func testAlertsMasterSwitchRoundTripsThroughTheSettingsStore() {
+    let suite = "NotificationSettingsSwitchTests-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = SettingsStore(defaults: defaults)
+
+    var settings = store.load()
+    settings.notificationSettings.isGloballyEnabled = false
+    store.save(settings)
+    XCTAssertFalse(store.load().notificationSettings.isGloballyEnabled)
+
+    settings.notificationSettings.isGloballyEnabled = true
+    store.save(settings)
+    XCTAssertTrue(store.load().notificationSettings.isGloballyEnabled)
   }
 }
 
@@ -97,7 +154,12 @@ final class NotificationConfigurationServiceTests: XCTestCase {
     try service.saveSecret("device-secret", for: NotificationSecretField.barkDeviceKey)
 
     XCTAssertTrue(service.hasSavedSecret(NotificationSecretField.barkDeviceKey))
-    XCTAssertEqual(NotificationSettings.default, NotificationSettings())
+    // The secret lifecycle never writes through the settings model, so the seeded product
+    // default an untouched install boots from has to survive it intact: the native channel
+    // stays the only enabled one and its shipped rules stay enabled.
+    XCTAssertTrue(NotificationSettings.default.channel(.system).isEnabled)
+    XCTAssertEqual(Set(NotificationSettings.default.channels.keys), [.system])
+    XCTAssertEqual(NotificationSettings.default.enabledRuleCount, 5)
 
     try service.removeSecret(NotificationSecretField.barkDeviceKey)
     XCTAssertFalse(service.hasSavedSecret(NotificationSecretField.barkDeviceKey))

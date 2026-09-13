@@ -1,21 +1,24 @@
 import AppKit
 import SwiftUI
 
-/// Sidebar grouping for the settings window: three runs of panes, each under a small
+/// Sidebar grouping for the settings window: four runs of panes, each under a small
 /// header, the way System Settings separates unrelated families of preferences.
+/// Group order and membership come from the v1.0.0 design document.
 enum SettingsPaneGroup: String, CaseIterable, Identifiable {
-  case interface
-  case input
+  case display
+  case interaction
+  case alerts
   case system
 
   var id: String { rawValue }
 
   var title: String {
     switch self {
-    // "Interface" alone is already spoken for by the network-interface row in the
-    // metric detail panel, and a .strings catalog is one key to one translation.
-    case .interface: return L10n.string("User Interface")
-    case .input: return L10n.string("Input")
+    // One key holds one translation, so a group never borrows the wording of the pane
+    // it contains: "Alerts" is the pane, "Notifications" is the group that holds it.
+    case .display: return L10n.string("Display")
+    case .interaction: return L10n.string("Interaction and Actions")
+    case .alerts: return L10n.string("Notifications")
     case .system: return L10n.string("System")
     }
   }
@@ -29,11 +32,12 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   case menuBar
   case panel
   case calendar
-  case actionCenter
   case trackpad
   case hotkeys
+  case actionCenter
   case alerts
   case power
+  case timeZone
   case general
   case about
 
@@ -41,9 +45,10 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
   var group: SettingsPaneGroup {
     switch self {
-    case .menuBar, .panel, .calendar, .actionCenter: return .interface
-    case .trackpad, .hotkeys, .alerts: return .input
-    case .power, .general, .about: return .system
+    case .menuBar, .panel, .calendar: return .display
+    case .trackpad, .hotkeys, .actionCenter: return .interaction
+    case .alerts: return .alerts
+    case .power, .timeZone, .general, .about: return .system
     }
   }
 
@@ -56,9 +61,13 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     // now, so `AppRouter.route(forIdentifier:)` sends that link to the window instead.
     case "dashboard": return nil
     case "overview": return .panel
+    // The pane that owned "date and time" still owns the clock *format*; only its time
+    // zones moved out, and those identifiers resolve below.
     case "dateAndTime": return .menuBar
     case "quickActions": return .actionCenter
     case "notifications": return .alerts
+    case "timezone", "timeZone", "region", "timeAndRegion", "languageRegion": return .timeZone
+    // The app's own language stayed in General; only the macOS language row moved.
     case "appearance", "iCloud", "language": return .general
     default: return SettingsPane(rawValue: rawValue)
     }
@@ -69,13 +78,14 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .menuBar: return L10n.string("Menu Bar")
     case .panel: return L10n.string("Panel")
     case .calendar: return L10n.string("Calendar")
-    case .actionCenter: return L10n.string("Action Center")
     case .trackpad: return L10n.string("Trackpad")
     // Not "Shortcuts": that key already names Apple's Shortcuts app in the action
     // catalog, and one key cannot hold two translations.
     case .hotkeys: return L10n.string("Keyboard Shortcuts")
-    case .alerts: return L10n.string("Alerts")
+    case .actionCenter: return L10n.string("Action Library")
+    case .alerts: return L10n.string("Alert Rules")
     case .power: return L10n.string("Power")
+    case .timeZone: return L10n.string("Time & Region")
     case .general: return L10n.string("General")
     case .about: return L10n.string("About")
     }
@@ -84,21 +94,23 @@ enum SettingsPane: String, CaseIterable, Identifiable {
   var subtitle: String {
     switch self {
     case .menuBar:
-      return L10n.string("Menu-bar clock format, the clock carousel, and time zones.")
+      return L10n.string("Status-bar clock, its format, and the clock carousel.")
     case .panel:
       return L10n.string("Popover tab order, sampling behavior, and animation effects.")
     case .calendar:
       return L10n.string("Event sources, month-view layout, and calendar access.")
-    case .actionCenter:
-      return L10n.string("Every action MenuCue can run, and where it appears.")
     case .trackpad:
       return L10n.string("Build gesture rules from live touch input and run actions on this Mac.")
     case .hotkeys:
       return L10n.string("Global keyboard shortcuts that run any action on this Mac.")
+    case .actionCenter:
+      return L10n.string("Every action MenuCue can run, where it appears, and what references it.")
     case .alerts:
       return L10n.string("External channels, system alert rules, and message templates.")
     case .power:
       return L10n.string("Power Helper, system power settings, and wake history.")
+    case .timeZone:
+      return L10n.string("MenuCue's display time zone, the macOS system time zone, and system language and region.")
     case .general:
       return L10n.string("Startup, updates, appearance, language, and iCloud sync.")
     case .about:
@@ -111,11 +123,12 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .menuBar: return "menubar.rectangle"
     case .panel: return "macwindow"
     case .calendar: return "calendar"
-    case .actionCenter: return "square.grid.2x2"
     case .trackpad: return "hand.tap"
     case .hotkeys: return "keyboard"
+    case .actionCenter: return "square.grid.2x2"
     case .alerts: return "bell.badge"
     case .power: return "bolt"
+    case .timeZone: return "globe"
     case .general: return "gearshape"
     case .about: return "info.circle"
     }
@@ -181,11 +194,16 @@ private struct SettingsContentView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 22) {
-        SettingsPaneHeader(pane: pane)
+      VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing * 1.5) {
+        SettingsPaneHeader(
+          pane.title,
+          subtitle: pane.subtitle,
+          systemImage: pane.systemImage
+        )
         selectedPaneContent
       }
-      .padding(28)
+      .padding(24)
+      .frame(maxWidth: SettingsMetrics.contentWidth, alignment: .leading)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .background(Color(nsColor: .windowBackgroundColor))
@@ -200,16 +218,18 @@ private struct SettingsContentView: View {
       PanelSettingsView(model: model)
     case .calendar:
       CalendarSettingsView(model: model)
-    case .actionCenter:
-      ActionCenterSettingsView(model: model)
     case .trackpad:
       TrackpadSettingsView(model: model)
     case .hotkeys:
       HotkeySettingsView(model: model)
+    case .actionCenter:
+      ActionCenterSettingsView(model: model)
     case .alerts:
       NotificationSettingsView(model: model)
     case .power:
       PowerSettingsView(model: model)
+    case .timeZone:
+      TimeZoneSettingsView(model: model)
     case .general:
       GeneralSettingsView(
         model: model,
@@ -222,69 +242,75 @@ private struct SettingsContentView: View {
   }
 }
 
-private struct SettingsPaneHeader: View {
-  let pane: SettingsPane
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 5) {
-      Label(pane.title, systemImage: pane.systemImage)
-        .font(.title2.weight(.semibold))
-      Text(pane.subtitle)
-        .font(.callout)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-  }
-}
-
-struct SettingsGroup<Content: View>: View {
-  let spacing: CGFloat
-  @ViewBuilder let content: Content
-
-  init(spacing: CGFloat = 10, @ViewBuilder content: () -> Content) {
-    self.spacing = spacing
-    self.content = content()
-  }
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: spacing) {
-      content
-    }
-    .frame(maxWidth: 560, alignment: .leading)
-  }
-}
-
 /// About pane: what this build is and where it came from. Launch at Login and the
 /// update controls that used to live here now belong to General.
 struct AboutSettingsView: View {
   var body: some View {
-    SettingsGroup(spacing: 16) {
-      VStack(alignment: .leading, spacing: 4) {
-        Text(ProductBrand.displayName)
-          .font(.title2.weight(.semibold))
-        Text(L10n.format("Version %@", appVersion))
-          .foregroundStyle(.secondary)
+    VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+      SettingsCard(ProductBrand.displayName) {
+        SettingsRows {
+          AboutBrandRow(version: L10n.format("Version %@", appVersion))
+        }
       }
 
-      Divider()
-
-      VStack(alignment: .leading, spacing: 8) {
-        Text("Links")
-          .font(.headline)
-        HStack(spacing: 10) {
-          Button("GitHub Repository") {
-            SettingsLinkOpener.open("https://github.com/TalexDreamSoul/menucue")
+      SettingsCard(L10n.string("Links")) {
+        SettingsRows {
+          SettingsRowButton(
+            L10n.string("Source and Issues"),
+            buttonTitle: L10n.string("GitHub Repository"),
+            kind: .link
+          ) {
+            SettingsLinkOpener.open(Self.repositoryURL)
           }
-          Button("Release Notes") {
-            SettingsLinkOpener.open("https://github.com/TalexDreamSoul/menucue/releases")
+          SettingsRowButton(
+            L10n.string("Changelog"),
+            buttonTitle: L10n.string("Release Notes"),
+            kind: .link
+          ) {
+            SettingsLinkOpener.open(Self.releaseNotesURL)
           }
         }
       }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
+
+  private static let repositoryURL = "https://github.com/TalexDreamSoul/menucue"
+  private static let releaseNotesURL = "https://github.com/TalexDreamSoul/menucue/releases"
 
   private var appVersion: String {
     Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.4.4"
+  }
+}
+
+/// The About pane's identity block: the installed build's own app icon beside its version.
+///
+/// `SettingsRow` is shaped for a label with a control opposite it, which this block is
+/// not. Reusing the row's metrics and its card surface is what matters: the surface is
+/// what occludes the separator layer `SettingsRows` paints behind every row, so a block
+/// that skips it would punch a hairline-width hole through the card.
+private struct AboutBrandRow: View {
+  @Environment(\.settingsSurface) private var surface
+  let version: String
+
+  var body: some View {
+    HStack(alignment: .center, spacing: SettingsMetrics.rowSpacing) {
+      Image(nsImage: NSApp.applicationIconImage)
+        .resizable()
+        .interpolation(.high)
+        .frame(width: 52, height: 52)
+        .accessibilityHidden(true)
+
+      Text(version)
+        .font(.system(size: 11))
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+    .padding(.vertical, SettingsMetrics.rowPaddingV)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(surface)
   }
 }
 
@@ -315,10 +341,11 @@ extension AppModel {
 struct TimeZonePicker: View {
   let title: String
   @Binding var selection: String
+  var identifiers: [String] = TimeZoneCatalog.identifiers
 
   var body: some View {
     Picker(title, selection: $selection) {
-      ForEach(TimeZoneCatalog.identifiers, id: \.self) { identifier in
+      ForEach(identifiers, id: \.self) { identifier in
         Text(TimeZoneCatalog.displayName(for: identifier)).tag(identifier)
       }
     }

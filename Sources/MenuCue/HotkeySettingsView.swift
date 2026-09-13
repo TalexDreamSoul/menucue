@@ -13,6 +13,7 @@ struct HotkeySettingsView: View {
   @ObservedObject private var quickActionService: QuickActionService
 
   @State private var sheetTarget: HotkeySheetTarget?
+  @State private var restoreFeedback: String?
 
   init(model: AppModel) {
     self.model = model
@@ -21,27 +22,13 @@ struct HotkeySettingsView: View {
   }
 
   var body: some View {
-    SettingsGroup(spacing: 12) {
-      header
-
-      if bindings.isEmpty {
-        emptyState
-      } else {
-        VStack(alignment: .leading, spacing: 0) {
-          ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-            HotkeyBindingRow(
-              entry: entry,
-              onToggle: { model.setHotkeyBinding(id: entry.binding.id, isEnabled: $0) },
-              onEdit: { sheetTarget = HotkeySheetTarget(binding: entry.binding, isNew: false) },
-              onDelete: { model.removeHotkeyBinding(id: entry.binding.id) }
-            )
-            if index < bindings.count - 1 {
-              Divider()
-            }
-          }
-        }
-      }
+    VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+      globalShortcutsCard
+      shortcutsCard
+      actionLibraryCard
+      builtInDefaultsCard
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .animation(motion.stateAnimation, value: bindings)
     .onAppear {
       quickActionService.refreshAll()
@@ -58,36 +45,168 @@ struct HotkeySettingsView: View {
     }
   }
 
-  private var header: some View {
-    HStack(alignment: .firstTextBaseline) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text("Global shortcuts")
-          .font(.headline)
-        Text("Each shortcut runs its action from anywhere, whichever app is in front.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-      Spacer(minLength: 8)
-      Button {
-        sheetTarget = HotkeySheetTarget(binding: HotkeyBinding(), isNew: true)
-      } label: {
-        Label("Add Shortcut", systemImage: "plus")
+  /// The master switch, above the list: it decides whether any combination is claimed from
+  /// the system at all, which is a different question from which combination runs what.
+  private var globalShortcutsCard: some View {
+    SettingsCard(
+      L10n.string("Global shortcuts"),
+      desc: L10n.string("MenuCue answers these combinations from any application.")
+    ) {
+      SettingsRows {
+        SettingsRowToggle(
+          L10n.string("Enable Global Shortcuts"),
+          desc: L10n.string("Off keeps every binding but registers none of them."),
+          isOn: model.settingsBinding(\.hotkeysGloballyEnabled)
+        )
+
+        SettingsRow(L10n.string("Current")) {
+          HStack(spacing: 8) {
+            if bindingsAreRegistered {
+              SettingsChip(
+                L10n.format("%d registered", registeredCount),
+                systemImage: "checkmark",
+                tint: .accentColor,
+                prominent: true
+              )
+            } else {
+              SettingsChip(L10n.string("Paused"), systemImage: "pause")
+            }
+            SettingsChip(
+              L10n.format("%d unavailable", unavailableCount),
+              systemImage: unavailableCount > 0 ? "exclamationmark.triangle" : nil,
+              tint: unavailableCount > 0 ? .orange : nil
+            )
+          }
+        }
       }
     }
   }
 
-  private var emptyState: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text("No global shortcuts yet.")
-        .font(.subheadline)
-      Text("Add one to run a Quick Action, a Shortcut, or a window action from the keyboard.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
+  /// The catalog is the single definition of every action, so the pane says so and hands the
+  /// reader over instead of restating the catalog here.
+  private var actionLibraryCard: some View {
+    SettingsCard(L10n.string("Actions Come from the Action Library"), tone: .inset) {
+      SettingsRows {
+        SettingsPaneLinkRow(
+          L10n.string("Action Library"),
+          desc: L10n.string("Shortcuts, gestures, and the panel all reference the same action definitions."),
+          destination: .actionCenter,
+          actionTitle: L10n.string("See All Actions and References")
+        )
+        SettingsRow(
+          L10n.string("Needs ⌘, ⌃ or ⌥"),
+          desc: L10n.string("A combination with no modifier would intercept everyday typing, so it is rejected when saved.")
+        ) {
+          SettingsChip(L10n.string("Checked when saved"))
+        }
+        SettingsRow(
+          L10n.string("System Claims"),
+          desc: L10n.string("A combination macOS or another application already owns stays theirs; this shortcut will not fire.")
+        ) {
+          SettingsChip(L10n.string("Cannot Be Detected"))
+        }
+      }
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.vertical, 14)
+  }
+
+  /// The defaults are merged silently when a stored list predates them; this is the explicit
+  /// door to the same merge for what was deleted afterwards.
+  private var builtInDefaultsCard: some View {
+    SettingsCard(
+      L10n.string("Built-in Defaults"),
+      desc: L10n.string("MenuCue ships a set of default shortcuts and merges any that are missing when a stored list is older than the app."),
+      tone: .inset
+    ) {
+      SettingsRows {
+        SettingsRowButton(
+          L10n.string("Restore Built-in Defaults"),
+          desc: L10n.string("Only adds missing defaults; it never overwrites a combination you set yourself."),
+          buttonTitle: L10n.string("Restore"),
+          kind: .secondary
+        ) {
+          let restored = model.restoreBuiltInHotkeyDefaults()
+          restoreFeedback =
+            restored == 0
+            ? L10n.string("Every built-in default is already present.")
+            : L10n.format("%d shortcuts restored", restored)
+        }
+        if let restoreFeedback {
+          SettingsRow(restoreFeedback) {
+            Image(systemName: "checkmark.circle.fill")
+              .foregroundStyle(.green)
+          }
+        }
+      }
+    }
+  }
+
+  private var bindingsAreRegistered: Bool {
+    model.settings.hotkeysGloballyEnabled
+  }
+
+  private var registeredCount: Int {
+    guard bindingsAreRegistered else { return 0 }
+    return entries.filter { entry in
+      entry.binding.isEnabled && entry.registrationFailure == nil && entry.availability.isAvailable
+    }.count
+  }
+
+  private var unavailableCount: Int {
+    entries.filter { entry in
+      entry.registrationFailure != nil || !entry.availability.isAvailable
+    }.count
+  }
+
+  /// One card, because the pane is one list. The table's columns are the design document's,
+  /// and adding a shortcut sits on the title line, where every card keeps its action.
+  private var shortcutsCard: some View {
+    SettingsCard(
+      L10n.string("Global shortcuts"),
+      desc: L10n.string(
+        "A shortcut only defines how to trigger an action; the action itself comes from the action library."
+      ),
+      action: {
+        Button {
+          sheetTarget = HotkeySheetTarget(binding: HotkeyBinding(), isNew: true)
+        } label: {
+          Label(L10n.string("Add Shortcut"), systemImage: "plus")
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+      }
+    ) {
+      if entries.isEmpty {
+        SettingsEmptyState(
+          L10n.string("No global shortcuts yet."),
+          desc: L10n.string("Add one to run a Quick Action, a Shortcut, or a window action from the keyboard."),
+          systemImage: "keyboard"
+        )
+      } else {
+        SettingsTable(columns: shortcutColumns) {
+          ForEach(entries) { entry in
+            HotkeyBindingTableRow(
+              entry: entry,
+              onToggle: { model.setHotkeyBinding(id: entry.binding.id, isEnabled: $0) },
+              onEdit: { sheetTarget = HotkeySheetTarget(binding: entry.binding, isNew: false) },
+              onDelete: { model.removeHotkeyBinding(id: entry.binding.id) }
+            )
+          }
+        }
+      }
+    }
+  }
+
+  /// The document's five columns, with the document's own proportions: the action title is
+  /// the widest cell, and the trailing control column stays narrow. Weights are shares of
+  /// the card's inner width, so the header and every row resolve the same grid.
+  private var shortcutColumns: [SettingsTableColumn] {
+    [
+      SettingsTableColumn(L10n.string("Key combination"), weight: 110),
+      SettingsTableColumn(L10n.string("Action"), weight: 190),
+      SettingsTableColumn(L10n.string("Name"), weight: 90),
+      SettingsTableColumn(L10n.string("Status"), weight: 100),
+      SettingsTableColumn("", weight: 74),
+    ]
   }
 
   private var bindings: [HotkeyBinding] {
@@ -146,13 +265,91 @@ private func staleActionTitle(for itemID: String) -> String {
   return L10n.string("This action is no longer available.")
 }
 
-private struct HotkeyBindingRow: View {
+/// One row of the shortcut table. Everything but the enable switch and the row menu opens
+/// the editor sheet: the row states what the shortcut is, and the sheet is where it is
+/// changed.
+///
+/// Every cell fills its column share — the empty status cell included — because a cell
+/// that hugged its content would take a different share than the header's and slide the
+/// columns out of line.
+private struct HotkeyBindingTableRow: View {
   let entry: HotkeyBindingEntry
   let onToggle: (Bool) -> Void
   let onEdit: () -> Void
   let onDelete: () -> Void
 
   var body: some View {
+    SettingsTableRow {
+      shortcutCell
+      actionCell
+      nameCell
+      statusCell
+      controlsCell
+    }
+    // The dimming is for the row's content, not for its fill: a row blended with the
+    // hairline behind the table would tint the whole cell grey instead of quietening it.
+    .opacity(entry.binding.isEnabled ? 1 : 0.68)
+    .background(Color.settingsCardSurface)
+  }
+
+  /// The combination itself, or the fact that none was ever recorded.
+  private var shortcutCell: some View {
+    SettingsChip(
+      entry.binding.shortcut.isUnset ? L10n.string("Not set") : entry.binding.shortcut.displayText,
+      tint: entry.binding.shortcut.isUnset ? nil : Color.primary
+    )
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private var actionCell: some View {
+    Button(action: onEdit) {
+      HStack(spacing: 6) {
+        Image(systemName: entry.item?.systemImage ?? "questionmark.circle")
+          .font(.system(size: 13))
+          .foregroundStyle(.secondary)
+        Text(entry.actionTitle)
+          .font(.system(size: 12))
+          .foregroundStyle(entry.item == nil ? .secondary : .primary)
+          .lineLimit(1)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityHint("Edit shortcut")
+  }
+
+  private var nameCell: some View {
+    Text(entry.binding.name.isEmpty ? "—" : entry.binding.name)
+      .font(.system(size: 12))
+      .foregroundStyle(entry.binding.name.isEmpty ? .tertiary : .primary)
+      .lineLimit(1)
+      .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// Two different failures, and a row has to tell them apart: the action cannot run, or
+  /// the combination was never granted in the first place. Only a healthy, enabled row is
+  /// one the system confirmed.
+  @ViewBuilder
+  private var statusCell: some View {
+    if let registrationFailure = entry.registrationFailure {
+      ActionUnavailableBadge(reason: registrationFailure)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    } else if !entry.availability.isAvailable {
+      ActionUnavailableBadge(
+        reason: entry.availability.reason,
+        settingsURL: entry.availability.settingsURL
+      )
+      .frame(maxWidth: .infinity, alignment: .leading)
+    } else if entry.binding.isEnabled {
+      SettingsChip(L10n.string("Registered"), systemImage: "checkmark", tint: .green)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    } else {
+      Color.clear.frame(maxWidth: .infinity)
+    }
+  }
+
+  private var controlsCell: some View {
     HStack(spacing: 10) {
       Toggle(
         "Enabled",
@@ -162,39 +359,6 @@ private struct HotkeyBindingRow: View {
       .accessibilityLabel(
         L10n.format("Enable %@", entry.binding.settingsDisplayName(actionTitle: entry.item?.title))
       )
-
-      Button(action: onEdit) {
-        HStack(spacing: 10) {
-          HotkeyShortcutChip(shortcut: entry.binding.shortcut)
-
-          VStack(alignment: .leading, spacing: 3) {
-            if !entry.binding.name.isEmpty {
-              Text(entry.binding.name)
-                .font(.subheadline.weight(.medium))
-                .lineLimit(1)
-            }
-            Label(entry.actionTitle, systemImage: entry.item?.systemImage ?? "questionmark.circle")
-              .font(entry.binding.name.isEmpty ? .subheadline : .caption)
-              .foregroundStyle(entry.item == nil ? .secondary : .primary)
-              .lineLimit(1)
-          }
-          Spacer(minLength: 8)
-        }
-        .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityHint("Edit shortcut")
-
-      // Two different failures, and a row has to tell them apart: the action cannot run,
-      // or the combination was never granted in the first place.
-      if let registrationFailure = entry.registrationFailure {
-        ActionUnavailableBadge(reason: registrationFailure)
-      } else if !entry.availability.isAvailable {
-        ActionUnavailableBadge(
-          reason: entry.availability.reason,
-          settingsURL: entry.availability.settingsURL
-        )
-      }
 
       Menu {
         Button(action: onEdit) {
@@ -216,27 +380,7 @@ private struct HotkeyBindingRow: View {
         )
       )
     }
-    .padding(.vertical, 8)
-    .opacity(entry.binding.isEnabled ? 1 : 0.68)
-  }
-}
-
-/// The combination itself, drawn the way a menu draws one: the modifier glyphs and the key,
-/// monospaced so a column of them lines up.
-private struct HotkeyShortcutChip: View {
-  let shortcut: TrackpadKeyboardShortcut
-
-  var body: some View {
-    Text(shortcut.isUnset ? L10n.string("Not set") : shortcut.displayText)
-      .font(.subheadline.monospaced())
-      .lineLimit(1)
-      .padding(.horizontal, 8)
-      .padding(.vertical, 3)
-      .background(
-        Color.primary.opacity(0.07),
-        in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-      )
-      .frame(minWidth: 76, alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: .trailing)
   }
 }
 

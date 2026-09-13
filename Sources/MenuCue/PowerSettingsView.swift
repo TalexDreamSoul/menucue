@@ -17,6 +17,7 @@ struct PowerSettingsView: View {
   @State private var pendingAllSources: PendingPowerSetting?
   @State private var profileFeedback: String?
   @State private var isConfirmingClear = false
+  @State private var isConfirmingHelperRemoval = false
 
   init(model: AppModel) {
     self.model = model
@@ -26,12 +27,14 @@ struct PowerSettingsView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 24) {
+    VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
       monitoringSection
-      wakeHistorySection
-      powerProfilesSection
       powerHelperSection(isProminent: powerHelper.registrationState.needsProminentRemediation)
+      powerProfilesSection
+      readoutsSection
+      wakeHistorySection
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .onAppear {
       service.refreshAll()
       if let onAC = diagnostics.battery?.isOnAC {
@@ -62,84 +65,34 @@ struct PowerSettingsView: View {
   /// silently signed the Mac up for a `pmset -g log` after every wake and a `top` run
   /// every few minutes, with nothing anywhere to turn it back off.
   private var monitoringSection: some View {
-    SettingsGroup(spacing: 10) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(L10n.string("Power Monitoring"))
-          .font(.headline)
-        Text(
-          L10n.string(
-            "Wake history and \"what keeps running\" are built from samples taken while nothing is on screen."
+    SettingsCard(
+      L10n.string("Power Monitoring"),
+      desc: L10n.string(
+        "Only when this switch is on does MenuCue record wakes and sample processes in the background."
+      )
+    ) {
+      SettingsRows {
+        SettingsRowToggle(
+          L10n.string("Track wakes and running processes in the background"),
+          desc: L10n.string(
+            "Off by default. When on, the system power log is read after each wake and running processes are sampled every few minutes; when off, both surfaces only cover the time they are open."
+          ),
+          isOn: Binding(
+            get: { model.settings.powerMonitoringEnabled },
+            set: { model.setPowerMonitoring(enabled: $0) }
           )
         )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
-
-      Toggle(
-        "Track wakes and running processes in the background",
-        isOn: Binding(
-          get: { model.settings.powerMonitoringEnabled },
-          set: { model.setPowerMonitoring(enabled: $0) }
-        )
-      )
-
-      Text(
-        L10n.string(
-          "Off by default. When on, the system power log is read after each wake and running processes are sampled every few minutes; when off, both surfaces only cover the time they are open."
-        )
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
-    }
-  }
-
-  // MARK: - Wake history
-
-  /// What the wake log costs, and the two ways to act on it.
-  ///
-  /// Clearing used to live in the popover and undoing it on the Dashboard, so the
-  /// button that hid 30 days of records and the button that brought them back were in
-  /// different windows. They are one pair, and they belong together.
-  private var wakeHistorySection: some View {
-    SettingsGroup(spacing: 12) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(L10n.string("Wake History"))
-          .font(.headline)
-        Text(
-          L10n.format(
-            "Sleep and wake events from the last 30 days, kept on this Mac · %@",
-            SystemMetricsFormatter.capacity(diagnostics.historyFileSizeBytes))
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
-
-      if let clearedAt = diagnostics.clearedAt, diagnostics.hiddenEventCount > 0 {
-        ClearedHistoryNote(
-          clearedAt: clearedAt,
-          hiddenCount: diagnostics.hiddenEventCount,
-          restore: { diagnostics.restoreHistory() })
-      }
-
-      HStack {
-        Spacer()
-        Button(L10n.string("Clear History"), role: .destructive) {
-          isConfirmingClear = true
+        SettingsRow(
+          L10n.string("Sampling Cadence"),
+          desc: L10n.string(
+            "Processes are sampled about every 300 seconds; at least 900 seconds in Low Power Mode."
+          )
+        ) {
+          // The two intervals the sampler actually uses: its default and the floor it
+          // raises to under Low Power Mode.
+          SettingsChip(L10n.format("%ds / %ds", 300, 900))
         }
-        .disabled(diagnostics.snapshot.events.isEmpty)
       }
-    }
-    .alert(isPresented: $isConfirmingClear) {
-      Alert(
-        title: Text(L10n.string("Clear local history?")),
-        message: Text(L10n.string("This removes sleep and wake history stored on this Mac.")),
-        primaryButton: .destructive(Text(L10n.string("Clear History"))) {
-          diagnostics.clearHistory()
-        },
-        secondaryButton: .cancel())
     }
   }
 
@@ -151,52 +104,56 @@ struct PowerSettingsView: View {
   /// Mac — so they belong where system settings are, not in a 360pt readout that is
   /// dismissed on the next click outside it.
   private var powerProfilesSection: some View {
-    SettingsGroup(spacing: 12) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(L10n.string("Power Profiles"))
-          .font(.headline)
-        Text(
-          L10n.string(
-            "These are macOS power settings. MenuCue writes them with pmset through the Power Helper, and they stay in effect for the whole Mac."
-          )
+    VStack(alignment: .leading, spacing: 8) {
+      SettingsCard(
+        L10n.string("System Power Settings"),
+        desc: L10n.string(
+          "MenuCue only writes the four boolean switches the Helper supports; mixed values are confirmed first."
         )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
+      ) {
+        SettingsRows {
+          SettingsRow(L10n.string("Power source")) {
+            Picker("", selection: $selectedSource) {
+              Text(L10n.string("Battery")).tag(ManagedPowerSource.battery)
+              Text(L10n.string("AC")).tag(ManagedPowerSource.ac)
+              Text(L10n.string("All")).tag(ManagedPowerSource.all)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 260)
+          }
 
-      Picker(L10n.string("Power source"), selection: $selectedSource) {
-        Text(L10n.string("Battery")).tag(ManagedPowerSource.battery)
-        Text(L10n.string("AC")).tag(ManagedPowerSource.ac)
-        Text(L10n.string("All")).tag(ManagedPowerSource.all)
-      }
-      .labelsHidden()
-      .pickerStyle(.segmented)
-      .frame(width: 260)
-
-      if let profile = displayedProfile {
-        profileToggle("Power Nap", setting: .powerNap, value: profile.powerNap)
-        profileToggle(
-          "Wake for network access", setting: .wakeOnNetwork, value: profile.wakeOnNetwork)
-        profileToggle("Standby", setting: .standby, value: profile.standby)
-        profileToggle("TCP Keepalive", setting: .tcpKeepalive, value: profile.tcpKeepalive)
-        HStack {
-          Text(L10n.string("Power mode"))
-          Spacer()
-          Text(powerModeText(profile.powerMode))
-            .foregroundStyle(.secondary)
+          if let profile = displayedProfile {
+            profileToggle("Power Nap", setting: .powerNap, value: profile.powerNap)
+            profileToggle(
+              "Wake for network access", setting: .wakeOnNetwork, value: profile.wakeOnNetwork)
+            profileToggle("Standby", setting: .standby, value: profile.standby)
+            profileToggle("TCP Keepalive", setting: .tcpKeepalive, value: profile.tcpKeepalive)
+            if hasAnyMixedValue {
+              SettingsRow(
+                L10n.string("Battery and AC differ"),
+                desc: L10n.string(
+                  "Under All, these change to Apply On / Apply Off and ask for confirmation first."
+                )
+              ) {
+                SettingsChip(
+                  L10n.string("Needs confirmation"),
+                  systemImage: "exclamationmark.triangle",
+                  tint: .orange)
+              }
+            }
+          } else {
+            SettingsRow(L10n.string("Power profile unavailable")) { EmptyView() }
+          }
         }
-      } else {
-        Text(L10n.string("Power profile unavailable"))
-          .font(.callout)
-          .foregroundStyle(.tertiary)
       }
 
       if let profileFeedback {
         Text(profileFeedback)
-          .font(.caption)
+          .font(.system(size: 11))
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
+          .padding(.horizontal, SettingsMetrics.rowPaddingH)
       }
     }
     .alert(item: $pendingAllSources) { pending in
@@ -214,9 +171,7 @@ struct PowerSettingsView: View {
   private func profileToggle(
     _ title: String, setting: ManagedPowerSetting, value: Bool?
   ) -> some View {
-    HStack {
-      Text(L10n.string(title))
-      Spacer()
+    SettingsRow(L10n.string(title)) {
       if let value {
         Toggle(
           "",
@@ -262,6 +217,11 @@ struct PowerSettingsView: View {
         diskSleepMinutes: common(profiles.map(\.diskSleepMinutes)),
         displaySleepMinutes: common(profiles.map(\.displaySleepMinutes)))
     }
+  }
+
+  /// True while the "All" view is showing switches whose battery and AC values differ.
+  private var hasAnyMixedValue: Bool {
+    selectedSource == .all && ManagedPowerSetting.allCases.contains { hasMixedValue(for: $0) }
   }
 
   private func setPowerSetting(_ setting: ManagedPowerSetting, enabled: Bool) {
@@ -318,6 +278,42 @@ struct PowerSettingsView: View {
     return first
   }
 
+  // MARK: - Read-only readouts
+
+  /// Values the parser already produced but nothing rendered: the current power mode and
+  /// the two sleep timers. They are read-only here because the Helper writes neither of
+  /// the sleep timers and pmset decides the mode.
+  private var readoutsSection: some View {
+    SettingsCard(
+      L10n.string("Read-Only Values"),
+      desc: L10n.string("Values pmset reports that MenuCue displays but does not control."),
+      tone: .inset
+    ) {
+      SettingsRows {
+        SettingsRow(
+          L10n.string("Power mode"),
+          desc: L10n.string("The current power mode reported by pmset.")
+        ) {
+          SettingsChip(
+            powerModeText(displayedProfile?.powerMode ?? nil),
+            tint: powerModeTint(displayedProfile?.powerMode ?? nil))
+        }
+        SettingsRow(
+          L10n.string("Disk Sleep"),
+          desc: L10n.string("Parsed from pmset custom; MenuCue has no control for it.")
+        ) {
+          SettingsChip(minutesText(displayedProfile?.diskSleepMinutes))
+        }
+        SettingsRow(
+          L10n.string("Display Sleep"),
+          desc: L10n.string("Parsed from pmset custom; MenuCue has no control for it.")
+        ) {
+          SettingsChip(minutesText(displayedProfile?.displaySleepMinutes))
+        }
+      }
+    }
+  }
+
   private func powerModeText(_ mode: PowerMode?) -> String {
     switch mode {
     case .normal: return L10n.string("Normal")
@@ -328,78 +324,208 @@ struct PowerSettingsView: View {
     }
   }
 
+  private func powerModeTint(_ mode: PowerMode?) -> Color {
+    guard let mode else { return .secondary }
+    switch mode {
+    case .normal: return .green
+    case .low, .high, .other: return .secondary
+    }
+  }
+
+  private func minutesText(_ minutes: Int?) -> String {
+    guard let minutes else { return L10n.string("Unavailable") }
+    return L10n.format("%dm", minutes)
+  }
+
+  // MARK: - Wake history
+
+  /// What the wake log costs, the events themselves, and the two ways to act on it.
+  ///
+  /// Clearing used to live in the popover and undoing it on the Dashboard, so the
+  /// button that hid 30 days of records and the button that brought them back were in
+  /// different windows. They are one pair, and they belong together.
+  private var wakeHistorySection: some View {
+    SettingsCard(
+      L10n.string("Wake History"),
+      desc: L10n.string("Sleep and wake events from the last 30 days, kept on this Mac.")
+    ) {
+      VStack(alignment: .leading, spacing: 0) {
+        SettingsRows {
+          SettingsRow(
+            L10n.string("Stored History"),
+            desc: L10n.format(
+              "Sleep and wake events from the last 30 days, kept on this Mac · %@",
+              SystemMetricsFormatter.capacity(diagnostics.historyFileSizeBytes))
+          ) {
+            HStack(spacing: 8) {
+              SettingsChip(
+                L10n.string("Asks for confirmation"),
+                systemImage: "exclamationmark.triangle",
+                tint: .orange)
+              Button(L10n.string("Clear History"), role: .destructive) {
+                isConfirmingClear = true
+              }
+              .disabled(diagnostics.snapshot.events.isEmpty)
+            }
+          }
+        }
+
+        if wakeRows.isEmpty {
+          SettingsEmptyState(
+            L10n.string("No wake has been recorded yet."),
+            desc: L10n.string(
+              "Wake events appear here once MenuCue has read the system power log."),
+            systemImage: "clock.arrow.circlepath"
+          )
+        } else {
+          SettingsTable(
+            columns: [
+              .init(L10n.string("Time"), weight: 160),
+              .init(L10n.string("Type"), weight: 120),
+              .init(L10n.string("Reason"), weight: 308),
+            ]
+          ) {
+            ForEach(wakeRows) { event in
+              SettingsTableRow {
+                Text(event.timestamp.formatted(date: .omitted, time: .shortened))
+                  .font(.system(size: 12))
+                  .monospacedDigit()
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                SettingsChip(wakeKindLabel(event.kind), tint: wakeKindTint(event.kind))
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                // The same sentence the popover and the Dashboard use, so the three
+                // surfaces cannot word one wake three ways.
+                Text(
+                  PowerAttributionParser.sentence(
+                    for: event, scheduled: diagnostics.snapshot.scheduledWakes)
+                )
+                .font(.system(size: 12))
+                .foregroundStyle(.tertiary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+              }
+            }
+          }
+        }
+
+        if let clearedAt = diagnostics.clearedAt, diagnostics.hiddenEventCount > 0 {
+          SettingsRows {
+            SettingsRow(
+              L10n.string("Hidden Records"),
+              desc: L10n.format(
+                "%d earlier wakes are hidden since you cleared history on %@",
+                diagnostics.hiddenEventCount,
+                clearedAt.formatted(date: .abbreviated, time: .omitted))
+            ) {
+              HStack(spacing: 8) {
+                SettingsChip(L10n.string("Recoverable"))
+                Button(L10n.string("Show them")) { diagnostics.restoreHistory() }
+                  .buttonStyle(.link)
+              }
+            }
+          }
+        }
+      }
+    }
+    .alert(isPresented: $isConfirmingClear) {
+      Alert(
+        title: Text(L10n.string("Clear local history?")),
+        message: Text(L10n.string("This removes sleep and wake history stored on this Mac.")),
+        primaryButton: .destructive(Text(L10n.string("Clear History"))) {
+          diagnostics.clearHistory()
+        },
+        secondaryButton: .cancel())
+    }
+  }
+
+  /// Newest first, capped: this pane is the summary, the Dashboard owns the deep list.
+  private var wakeRows: [WakeEvent] {
+    Array(diagnostics.snapshot.events.suffix(8).reversed())
+  }
+
+  private func wakeKindLabel(_ kind: WakeEventKind) -> String {
+    switch kind {
+    case .sleep: return L10n.string("Sleep")
+    case .darkWake: return L10n.string("Dark Wake")
+    case .wake: return L10n.string("User Wake")
+    }
+  }
+
+  private func wakeKindTint(_ kind: WakeEventKind) -> Color {
+    switch kind {
+    case .sleep: return .secondary
+    case .darkWake: return .purple
+    case .wake: return .green
+    }
+  }
+
   // MARK: - Power Helper
 
   private func powerHelperSection(isProminent: Bool) -> some View {
-    SettingsGroup(spacing: 12) {
-      HStack(alignment: .top, spacing: 10) {
-        Image(
-          systemName: powerHelper.registrationState.isEnabled
-            ? "checkmark.shield.fill"
-            : isProminent ? "exclamationmark.shield.fill" : "shield.lefthalf.filled"
+    VStack(alignment: .leading, spacing: 8) {
+      SettingsCard(
+        L10n.string("Power Helper"),
+        desc: L10n.string(
+          "System power settings and the system time zone are both written through it; it needs administrator approval."
         )
-        .font(.title3)
-        .foregroundStyle(powerHelper.registrationState.isEnabled ? Color.green : Color.orange)
-        .frame(width: 24)
-        VStack(alignment: .leading, spacing: 3) {
-          HStack {
-            Text("Power Helper")
-              .font(.headline)
-            Spacer()
-            Text(powerHelper.registrationState.title)
-              .font(.caption.weight(.semibold))
-              .foregroundStyle(.secondary)
+      ) {
+        SettingsRows {
+          PowerHelperStateRow(
+            title: powerHelper.registrationState.title,
+            desc: powerHelper.registrationState.detail,
+            systemImage: powerHelper.registrationState.isEnabled
+              ? "checkmark.shield.fill"
+              : isProminent ? "exclamationmark.shield.fill" : "shield.lefthalf.filled",
+            tint: powerHelper.registrationState.isEnabled ? .green : .orange
+          ) {
+            helperActionButton
           }
-          Text(powerHelper.registrationState.detail)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-          Text(
-            "Low Power Mode applies to battery and adapter power. Don't Sleep When Closed can increase heat and battery use."
-          )
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
         }
       }
 
       if let helperFeedback {
         Text(helperFeedback)
-          .font(.caption2)
+          .font(.system(size: 11))
           .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.horizontal, SettingsMetrics.rowPaddingH)
           .transition(motion.revealTransition(edge: .top))
       }
-
-      HStack {
-        Spacer()
-        helperActionButton
-      }
-    }
-    .padding(isProminent ? 14 : 0)
-    .background(
-      isProminent ? Color.orange.opacity(0.10) : Color.clear,
-      in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-    )
-    .overlay {
-      RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .stroke(isProminent ? Color.orange.opacity(0.45) : Color.clear, lineWidth: 1)
     }
     .animation(motion.stateAnimation, value: powerHelper.registrationState)
+    .confirmationDialog(
+      L10n.string("Remove Power Helper?"),
+      isPresented: $isConfirmingHelperRemoval,
+      titleVisibility: .visible
+    ) {
+      Button(L10n.string("Remove Helper"), role: .destructive) { removePowerHelper() }
+      Button(L10n.string("Cancel"), role: .cancel) {}
+    } message: {
+      Text(
+        L10n.string(
+          "System power settings and the system time zone cannot be written again until the Helper is reinstalled; nothing else about MenuCue changes."
+        )
+      )
+    }
   }
 
   @ViewBuilder
   private var helperActionButton: some View {
     switch powerHelper.registrationState {
     case .enabled:
-      Button("Remove Helper", role: .destructive, action: removePowerHelper)
-        .disabled(powerHelper.isWorking)
+      Button("Remove Helper", role: .destructive) {
+        isConfirmingHelperRemoval = true
+      }
+      .disabled(powerHelper.isWorking)
     case .requiresApproval:
       Button("Open System Settings") {
         powerHelper.openSystemSettings()
       }
       .buttonStyle(.borderedProminent)
-      Button("Cancel Install", role: .destructive, action: removePowerHelper)
-        .disabled(powerHelper.isWorking)
+      Button("Cancel Install", role: .destructive) {
+        isConfirmingHelperRemoval = true
+      }
+      .disabled(powerHelper.isWorking)
     case .refreshRequired:
       Button("Refresh Helper") {
         helperFeedback = nil
@@ -434,6 +560,54 @@ struct PowerSettingsView: View {
       }
       service.refreshAll()
     }
+  }
+}
+
+/// The Helper's live state, on the card surface rather than `SettingsListRow`'s recessed
+/// fill, because the design document renders it as the card's body: a status icon, the
+/// state the manager reports, and the action that can change it.
+private struct PowerHelperStateRow<Action: View>: View {
+  let title: String
+  let desc: String
+  let systemImage: String
+  let tint: Color
+  @ViewBuilder let action: Action
+
+  init(
+    title: String,
+    desc: String,
+    systemImage: String,
+    tint: Color,
+    @ViewBuilder action: () -> Action
+  ) {
+    self.title = title
+    self.desc = desc
+    self.systemImage = systemImage
+    self.tint = tint
+    self.action = action()
+  }
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 10) {
+      Image(systemName: systemImage)
+        .font(.system(size: 15, weight: .semibold))
+        .foregroundStyle(tint)
+        .frame(width: 20)
+      VStack(alignment: .leading, spacing: SettingsMetrics.labelSpacing) {
+        Text(title)
+          .font(.system(size: 13, weight: .medium))
+        Text(desc)
+          .font(.system(size: 11))
+          .foregroundStyle(.tertiary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      action
+    }
+    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+    .padding(.vertical, SettingsMetrics.rowPaddingV)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(Color.settingsCardSurface)
   }
 }
 

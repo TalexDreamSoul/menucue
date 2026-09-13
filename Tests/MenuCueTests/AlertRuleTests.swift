@@ -778,6 +778,119 @@ final class AlertMonitoringServiceTests: XCTestCase {
     XCTAssertEqual(deliveryCount, 1)
   }
 
+  /// The alerts master switch has to stop the sampling tick itself, not just the delivery:
+  /// a probe that still runs wakes the CPU and the disk for alerts nobody will receive.
+  func testDisabledMasterSwitchStopsSamplingAndDeliveryUntilReenabled() async throws {
+    let store = try NotificationRuntimeStore(fileURL: temporaryURL())
+    let provider = RecordingAlertMetricProvider(
+      kind: .system, values: ["cpu.total.busy": .number(0.95)])
+    let delivery = DeliveryKickRecorder()
+    let monitor = AlertMonitoringService(
+      store: store,
+      providers: [.system: provider],
+      delivery: { await delivery.kick() },
+      sleep: { _ in try await Task.never() }
+    )
+    try await monitor.updateRules([
+      rule(id: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", metric: "cpu.total.busy")
+    ])
+
+    await monitor.setGloballyEnabled(false)
+    await monitor.refreshOnce(provider: .system, at: date(10))
+
+    let requestsWhileOff = await provider.recordedRequests()
+    let eventsWhileOff = await store.snapshot().events
+    let deliveriesWhileOff = await delivery.count
+    XCTAssertTrue(requestsWhileOff.isEmpty, "off must not sample the provider")
+    XCTAssertTrue(eventsWhileOff.isEmpty)
+    XCTAssertEqual(deliveriesWhileOff, 0)
+
+    await monitor.setGloballyEnabled(true)
+    await monitor.refreshOnce(provider: .system, at: date(10))
+
+    let requestsWhileOn = await provider.recordedRequests()
+    let eventsWhileOn = await store.snapshot().events
+    let deliveriesWhileOn = await delivery.count
+    XCTAssertEqual(requestsWhileOn.count, 1, "re-enabling has to resume sampling")
+    XCTAssertEqual(eventsWhileOn.count, 1)
+    XCTAssertEqual(deliveriesWhileOn, 1)
+    await monitor.stop()
+  }
+
+  /// Observations are handed to the monitor by three paths — the sampling tick, a direct
+  /// `process`, and the dark-wake bridge. All three are delivery, so all three close.
+  func testDisabledMasterSwitchSuppressesDirectAndDarkWakeProcessing() async throws {
+    let store = try NotificationRuntimeStore(fileURL: temporaryURL())
+    let delivery = DeliveryKickRecorder()
+    let monitor = AlertMonitoringService(
+      store: store,
+      providers: [:],
+      delivery: { await delivery.kick() },
+      now: { Date(timeIntervalSince1970: 100) }
+    )
+    let darkRule = AlertRule(
+      id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!,
+      name: "Dark wake",
+      metricID: "event.darkWake",
+      condition: .event,
+      channels: [.bark]
+    )
+    try await monitor.updateRules([
+      darkRule,
+      rule(id: "11111111-2222-3333-4444-555555555555", metric: "cpu.total.busy"),
+    ])
+    let observation = AlertMetricObservation.value(
+      metricID: "cpu.total.busy", value: .number(0.95), sampledAt: date(10))
+    let retained = WakeEvent(
+      timestamp: date(90), kind: .darkWake, reason: "old", occurrence: 0)
+    let fresh = WakeEvent(
+      timestamp: date(101), kind: .darkWake, reason: "RTC", occurrence: 0)
+
+    await monitor.setGloballyEnabled(false)
+    try await monitor.process([observation])
+    await monitor.processDarkWakeEvents([retained, fresh])
+
+    let eventsWhileOff = await store.snapshot().events
+    let deliveriesWhileOff = await delivery.count
+    XCTAssertTrue(eventsWhileOff.isEmpty)
+    XCTAssertEqual(deliveriesWhileOff, 0)
+
+    await monitor.setGloballyEnabled(true)
+    try await monitor.process([observation])
+    await monitor.processDarkWakeEvents([retained, fresh])
+
+    let eventsWhileOn = await store.snapshot().events
+    XCTAssertEqual(eventsWhileOn.count, 2, "each path queues its own alert once re-enabled")
+  }
+
+  /// Off cancels the running sampling tasks and on has to recreate them — leaving the
+  /// dictionary empty after a re-enable would keep the switch on while nothing samples.
+  func testMasterSwitchRemovesAndRecreatesSamplingTasks() async throws {
+    let store = try NotificationRuntimeStore(fileURL: temporaryURL())
+    let provider = RecordingAlertMetricProvider(kind: .system, values: [:])
+    let monitor = AlertMonitoringService(
+      store: store,
+      providers: [.system: provider],
+      sleep: { _ in try await Task.never() }
+    )
+    try await monitor.updateRules([
+      rule(id: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", metric: "cpu.total.busy")
+    ])
+
+    await monitor.start()
+    let runningProviders = await monitor.activeProviderKinds
+    XCTAssertEqual(runningProviders, [.system])
+
+    await monitor.setGloballyEnabled(false)
+    let pausedProviders = await monitor.activeProviderKinds
+    XCTAssertTrue(pausedProviders.isEmpty, "off has to cancel the sampling task, not mute it")
+
+    await monitor.setGloballyEnabled(true)
+    let resumedProviders = await monitor.activeProviderKinds
+    XCTAssertEqual(resumedProviders, [.system], "on has to start sampling again")
+    await monitor.stop()
+  }
+
   private func rule(id: String, metric: AlertMetricID) -> AlertRule {
     AlertRule(
       id: UUID(uuidString: id)!, name: "High", metricID: metric,

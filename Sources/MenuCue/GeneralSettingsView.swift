@@ -21,20 +21,17 @@ struct GeneralSettingsView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 24) {
-      startupSection
-      Divider()
-      updatesSection
-      Divider()
-      appearanceSection
-      Divider()
+    VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
+      startupCard
+      updatesCard
+      appearanceCard
       LanguageSettingsView(languageService: languageService)
 
       if syncService.isEntitled {
-        Divider()
         PreferenceSyncSettingsView(model: model)
       }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .onAppear {
       model.refreshLaunchAtLoginState()
     }
@@ -42,108 +39,250 @@ struct GeneralSettingsView: View {
 
   // MARK: - Startup
 
-  private var startupSection: some View {
-    SettingsGroup(spacing: 8) {
-      Text("Startup")
-        .font(.headline)
-      Toggle("Launch MenuCue at login", isOn: launchAtLoginBinding)
+  private var startupCard: some View {
+    SettingsCard(L10n.string("Startup")) {
+      SettingsRows {
+        SettingsRowToggle(
+          L10n.string("Launch MenuCue at login"),
+          isOn: launchAtLoginBinding
+        )
         .disabled(model.launchAtLoginState == .unavailable)
 
-      switch model.launchAtLoginState {
-      case .disabled:
-        Text("MenuCue starts only when you open it.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      case .enabled:
-        Text("MenuCue will start automatically after you sign in.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      case .requiresApproval:
-        Text("macOS requires approval before MenuCue can start at login.")
-          .font(.caption)
-          .foregroundStyle(.orange)
-        Button("Open Login Items Settings") {
-          model.openLoginItemsSettings()
+        SettingsRow(L10n.string("Status"), desc: launchAtLoginStatusMessage) {
+          SettingsChip(
+            launchAtLoginChipLabel,
+            systemImage: launchAtLoginChipSymbol,
+            tint: launchAtLoginChipTint
+          )
         }
-      case .unavailable:
-        Text("Launch at Login is available when MenuCue runs from its app bundle.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+
+        if model.launchAtLoginState == .requiresApproval {
+          SettingsRowButton(
+            L10n.string("Needs Approval"),
+            buttonTitle: L10n.string("Open Login Items Settings"),
+            kind: .secondary
+          ) {
+            model.openLoginItemsSettings()
+          }
+        }
       }
 
       if let errorMessage = model.launchAtLoginErrorMessage, !errorMessage.isEmpty {
-        Text(errorMessage)
-          .font(.caption)
-          .foregroundStyle(.red)
+        SettingsBanner(
+          errorMessage,
+          systemImage: "exclamationmark.triangle.fill",
+          tint: .red
+        )
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
       }
+    }
+  }
+
+  private var launchAtLoginStatusMessage: String {
+    switch model.launchAtLoginState {
+    case .disabled:
+      return L10n.string("MenuCue starts only when you open it.")
+    case .enabled:
+      return L10n.string("MenuCue will start automatically after you sign in.")
+    case .requiresApproval:
+      return L10n.string("macOS requires approval before MenuCue can start at login.")
+    case .unavailable:
+      return L10n.string("Launch at Login is available when MenuCue runs from its app bundle.")
+    }
+  }
+
+  private var launchAtLoginChipLabel: String {
+    switch model.launchAtLoginState {
+    case .disabled:
+      return L10n.string("Off")
+    case .enabled:
+      return L10n.string("Enabled")
+    case .requiresApproval:
+      return L10n.string("Needs Approval")
+    case .unavailable:
+      return L10n.string("Unavailable")
+    }
+  }
+
+  private var launchAtLoginChipSymbol: String {
+    switch model.launchAtLoginState {
+    case .disabled:
+      return "circle"
+    case .enabled:
+      return "checkmark.circle.fill"
+    case .requiresApproval:
+      return "exclamationmark.triangle.fill"
+    case .unavailable:
+      return "slash.circle"
+    }
+  }
+
+  private var launchAtLoginChipTint: Color {
+    switch model.launchAtLoginState {
+    case .enabled:
+      return .green
+    case .requiresApproval:
+      return .orange
+    case .disabled, .unavailable:
+      return .secondary
     }
   }
 
   // MARK: - Updates
 
-  private var updatesSection: some View {
-    SettingsGroup(spacing: 10) {
-      Text("Updates")
-        .font(.headline)
+  private var updatesCard: some View {
+    SettingsCard(L10n.string("Updates")) {
+      SettingsRows {
+        SettingsRowToggle(
+          L10n.string("Automatically check and download updates"),
+          isOn: automaticUpdatesBinding
+        )
 
-      Toggle(
-        "Automatically check and download updates",
-        isOn: automaticUpdatesBinding
-      )
+        SettingsRow(L10n.string("Status"), desc: updateStatusMessage) {
+          SettingsChip(
+            updateStatusChipLabel,
+            systemImage: updateStatusChipSymbol,
+            tint: updateStatusChipTint
+          )
+        }
 
-      Text(updateStatusMessage)
-        .font(.caption)
-        .foregroundStyle(updateStatusIsError ? Color.red : Color.secondary)
+        if let lastCheckText {
+          SettingsRowValue(L10n.string("Last Checked"), value: lastCheckText)
+        }
 
-      if let lastCheckText {
-        Text(lastCheckText)
-          .font(.caption2)
-          .foregroundStyle(.tertiary)
+        SettingsRowButton(
+          L10n.string("Manual Check"),
+          buttonTitle: L10n.string("Check for Updates"),
+          kind: .primary
+        ) {
+          updateService.checkForUpdates()
+        }
+        .disabled(!updateService.canCheckForUpdates)
       }
+    }
+  }
 
-      Button("Check for Updates") {
-        updateService.checkForUpdates()
-      }
-      .disabled(!updateService.canCheckForUpdates)
+  private var updateStatusChipLabel: String {
+    switch updateService.status {
+    case .idle:
+      return updateService.automaticUpdatesEnabled
+        ? L10n.string("Automatic")
+        : L10n.string("Off")
+    case .checking:
+      return L10n.string("Checking")
+    case .available:
+      return L10n.string("Update Available")
+    case .downloading:
+      return L10n.string("Downloading")
+    case .downloaded:
+      return L10n.string("Ready to Install")
+    case .installing:
+      return L10n.string("Installing")
+    case .current:
+      return L10n.string("Up to Date")
+    case .failed:
+      return L10n.string("Failed")
+    }
+  }
+
+  private var updateStatusChipSymbol: String {
+    switch updateService.status {
+    case .idle:
+      return updateService.automaticUpdatesEnabled
+        ? "arrow.triangle.2.circlepath"
+        : "pause.circle"
+    case .checking:
+      return "arrow.triangle.2.circlepath"
+    case .available:
+      return "arrow.down.circle"
+    case .downloading, .installing:
+      return "arrow.down.circle"
+    case .downloaded:
+      return "checkmark.circle"
+    case .current:
+      return "checkmark.circle.fill"
+    case .failed:
+      return "exclamationmark.triangle.fill"
+    }
+  }
+
+  private var updateStatusChipTint: Color {
+    switch updateService.status {
+    case .current:
+      return .green
+    case .failed:
+      return .red
+    case .available, .downloaded:
+      return .orange
+    case .idle, .checking, .downloading, .installing:
+      return .secondary
     }
   }
 
   // MARK: - Appearance
 
-  private var appearanceSection: some View {
-    SettingsGroup(spacing: 14) {
-      Text("Appearance")
-        .font(.headline)
+  private var appearanceCard: some View {
+    SettingsCard(L10n.string("Appearance")) {
+      SettingsRows {
+        SettingsRowSelect(
+          L10n.string("Appearance"),
+          selection: model.settingsBinding(\.appearanceMode),
+          options: AppearanceMode.allCases.map { (value: $0, label: $0.title) }
+        )
 
-      Picker("Appearance", selection: model.settingsBinding(\.appearanceMode)) {
-        ForEach(AppearanceMode.allCases) { mode in
-          Text(mode.title).tag(mode)
+        if model.settings.appearanceMode == .automaticByTimeZone {
+          SettingsRow(
+            L10n.string("Auto reference"),
+            desc: L10n.string(
+              "Auto uses light from 07:00-19:00 in the selected time zone."
+            ),
+            controlWidth: 240
+          ) {
+            TimeZonePicker(
+              title: "",
+              selection: model.settingsBinding(\.appearanceTimeZoneID)
+            )
+            .labelsHidden()
+          }
+        }
+
+        SettingsRowToggle(
+          L10n.string("Apply to macOS system appearance"),
+          desc: L10n.string(
+            "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
+          ),
+          isOn: model.settingsBinding(\.appliesSystemAppearance)
+        )
+
+        SettingsRowSegmented(
+          L10n.string("Animation effects"),
+          selection: animationQualityIndex,
+          options: AnimationQuality.allCases.map(\.title)
+        )
+
+        SettingsRow(
+          L10n.string("What Elegant Means"),
+          desc: L10n.string("Keeps the main value transitions and lowers the cost of continuous frames; treated as Minimal whenever the system Reduce Motion setting is on.")
+        ) {
+          SettingsChip(L10n.string("Default"))
         }
       }
-      .frame(maxWidth: 320)
-
-      if model.settings.appearanceMode == .automaticByTimeZone {
-        TimeZonePicker(
-          title: L10n.string("Auto reference"),
-          selection: model.settingsBinding(\.appearanceTimeZoneID)
-        )
-        .frame(maxWidth: 460)
-        Text("Auto uses light from 07:00-19:00 in the selected time zone.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-
-      Toggle(
-        "Apply to macOS system appearance",
-        isOn: model.settingsBinding(\.appliesSystemAppearance)
-      )
-
-      Text(
-        "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
     }
+  }
+
+  /// `SettingsRowSegmented` works in indices while the setting is an enum, so the bridge
+  /// reads the current case and writes the case the index names.
+  private var animationQualityIndex: Binding<Int> {
+    let quality = model.settingsBinding(\.animationQuality)
+    return Binding(
+      get: { AnimationQuality.allCases.firstIndex(of: quality.wrappedValue) ?? 1 },
+      set: { index in
+        guard AnimationQuality.allCases.indices.contains(index) else { return }
+        quality.wrappedValue = AnimationQuality.allCases[index]
+      }
+    )
   }
 
   // MARK: - Bindings and status text
@@ -185,11 +324,6 @@ struct GeneralSettingsView: View {
     }
   }
 
-  private var updateStatusIsError: Bool {
-    if case .failed = updateService.status { return true }
-    return false
-  }
-
   private var lastCheckText: String? {
     updateService.lastUpdateCheckDate.map { date in
       L10n.format(
@@ -210,80 +344,93 @@ private struct PreferenceSyncSettingsView: View {
   }
 
   var body: some View {
-    SettingsGroup(spacing: 16) {
-      Text("iCloud Sync")
-        .font(.headline)
-
-      HStack(alignment: .top, spacing: 12) {
-        Image(systemName: statusSymbol)
-          .font(.title2)
-          .foregroundStyle(statusColor)
-          .frame(width: 28)
-        VStack(alignment: .leading, spacing: 4) {
-          Text(service.status.title)
-            .font(.headline)
-          Text(service.status.message)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+    SettingsCard(L10n.string("iCloud Sync")) {
+      SettingsRows {
+        SettingsRow(service.status.title, desc: service.status.message) {
+          HStack(spacing: 8) {
+            Image(systemName: statusSymbol)
+              .font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(statusColor)
+            syncStatusAction
+          }
         }
-      }
 
-      syncActions
+        if showsSyncToggle {
+          SettingsRowToggle(
+            L10n.string("Sync portable preferences with iCloud"),
+            isOn: syncEnabledBinding
+          )
+        }
 
-      Divider()
+        SettingsRow(
+          L10n.string("Synced between Macs"),
+          desc: L10n.string(
+            "Menu-bar format, clock order and labels, rotation interval, overview time zone, week start, and app appearance."
+          )
+        ) {
+          SettingsChip(L10n.string("Portable"))
+        }
 
-      VStack(alignment: .leading, spacing: 6) {
-        Text("Synced between Macs")
-          .font(.subheadline.weight(.medium))
-        Text(
-          "Menu-bar format, clock order and labels, rotation interval, overview time zone, week start, and app appearance."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-
-        Text("Kept on this Mac")
-          .font(.subheadline.weight(.medium))
-          .padding(.top, 4)
-        Text(
-          "Calendar access and selection, system appearance control, Quick Actions, sync choices, and temporary UI state."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        SettingsRow(
+          L10n.string("Kept on this Mac"),
+          desc: L10n.string(
+            "Calendar access and selection, system appearance control, Quick Actions, sync choices, and temporary UI state."
+          )
+        ) {
+          SettingsChip(L10n.string("Local Only"))
+        }
       }
     }
   }
 
+  /// The action belongs to the status row: setup and source decisions are answers to
+  /// the state above them, and a retry only makes sense once a first attempt failed.
+  /// Rows keep the same conditions they had before the redesign, so no state shows a
+  /// control it did not show already.
   @ViewBuilder
-  private var syncActions: some View {
+  private var syncStatusAction: some View {
     switch service.status {
     case .needsOnboarding:
-      HStack {
-        Button("Enable iCloud Sync") {
+      HStack(spacing: 8) {
+        Button(L10n.string("Enable iCloud Sync")) {
           model.completePreferenceSyncOnboarding(enable: true)
         }
         .buttonStyle(.borderedProminent)
-        Button("Keep Settings on This Mac") {
+        .controlSize(.small)
+        Button(L10n.string("Keep Settings on This Mac")) {
           model.completePreferenceSyncOnboarding(enable: false)
         }
+        .controlSize(.small)
       }
     case .needsSourceDecision:
-      HStack {
-        Button("Use iCloud Settings") {
+      HStack(spacing: 8) {
+        Button(L10n.string("Use iCloud Settings")) {
           model.chooseCloudPreferenceSettings()
         }
         .buttonStyle(.borderedProminent)
-        Button("Use This Mac's Settings") {
+        .controlSize(.small)
+        Button(L10n.string("Use This Mac's Settings")) {
           model.chooseLocalPreferenceSettings()
         }
+        .controlSize(.small)
       }
     default:
-      Toggle("Sync portable preferences with iCloud", isOn: syncEnabledBinding)
       if case .failed = service.status {
-        Button("Retry Sync") { model.retryPreferenceSync() }
+        Button(L10n.string("Retry Sync")) { model.retryPreferenceSync() }
+          .controlSize(.small)
       } else if service.status == .signedOut {
-        Button("Retry After Signing In") { model.retryPreferenceSync() }
+        Button(L10n.string("Retry After Signing In")) { model.retryPreferenceSync() }
+          .controlSize(.small)
       }
+    }
+  }
+
+  private var showsSyncToggle: Bool {
+    switch service.status {
+    case .needsOnboarding, .needsSourceDecision:
+      return false
+    default:
+      return true
     }
   }
 

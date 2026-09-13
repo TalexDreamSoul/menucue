@@ -230,6 +230,8 @@ struct AppSettings: Equatable {
     var trackpadGestureSettings: TrackpadGestureSettings
     /// Machine-local for the same reason, plus two of its own: the Shortcuts a binding can
     /// name exist per Mac, and so does the display arrangement a window action moves through.
+    /// The master switch is machine-local with them: it pauses registration on this Mac only.
+    var hotkeysGloballyEnabled: Bool
     var hotkeyBindings: [HotkeyBinding]
     /// Set once the user has opened the power feature. Until then nothing samples in
     /// the background; afterwards wake history keeps being backfilled with the popover
@@ -265,6 +267,7 @@ struct AppSettings: Equatable {
         metricsSampling: MetricsSamplingSettings = .default,
         animationQuality: AnimationQuality = .elegant,
         trackpadGestureSettings: TrackpadGestureSettings = .default,
+        hotkeysGloballyEnabled: Bool = true,
         hotkeyBindings: [HotkeyBinding] = [],
         powerMonitoringEnabled: Bool = false,
         notificationSettings: NotificationSettings = .default,
@@ -292,6 +295,7 @@ struct AppSettings: Equatable {
         self.metricsSampling = metricsSampling.normalized
         self.animationQuality = animationQuality
         self.trackpadGestureSettings = trackpadGestureSettings.normalized
+        self.hotkeysGloballyEnabled = hotkeysGloballyEnabled
         self.hotkeyBindings = Self.normalizedHotkeyBindings(hotkeyBindings)
         self.powerMonitoringEnabled = powerMonitoringEnabled
         self.notificationSettings = notificationSettings
@@ -410,6 +414,12 @@ struct AppSettings: Equatable {
 
     mutating func replaceClockEntries(_ entries: [ClockEntry]) {
         clockEntries = Self.normalizedClockEntries(entries)
+    }
+
+    /// What the hotkey service should hold. A paused set stays on disk in full; it just never
+    /// reaches the system registrar, so nothing is claimed from other applications.
+    var registeredHotkeyBindings: [HotkeyBinding] {
+        hotkeysGloballyEnabled ? hotkeyBindings : []
     }
 
     /// Two bindings sharing an identifier would fight over one row and one registration,
@@ -857,6 +867,21 @@ enum TimeZoneCatalog {
     static func displayName(for identifier: String) -> String {
         let timeZone = TimeZone(identifier: identifier) ?? .autoupdatingCurrent
         return "\(offsetText(for: timeZone))  \(shortTitle(for: identifier))"
+    }
+
+    /// Filters the canonical, display-name-sorted catalog while keeping the current value
+    /// selectable. A typed search must never make the current binding invalid.
+    static func identifiers(matching query: String, including selectedIdentifier: String) -> [String] {
+        let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let matches = identifiers.filter { identifier in
+            normalized.isEmpty
+                || identifier.localizedCaseInsensitiveContains(normalized)
+                || displayName(for: identifier).localizedCaseInsensitiveContains(normalized)
+        }
+        guard !matches.contains(selectedIdentifier), identifiers.contains(selectedIdentifier) else {
+            return matches
+        }
+        return [selectedIdentifier] + matches
     }
 
     static func shortTitle(for identifier: String) -> String {

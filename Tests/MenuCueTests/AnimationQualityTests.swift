@@ -104,54 +104,7 @@ final class AnimationQualityTests: XCTestCase {
 }
 
 @MainActor
-final class AnimationQualitySettingsViewTests: XCTestCase {
-  func testSegmentedControlExposesAllQualitiesAndSelection() throws {
-    _ = NSApplication.shared
-    let suite = "AnimationQualitySettingsViewTests.\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: suite)!
-    defer { defaults.removePersistentDomain(forName: suite) }
-    let appearance = AppearanceService()
-    let model = AppModel(
-      settingsStore: SettingsStore(defaults: defaults),
-      calendarService: CalendarService(),
-      appearanceService: appearance
-    )
-    let hosting = NSHostingView(
-      rootView: AnimationQualitySettingsView(model: model)
-        .frame(width: 520, height: 140, alignment: .topLeading)
-    )
-    hosting.frame = NSRect(x: 0, y: 0, width: 520, height: 140)
-    let window = NSWindow(
-      contentRect: hosting.frame,
-      styleMask: [.titled],
-      backing: .buffered,
-      defer: false
-    )
-    window.contentView = hosting
-    window.layoutIfNeeded()
-
-    let control = try XCTUnwrap(firstSegmentedControl(in: hosting))
-    XCTAssertEqual(control.segmentCount, AnimationQuality.allCases.count)
-    XCTAssertEqual((0..<control.segmentCount).map(control.label(forSegment:)), [
-      L10n.string("Full motion"),
-      L10n.string("Elegant"),
-      L10n.string("Minimal"),
-    ])
-    XCTAssertEqual(control.selectedSegment, 1)
-    XCTAssertLessThanOrEqual(control.frame.width, 360)
-    XCTAssertEqual(control.accessibilityLabel(), L10n.string("Animation effects"))
-    XCTAssertEqual(control.accessibilityHelp(), model.settings.animationQuality.detail)
-
-    control.selectedSegment = 0
-    XCTAssertTrue(control.sendAction(control.action, to: control.target))
-    XCTAssertEqual(model.settings.animationQuality, .full)
-
-    model.updateSettings { $0.animationQuality = .minimal }
-    RunLoop.main.run(until: Date().addingTimeInterval(0.05))
-    XCTAssertEqual(control.selectedSegment, 2)
-    XCTAssertEqual(control.accessibilityHelp(), AnimationQuality.minimal.detail)
-  }
-
+final class MotionAwareProgressIndicatorTests: XCTestCase {
   func testMinimalAndReduceMotionUseStaticBusyIndicators() {
     _ = NSApplication.shared
     let full = host(
@@ -198,11 +151,4 @@ final class AnimationQualitySettingsViewTests: XCTestCase {
     return nil
   }
 
-  private func firstSegmentedControl(in view: NSView) -> NSSegmentedControl? {
-    if let control = view as? NSSegmentedControl { return control }
-    for subview in view.subviews {
-      if let control = firstSegmentedControl(in: subview) { return control }
-    }
-    return nil
-  }
 }

@@ -14,6 +14,7 @@ actor AlertMonitoringService {
   private var rules: [AlertRule] = []
   private var tasks: [AlertMetricProviderKind: Task<Void, Never>] = [:]
   private var isRunning = false
+  private var isGloballyEnabled = true
   private var isProcessing = false
   private var processingWaiters: [CheckedContinuation<Void, Never>] = []
   private(set) var lastErrorDescription: String?
@@ -86,6 +87,14 @@ actor AlertMonitoringService {
     tasks.removeAll()
   }
 
+  /// The pane's master switch. Off keeps every rule and channel on disk but stops sampling and
+  /// delivery, so the wake-ups and provider probes disappear along with the alerts.
+  func setGloballyEnabled(_ enabled: Bool) {
+    guard isGloballyEnabled != enabled else { return }
+    isGloballyEnabled = enabled
+    reconcileTasks()
+  }
+
   func updateRules(_ rules: [AlertRule]) async throws {
     try await store.replaceRules(rules, darkWakeBaseline: now())
     self.rules = rules
@@ -97,7 +106,7 @@ actor AlertMonitoringService {
       if lhs.timestamp != rhs.timestamp { return lhs.timestamp < rhs.timestamp }
       return lhs.occurrence < rhs.occurrence
     }
-    guard !darkWakes.isEmpty else { return }
+    guard isGloballyEnabled, !darkWakes.isEmpty else { return }
 
     do {
       var snapshot = await store.snapshot()
@@ -125,6 +134,7 @@ actor AlertMonitoringService {
   }
 
   func refreshOnce(provider kind: AlertMetricProviderKind, at date: Date? = nil) async {
+    guard isGloballyEnabled else { return }
     guard let provider = providers[kind] else { return }
     let enabled = rules.filter {
       $0.isEnabled && AlertMetricCatalog.definition(for: $0.metricID)?.provider == kind
@@ -144,6 +154,7 @@ actor AlertMonitoringService {
   }
 
   func process(_ observations: [AlertMetricObservation]) async throws {
+    guard isGloballyEnabled else { return }
     try await process(observations, candidateRules: rules.filter(\.isEnabled))
   }
 
@@ -179,7 +190,7 @@ actor AlertMonitoringService {
   private func reconcileTasks() {
     for task in tasks.values { task.cancel() }
     tasks.removeAll()
-    guard isRunning else { return }
+    guard isRunning, isGloballyEnabled else { return }
 
     let grouped = Dictionary(grouping: rules.filter(\.isEnabled)) { rule in
       AlertMetricCatalog.definition(for: rule.metricID)?.provider

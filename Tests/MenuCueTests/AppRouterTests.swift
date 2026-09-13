@@ -95,6 +95,9 @@ final class AppRouterTests: XCTestCase {
     XCTAssertEqual(AppRouter.route(forIdentifier: "notifications"), .settings(.alerts))
     XCTAssertEqual(AppRouter.route(forIdentifier: "language"), .settings(.general))
     XCTAssertEqual(AppRouter.route(forIdentifier: "trackpad"), .settings(.trackpad))
+    XCTAssertEqual(AppRouter.route(forIdentifier: "timeZone"), .settings(.timeZone))
+    XCTAssertEqual(AppRouter.route(forIdentifier: "timezone"), .settings(.timeZone))
+    XCTAssertEqual(AppRouter.route(forIdentifier: "languageRegion"), .settings(.timeZone))
     XCTAssertEqual(AppRouter.route(forIdentifier: "dashboard"), .dashboard(nil))
     XCTAssertNil(AppRouter.route(forIdentifier: "nonsense"))
   }

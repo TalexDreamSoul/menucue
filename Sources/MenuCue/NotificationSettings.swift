@@ -11,6 +11,7 @@ enum NotificationSecretField {
 
   static func required(for kind: NotificationChannelKind) -> [NotificationSecretKey] {
     switch kind {
+    case .system: return []
     case .feishu: return [feishuWebhook]
     case .webhook: return [webhookEndpoint]
     case .bark: return [barkDeviceKey]
@@ -22,7 +23,7 @@ enum NotificationSecretField {
     switch kind {
     case .feishu: return [feishuSigningSecret]
     case .webhook: return [webhookBearerToken]
-    case .bark, .telegram: return []
+    case .system, .bark, .telegram: return []
     }
   }
 }
@@ -36,21 +37,52 @@ struct NotificationChannelSettings: Codable, Equatable, Sendable {
 }
 
 struct NotificationSettings: Codable, Equatable, Sendable {
+  var isGloballyEnabled: Bool
   var deviceNameOverride: String?
   var channels: [NotificationChannelKind: NotificationChannelSettings]
   var rules: [AlertRule]
 
   init(
+    isGloballyEnabled: Bool = true,
     deviceNameOverride: String? = nil,
     channels: [NotificationChannelKind: NotificationChannelSettings] = [:],
     rules: [AlertRule] = []
   ) {
+    self.isGloballyEnabled = isGloballyEnabled
     self.deviceNameOverride = Self.normalizedName(deviceNameOverride)
     self.channels = channels
     self.rules = rules
   }
 
-  static let `default` = NotificationSettings()
+  private enum CodingKeys: String, CodingKey {
+    case isGloballyEnabled
+    case deviceNameOverride
+    case channels
+    case rules
+  }
+
+  /// Additive fields must decode leniently: `SettingsStore` keeps the stored value only when
+  /// decoding succeeds, so a strict decoder would reset every channel and rule to defaults the
+  /// first time a build adds a field to this struct.
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    isGloballyEnabled =
+      try container.decodeIfPresent(Bool.self, forKey: .isGloballyEnabled) ?? true
+    deviceNameOverride = try container.decodeIfPresent(String.self, forKey: .deviceNameOverride)
+    channels =
+      try container.decodeIfPresent(
+        [NotificationChannelKind: NotificationChannelSettings].self, forKey: .channels) ?? [:]
+    rules = try container.decodeIfPresent([AlertRule].self, forKey: .rules) ?? []
+  }
+
+  static let `default` = NotificationSettings(
+    channels: [.system: NotificationChannelSettings(isEnabled: true)],
+    rules: DefaultAlertRules.systemNotifications()
+  )
+
+  var enabledRuleCount: Int {
+    rules.filter(\.isEnabled).count
+  }
 
   func channel(_ kind: NotificationChannelKind) -> NotificationChannelSettings {
     channels[kind] ?? NotificationChannelSettings()
@@ -193,6 +225,8 @@ final class NotificationConfigurationService: ObservableObject, @unchecked Senda
     let channel = settings.channel(kind)
     let descriptor: NotificationChannelDescriptor
     switch kind {
+    case .system:
+      descriptor = .system
     case .feishu:
       descriptor = .feishu(
         webhookKey: NotificationSecretField.feishuWebhook,

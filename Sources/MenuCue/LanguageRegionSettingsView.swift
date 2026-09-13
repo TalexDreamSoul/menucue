@@ -125,67 +125,65 @@ struct LanguageSettingsView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 24) {
-      appLanguageSection
-      Divider()
-      globalLanguageSection
-    }
+    appLanguageCard
   }
 
-  private var appLanguageSection: some View {
-    SettingsGroup(spacing: 12) {
-      Text("MenuCue Language")
-        .font(.headline)
+  private var appLanguageCard: some View {
+    SettingsCard(L10n.string("MenuCue Language")) {
+      SettingsRows {
+        SettingsRowSegmented(
+          L10n.string("MenuCue Language"),
+          selection: languageSelection,
+          options: AppLanguage.allCases.map(\.displayName)
+        )
 
-      Picker("MenuCue Language", selection: $pendingLanguage) {
-        ForEach(AppLanguage.allCases) { language in
-          Text(language.displayName).tag(language)
+        SettingsRow(
+          L10n.string("Relaunch"),
+          desc: L10n.string(
+            "Changing the app language relaunches MenuCue. It does not change the macOS language."
+          )
+        ) {
+          Button {
+            languageService.apply(pendingLanguage)
+          } label: {
+            Label(
+              L10n.string(
+                languageService.isRelaunching ? "Relaunching..." : "Apply and Relaunch"
+              ),
+              systemImage: "arrow.clockwise"
+            )
+          }
+          .buttonStyle(.borderedProminent)
+          .controlSize(.small)
+          .disabled(
+            pendingLanguage == languageService.selectedLanguage || languageService.isRelaunching
+          )
         }
       }
-      .labelsHidden()
-      .pickerStyle(.segmented)
-      .frame(maxWidth: 460)
-
-      Text("Changing the app language relaunches MenuCue. It does not change the macOS language.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-      Button {
-        languageService.apply(pendingLanguage)
-      } label: {
-        Label(
-          L10n.string(
-            languageService.isRelaunching ? "Relaunching..." : "Apply and Relaunch"
-          ),
-          systemImage: "arrow.clockwise"
-        )
-      }
-      .disabled(
-        pendingLanguage == languageService.selectedLanguage || languageService.isRelaunching
-      )
 
       if let errorMessage = languageService.errorMessage {
-        Text(errorMessage)
-          .font(.caption)
-          .foregroundStyle(.red)
+        SettingsBanner(
+          errorMessage,
+          systemImage: "exclamationmark.triangle.fill",
+          tint: .red
+        )
+        .padding(.horizontal, SettingsMetrics.rowPaddingH)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
       }
     }
   }
 
-  private var globalLanguageSection: some View {
-    SettingsGroup(spacing: 10) {
-      Text("macOS Language")
-        .font(.headline)
-      Text("Global language changes are managed by macOS and may require signing out.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      Button {
-        NSWorkspace.shared.open(LanguageRegionLinks.systemLanguageSettings)
-      } label: {
-        Label("Open Language & Region Settings", systemImage: "gearshape")
+  /// `SettingsRowSegmented` speaks in indices, while the pending selection is a real
+  /// `AppLanguage`. The mapping keeps `pendingLanguage` as the single source of truth.
+  private var languageSelection: Binding<Int> {
+    Binding(
+      get: { AppLanguage.allCases.firstIndex(of: pendingLanguage) ?? 0 },
+      set: { index in
+        guard AppLanguage.allCases.indices.contains(index) else { return }
+        pendingLanguage = AppLanguage.allCases[index]
       }
-    }
+    )
   }
 }
 
@@ -211,65 +209,65 @@ struct SystemTimeZoneSettingsView: View {
       }
   }
 
+  /// Card body for the Time & Region pane: that pane's card owns the title and the
+  /// explanation, so this view starts at the current value.
   private var systemTimeZoneSection: some View {
-    SettingsGroup(spacing: 12) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text("macOS System Time Zone")
-            .font(.headline)
-          Text("Changes the time zone for all apps and system services on this Mac.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          Text(timeZoneSelection.observedIdentifier)
-            .font(.caption.monospaced())
-            .foregroundStyle(.secondary)
+    VStack(alignment: .leading, spacing: 0) {
+      SettingsRows {
+        SettingsRow(L10n.string("Current System Time Zone")) {
+          HStack(spacing: 10) {
+            SettingsChip(timeZoneSelection.observedIdentifier)
+            Button {
+              refreshSystemTimeZone()
+            } label: {
+              Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.borderless)
+            .help("Refresh system time zone")
+            .disabled(powerHelper.isWorking)
+          }
         }
-        Spacer()
-        Button {
-          refreshSystemTimeZone()
-        } label: {
-          Image(systemName: "arrow.clockwise")
+      }
+
+      VStack(alignment: .leading, spacing: 10) {
+        TextField("Search time zones", text: $timeZoneSearch)
+          .textFieldStyle(.roundedBorder)
+
+        List(filteredTimeZones, selection: timeZoneSelectionBinding) { option in
+          VStack(alignment: .leading, spacing: 2) {
+            Text(option.displayName)
+            Text(option.id)
+              .font(.caption.monospaced())
+              .foregroundStyle(.secondary)
+          }
+          .tag(option.id)
         }
-        .buttonStyle(.borderless)
-        .help("Refresh system time zone")
+        .frame(height: 210)
         .disabled(powerHelper.isWorking)
-      }
 
-      TextField("Search time zones", text: $timeZoneSearch)
-        .textFieldStyle(.roundedBorder)
+        HStack(spacing: 10) {
+          Button(timeZoneActionTitle, action: performTimeZoneAction)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .disabled(timeZoneAction == .disabled)
 
-      List(filteredTimeZones, selection: timeZoneSelectionBinding) { option in
-        VStack(alignment: .leading, spacing: 2) {
-          Text(option.displayName)
-          Text(option.id)
-            .font(.caption.monospaced())
-            .foregroundStyle(.secondary)
+          if powerHelper.isWorking {
+            MotionAwareProgressIndicator()
+          }
+          SettingsChip(helperStatusText, tint: .secondary)
         }
-        .tag(option.id)
-      }
-      .frame(height: 210)
-      .disabled(powerHelper.isWorking)
 
-      HStack(spacing: 10) {
-        Button(timeZoneActionTitle, action: performTimeZoneAction)
-          .disabled(timeZoneAction == .disabled)
-
-        if powerHelper.isWorking {
-          MotionAwareProgressIndicator()
+        if let feedbackMessage {
+          Text(feedbackMessage)
+            .font(.caption)
+            .foregroundStyle(feedbackIsError ? Color.red : Color.green)
+            .fixedSize(horizontal: false, vertical: true)
         }
       }
-
-      Text(helperStatusText)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-      if let feedbackMessage {
-        Text(feedbackMessage)
-          .font(.caption)
-          .foregroundStyle(feedbackIsError ? Color.red : Color.green)
-          .fixedSize(horizontal: false, vertical: true)
-      }
+      .padding(.horizontal, SettingsMetrics.rowPaddingH)
+      .padding(.vertical, SettingsMetrics.rowPaddingV)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(Color.settingsCardSurface)
     }
   }
 

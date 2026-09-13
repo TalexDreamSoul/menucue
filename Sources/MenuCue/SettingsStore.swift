@@ -22,6 +22,7 @@ final class SettingsStore {
         static let metricsSampling = "metricsSampling.v1"
         static let animationQuality = "animationQuality.v1"
         static let trackpadGestureSettings = "trackpadGestureSettings.v1"
+        static let hotkeysGloballyEnabled = "hotkeysGloballyEnabled.v1"
         static let hotkeyBindings = "hotkeyBindings.v1"
         static let hotkeyBuiltInDefaultsVersion = "hotkeyBuiltInDefaultsVersion.v1"
         static let powerMonitoringEnabled = "powerMonitoringEnabled.v1"
@@ -102,6 +103,7 @@ final class SettingsStore {
             metricsSampling: loadMetricsSampling(),
             animationQuality: loadAnimationQuality(),
             trackpadGestureSettings: loadTrackpadGestureSettings(),
+            hotkeysGloballyEnabled: loadHotkeysGloballyEnabled(),
             hotkeyBindings: loadHotkeyBindings(),
             powerMonitoringEnabled: defaults.bool(forKey: Key.powerMonitoringEnabled),
             notificationSettings: loadNotificationSettings(),
@@ -148,6 +150,7 @@ final class SettingsStore {
         if let data = try? encoder.encode(settings.trackpadGestureSettings.normalized) {
             defaults.set(data, forKey: Key.trackpadGestureSettings)
         }
+        defaults.set(settings.hotkeysGloballyEnabled, forKey: Key.hotkeysGloballyEnabled)
         if let data = try? encoder.encode(
             AppSettings.normalizedHotkeyBindings(settings.hotkeyBindings)
         ) {
@@ -199,6 +202,15 @@ final class SettingsStore {
             return .default
         }
         return settings.normalized
+    }
+
+    /// Absent means enabled: the switch arrived after shortcuts already worked, and a stored
+    /// list must not turn itself off just because nobody ever touched the new toggle.
+    private func loadHotkeysGloballyEnabled() -> Bool {
+        guard let stored = defaults.object(forKey: Key.hotkeysGloballyEnabled) as? Bool else {
+            return true
+        }
+        return stored
     }
 
     private func loadHotkeyBindings() -> [HotkeyBinding] {

@@ -153,14 +153,26 @@ enum HotkeyBuiltInDefaults {
     binding("77777777-7777-4777-8777-777777777777", 30, "]", [.command, .option], ActionCatalog.tabNavigationItemID(.next)),
   ]
 
-  static func merged(with existing: [HotkeyBinding]) -> [HotkeyBinding] {
-    var result = existing
-    for binding in bindings where !result.contains(where: { candidate in
-      candidate.id == binding.id || candidate.shortcut.claimsSameKey(as: binding.shortcut)
-    }) {
+  /// The defaults the given list does not already cover. A default counts as covered when its
+  /// identifier survives or when some binding already claims its key — the user's own shortcut
+  /// keeps the key it claimed, which is what makes restoring non-destructive.
+  static func missing(from existing: [HotkeyBinding]) -> [HotkeyBinding] {
+    var result: [HotkeyBinding] = []
+    var claimed = existing
+    for binding in bindings {
+      guard
+        !claimed.contains(where: {
+          $0.id == binding.id || $0.shortcut.claimsSameKey(as: binding.shortcut)
+        })
+      else { continue }
       result.append(binding)
+      claimed.append(binding)
     }
-    return AppSettings.normalizedHotkeyBindings(result)
+    return result
+  }
+
+  static func merged(with existing: [HotkeyBinding]) -> [HotkeyBinding] {
+    AppSettings.normalizedHotkeyBindings(existing + missing(from: existing))
   }
 
   private static func binding(

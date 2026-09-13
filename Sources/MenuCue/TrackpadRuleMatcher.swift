@@ -83,6 +83,33 @@ enum TrackpadGeometry {
     return points.map { center.distance(to: $0) }.reduce(0, +) / Double(points.count)
   }
 
+  /// Continuous rules are translational gestures. A pinch changes the spread *and* moves
+  /// at least one pair of contacts in opposing directions. Spread alone is insufficient:
+  /// two fingers travelling together at slightly different speeds are still a valid edge
+  /// or anchored slide.
+  static func isPinching(
+    from initial: [TrackpadPoint],
+    to current: [TrackpadPoint],
+    minimumSpreadChange: Double
+  ) -> Bool {
+    guard initial.count == current.count, initial.count >= 2,
+      abs(spread(current) - spread(initial)) >= minimumSpreadChange
+    else { return false }
+
+    for left in initial.indices {
+      for right in initial.indices where right > left {
+        let leftDelta = (x: current[left].x - initial[left].x, y: current[left].y - initial[left].y)
+        let rightDelta = (x: current[right].x - initial[right].x, y: current[right].y - initial[right].y)
+        if leftDelta.x * rightDelta.x + leftDelta.y * rightDelta.y
+          < -(minimumSpreadChange * minimumSpreadChange)
+        {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   static func velocity(distance: Double, duration: TimeInterval) -> Double {
     distance / max(0.001, duration)
   }

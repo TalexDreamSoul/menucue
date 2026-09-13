@@ -26,7 +26,11 @@ actor NotificationDeliveryDispatcher {
   }
 
   func update(settings: NotificationSettings) {
+    let wasGloballyEnabled = self.settings.isGloballyEnabled
     self.settings = settings
+    // Switching the master switch back on has to resume a paused outbox: nothing else kicks the
+    // dispatcher until the next observation arrives.
+    if settings.isGloballyEnabled, !wasGloballyEnabled { kick() }
   }
 
   func kick() {
@@ -41,11 +45,15 @@ actor NotificationDeliveryDispatcher {
   private func drainLoop() async {
     while needsDrain {
       needsDrain = false
+      // The master switch pauses delivery, not the outbox: queued alerts survive and flush once
+      // alerts are turned back on.
+      guard settings.isGloballyEnabled else { break }
       let channels = configuration.makeEnabledChannels(settings: settings)
       let coordinator = NotificationDeliveryCoordinator(outbox: store, channels: channels, now: now)
       try? await coordinator.drainOnce()
     }
     isDraining = false
+    guard settings.isGloballyEnabled else { return }
     scheduleNextRetry()
   }
 
