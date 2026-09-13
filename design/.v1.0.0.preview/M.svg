@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="911" viewBox="0 0 900 911">
+<rect width="900" height="911" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="911.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="911.0" rx="0" fill="#191A1F"/>
+<ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
+<ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
+<ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
+<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
+<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="12.0" y="458.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">时间与区域</text>
+<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">时间与区域</text>
+<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">新增页：把应用显示时区、macOS 系统时区与语言地区从菜单栏页和通用页收回来。</text>
+<rect x="236.0" y="79.0" width="640.0" height="57.0" rx="9" fill="#26272D"/>
+<rect x="236.0" y="79.0" width="640.0" height="57.0" rx="9" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<rect x="252.2" y="102.2" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="275.0" y="103.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">这些设置会改变整台 Mac</text>
+<text x="275.0" y="122.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">系统时区由 Power Helper 写入，影响所有应用与系统服务。</text>
+<rect x="756.0" y="92.5" width="106.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="770.0" y="112.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">查看助手状态</text>
+<rect x="236.0" y="150.0" width="640.0" height="166.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="176.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue 显示时区</text>
+<text x="250.0" y="195.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只影响 MenuCue 内的日期与时间，不改变 macOS。</text>
+<text x="250.0" y="227.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示时区</text>
+<rect x="671.0" y="208.0" width="191.0" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="671.0" y="208.0" width="191.0" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="681.0" y="227.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">Asia/Shanghai (GMT+08:00)</text>
+<rect x="841.8" y="218.3" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="247.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="272.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">回退规则</text>
+<text x="250.0" y="291.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">第一项时钟是它的兜底；时区不可用时回落到系统时区。</text>
+<rect x="802.0" y="265.5" width="60.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="810.0" y="280.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">自动回退</text>
+<rect x="236.0" y="330.0" width="640.0" height="319.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="356.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">macOS 系统时区</text>
+<text x="250.0" y="375.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">改的是整台 Mac，需要 Power Helper。</text>
+<text x="250.0" y="408.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前系统时区</text>
+<rect x="340.0" y="392.5" width="154.4" height="21.0" rx="5" fill="#1B1C21"/>
+<text x="348.0" y="407.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#F5F5F7">Asia/Shanghai (GMT+08:00)</text>
+<rect x="506.4" y="388.0" width="54.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="520.4" y="408.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">刷新</text>
+<rect x="236.0" y="428.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="439.0" width="220.0" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="260.9" y="448.9" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="278.0" y="458.2" font-family="Inter" font-size="12" font-weight="t" letter-spacing="0" fill="#90919A">搜索时区</text>
+<rect x="480.0" y="443.0" width="134.4" height="21.0" rx="5" fill="#2F3037"/>
+<text x="488.0" y="458.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">按名称或 IANA 标识搜索</text>
+<rect x="236.0" y="478.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="479.0" width="640.0" height="53.0" rx="0" fill="#1B1C21"/>
+<rect x="252.1" y="500.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="274.0" y="502.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">Tokyo (GMT+09:00)</text>
+<text x="274.0" y="520.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">Asia/Tokyo</text>
+<rect x="824.0" y="495.0" width="38.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="832.0" y="510.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">选择</text>
+<rect x="236.0" y="532.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="533.0" width="640.0" height="53.0" rx="0" fill="#1B1C21"/>
+<rect x="252.1" y="554.6" width="9.8" height="9.8" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="274.0" y="556.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">Los Angeles (GMT-07:00)</text>
+<text x="274.0" y="574.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">America/Los_Angeles</text>
+<rect x="824.0" y="549.0" width="38.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="832.0" y="564.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">选择</text>
+<rect x="236.0" y="586.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="597.0" width="80.0" height="30.0" rx="7" fill="#0A84FF"/>
+<text x="264.0" y="617.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">应用时区</text>
+<rect x="340.0" y="601.5" width="71.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="348.0" y="616.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">助手已启用</text>
+<rect x="421.0" y="601.5" width="152.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="430.6" y="608.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="444.0" y="616.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">立即生效并影响所有应用</text>
+<rect x="236.0" y="663.0" width="640.0" height="230.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="689.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">macOS 语言与地区</text>
+<text x="250.0" y="708.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">原先混在「通用」里；这里只做跳转，不复制系统设置。</text>
+<text x="250.0" y="735.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">系统语言</text>
+<text x="250.0" y="754.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">决定 macOS 与应用默认语言。</text>
+<rect x="802.0" y="728.5" width="60.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="810.0" y="743.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">简体中文</text>
+<rect x="236.0" y="767.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="792.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">地区</text>
+<text x="250.0" y="811.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">决定日期、数字与货币格式。</text>
+<rect x="824.0" y="785.5" width="38.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="832.0" y="800.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#A6A7AF">中国</text>
+<rect x="236.0" y="824.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="849.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">更多设置</text>
+<text x="250.0" y="868.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">MenuCue 不在应用内复制系统语言与地区。</text>
+<text x="790.0" y="857.7" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#0A84FF">打开系统设置</text>
+<line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
+<text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
+</svg>

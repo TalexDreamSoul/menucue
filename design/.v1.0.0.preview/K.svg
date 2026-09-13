@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="2317" viewBox="0 0 900 2317">
+<rect width="900" height="2317" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="2317.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="2317.0" rx="0" fill="#191A1F"/>
+<ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
+<ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
+<ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
+<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
+<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="12.0" y="362.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">提醒规则</text>
+<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">提醒规则</text>
+<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">监控系统指标与深色唤醒，按规则投递到外部渠道；与输入无关。</text>
+<rect x="755.2" y="30.0" width="120.8" height="23.0" rx="12" fill="#26272D"/>
+<ellipse cx="768.7" cy="41.5" rx="3.5" ry="3.5" fill="#32D74B"/>
+<text x="778.2" y="46.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#A6A7AF">采样中 · 2 条规则</text>
+<rect x="236.0" y="79.0" width="640.0" height="216.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="105.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">运行状态</text>
+<text x="250.0" y="124.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">源码没有总开关，只能逐渠道、逐规则关闭——v1.0.0 补一个。</text>
+<text x="250.0" y="151.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">启用告警监控</text>
+<text x="250.0" y="170.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">关闭后保留全部规则与渠道配置，但不再采样、不再投递。</text>
+<rect x="826.0" y="145.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="155.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="183.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="238.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">当前</text>
+<rect x="755.5" y="194.0" width="106.5" height="21.0" rx="5" fill="#0A84FF" fill-opacity="0.149"/>
+<rect x="765.2" y="200.7" width="7.7" height="7.7" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="778.5" y="209.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#0A84FF">1 个渠道已就绪</text>
+<rect x="768.5" y="223.0" width="80.5" height="21.0" rx="5" fill="#2F3037"/>
+<text x="776.5" y="238.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">2 条规则启用</text>
+<rect x="776.8" y="252.0" width="64.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="786.4" y="258.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="799.8" y="267.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">采样中</text>
+<rect x="236.0" y="309.0" width="640.0" height="110.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="335.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">投递渠道</text>
+<text x="250.0" y="354.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">渠道必须先在钥匙串保存凭据才能启用；关闭渠道会从所有规则里移除它。</text>
+<rect x="252.1" y="377.1" width="9.8" height="9.8" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="272.0" y="387.2" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">飞书</text>
+<rect x="305.0" y="371.5" width="64.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="314.6" y="378.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="328.0" y="386.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已就绪</text>
+<rect x="377.0" y="372.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="387.0" cy="382.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="421.0" y="367.0" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="435.0" y="387.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">收起配置</text>
+<rect x="509.0" y="367.0" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="523.0" y="387.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">发送测试</text>
+<rect x="597.0" y="371.5" width="75.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="606.6" y="378.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="620.0" y="386.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">测试成功</text>
+<rect x="236.0" y="433.0" width="640.0" height="258.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="459.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">飞书配置</text>
+<text x="250.0" y="498.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">Webhook URL</text>
+<text x="250.0" y="517.6" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">必填；保存在系统钥匙串，界面只显示「已保存」。</text>
+<rect x="790.0" y="473.0" width="64.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="799.6" y="479.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="813.0" y="488.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已保存</text>
+<rect x="782.0" y="502.0" width="80.0" height="30.0" rx="7" fill="#26272D"/>
+<text x="796.0" y="522.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">移除凭据</text>
+<rect x="236.0" y="542.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="578.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">签名密钥</text>
+<text x="250.0" y="597.6" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">可选；用于校验回调签名。</text>
+<rect x="790.0" y="553.0" width="64.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="799.6" y="559.6" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="813.0" y="568.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已保存</text>
+<rect x="782.0" y="582.0" width="80.0" height="30.0" rx="7" fill="#26272D"/>
+<text x="796.0" y="602.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FF453A">移除凭据</text>
+<rect x="236.0" y="622.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="647.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">移除必填凭据的后果</text>
+<text x="250.0" y="666.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">渠道被同时禁用，并从全部规则中移除，且没有撤销。</text>
+<rect x="787.0" y="640.5" width="75.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="796.6" y="647.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#FFD60A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="810.0" y="655.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#FFD60A">不可撤销</text>
+<rect x="236.0" y="705.0" width="640.0" height="383.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="731.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">其他渠道</text>
+<text x="250.0" y="750.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">结构相同：凭据 → 启用 → 测试。</text>
+<text x="250.0" y="802.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">Webhook</text>
+<text x="250.0" y="821.6" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">Endpoint URL 必填，Bearer token 可选。</text>
+<rect x="810.5" y="763.0" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="818.5" y="778.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">未配置</text>
+<rect x="817.0" y="792.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="827.0" cy="802.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="808.0" y="820.0" width="54.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="822.0" y="840.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">配置</text>
+<rect x="236.0" y="860.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="910.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">Bark</text>
+<text x="250.0" y="929.6" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">Device key 必填；Server URL 默认 https://api.day.app。</text>
+<rect x="810.5" y="871.0" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="818.5" y="886.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">未配置</text>
+<rect x="817.0" y="900.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="827.0" cy="910.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="808.0" y="928.0" width="54.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="822.0" y="948.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">配置</text>
+<rect x="236.0" y="968.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1018.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">Telegram</text>
+<text x="250.0" y="1037.6" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">Bot token + Chat ID 必填，Topic ID 可选。</text>
+<rect x="810.5" y="979.0" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="818.5" y="994.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">未配置</text>
+<rect x="817.0" y="1008.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="827.0" cy="1018.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="808.0" y="1036.0" width="54.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="822.0" y="1056.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">配置</text>
+<rect x="236.0" y="1102.0" width="640.0" height="205.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="1128.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">告警规则</text>
+<text x="250.0" y="1147.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">阈值按指标自己的单位；百分比类指标内部按 0–1 比较。</text>
+<rect x="782.0" y="1117.0" width="80.0" height="30.0" rx="7" fill="#0A84FF"/>
+<text x="796.0" y="1137.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">新建规则</text>
+<rect x="236.0" y="1150.0" width="640.0" height="29.0" rx="0" fill="#1B1C21"/>
+<text x="250.0" y="1169.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">规则</text>
+<text x="378.0" y="1169.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">指标</text>
+<text x="520.0" y="1169.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">条件</text>
+<text x="682.0" y="1169.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">持续</text>
+<text x="764.0" y="1169.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A">冷却</text>
+<text x="836.0" y="1169.1" font-family="Inter" font-size="11" font-weight="h" letter-spacing="0" fill="#90919A"></text>
+<text x="250.0" y="1203.2" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">CPU 使用率</text>
+<text x="378.0" y="1202.7" font-family="SF Mono" font-size="11.5" font-weight="m" letter-spacing="0" fill="#90919A">cpu.total.busy</text>
+<text x="520.0" y="1202.7" font-family="Inter" font-size="12" font-weight="c" letter-spacing="0" fill="#F5F5F7">高于 90%</text>
+<text x="682.0" y="1202.7" font-family="Inter" font-size="12" font-weight="d" letter-spacing="0" fill="#90919A">60 秒</text>
+<text x="764.0" y="1202.7" font-family="Inter" font-size="12" font-weight="cd" letter-spacing="0" fill="#90919A">0 秒</text>
+<rect x="836.0" y="1188.0" width="26.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="846.0" cy="1198.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="1217.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1242.2" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">电池电量</text>
+<text x="378.0" y="1241.7" font-family="SF Mono" font-size="11.5" font-weight="m2" letter-spacing="0" fill="#90919A">battery.level</text>
+<text x="520.0" y="1241.7" font-family="Inter" font-size="12" font-weight="c2" letter-spacing="0" fill="#F5F5F7">低于 20%</text>
+<text x="682.0" y="1241.7" font-family="Inter" font-size="12" font-weight="d2" letter-spacing="0" fill="#90919A">30 秒</text>
+<text x="764.0" y="1241.7" font-family="Inter" font-size="12" font-weight="cd2" letter-spacing="0" fill="#90919A">300 秒</text>
+<rect x="836.0" y="1227.0" width="26.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="846.0" cy="1237.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="1256.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1281.2" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">深色唤醒</text>
+<text x="378.0" y="1280.7" font-family="SF Mono" font-size="11.5" font-weight="m3" letter-spacing="0" fill="#90919A">event.darkWake</text>
+<text x="520.0" y="1280.7" font-family="Inter" font-size="12" font-weight="c3" letter-spacing="0" fill="#F5F5F7">每次发生</text>
+<text x="682.0" y="1280.7" font-family="Inter" font-size="12" font-weight="d3" letter-spacing="0" fill="#90919A">—</text>
+<text x="764.0" y="1280.7" font-family="Inter" font-size="12" font-weight="cd3" letter-spacing="0" fill="#90919A">0 秒</text>
+<rect x="836.0" y="1266.0" width="26.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="846.0" cy="1276.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="1321.0" width="640.0" height="694.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="1347.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">规则编辑器 · CPU 使用率</text>
+<text x="250.0" y="1366.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">改动只在「保存规则」时落库；界面不显示未保存状态。</text>
+<text x="250.0" y="1399.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">规则名称</text>
+<rect x="780.1" y="1379.0" width="81.9" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="780.1" y="1379.0" width="81.9" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="790.1" y="1399.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">CPU 使用率</text>
+<rect x="236.0" y="1420.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1450.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">指标</text>
+<rect x="698.4" y="1431.0" width="163.6" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="698.4" y="1431.0" width="163.6" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="708.4" y="1450.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">cpu.total.busy · 百分比</text>
+<rect x="841.8" y="1441.3" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="1470.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1501.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">条件</text>
+<rect x="288.0" y="1481.5" width="54.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="302.0" y="1501.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">高于</text>
+<rect x="350.0" y="1481.0" width="33.4" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="350.0" y="1481.0" width="33.4" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="360.0" y="1501.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">90</text>
+<rect x="391.4" y="1486.0" width="21.7" height="21.0" rx="5" fill="#2F3037"/>
+<text x="399.4" y="1501.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">%</text>
+<rect x="236.0" y="1522.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1547.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">持续</text>
+<text x="250.0" y="1566.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">连续满足 60 秒后才告警。</text>
+<rect x="828.6" y="1535.5" width="33.4" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="828.6" y="1535.5" width="33.4" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="838.6" y="1555.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">60</text>
+<rect x="236.0" y="1579.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1604.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">恢复阈值</text>
+<text x="250.0" y="1623.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">留空则复用告警阈值。</text>
+<rect x="828.6" y="1592.5" width="33.4" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="828.6" y="1592.5" width="33.4" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="838.6" y="1612.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">75</text>
+<rect x="236.0" y="1636.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1661.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">恢复持续</text>
+<text x="250.0" y="1680.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">连续满足 60 秒后发送恢复消息。</text>
+<rect x="828.6" y="1649.5" width="33.4" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="828.6" y="1649.5" width="33.4" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="838.6" y="1669.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">60</text>
+<rect x="236.0" y="1693.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1718.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">冷却</text>
+<text x="250.0" y="1737.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">两次告警之间的最小间隔，0 表示不限制。</text>
+<rect x="835.3" y="1706.5" width="26.7" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="835.3" y="1706.5" width="26.7" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="845.3" y="1726.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">0</text>
+<rect x="236.0" y="1750.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1776.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">投递到</text>
+<rect x="303.0" y="1764.0" width="15.0" height="15.0" rx="4" fill="#0A84FF"/>
+<rect x="304.5" y="1768.0" width="7.0" height="7.0" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="325.0" y="1776.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">飞书</text>
+<rect x="363.0" y="1764.0" width="15.0" height="15.0" rx="4" fill="#1E1F24"/>
+<rect x="363.0" y="1764.0" width="15.0" height="15.0" rx="4" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="385.0" y="1776.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">Webhook</text>
+<rect x="446.8" y="1764.0" width="15.0" height="15.0" rx="4" fill="#1E1F24"/>
+<rect x="446.8" y="1764.0" width="15.0" height="15.0" rx="4" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="468.8" y="1776.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">Bark</text>
+<rect x="506.3" y="1764.0" width="15.0" height="15.0" rx="4" fill="#1E1F24"/>
+<rect x="506.3" y="1764.0" width="15.0" height="15.0" rx="4" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="528.3" y="1776.2" font-family="Inter" font-size="12" font-weight="n" letter-spacing="0" fill="#F5F5F7">Telegram</text>
+<rect x="592.2" y="1761.0" width="115.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="600.2" y="1776.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">未启用的渠道不可选</text>
+<rect x="236.0" y="1792.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1823.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">消息</text>
+<rect x="288.0" y="1803.0" width="98.0" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="290.0" y="1805.0" width="46.0" height="27.0" rx="5" fill="#0A84FF"/>
+<text x="301.0" y="1823.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">告警</text>
+<text x="349.0" y="1823.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">恢复</text>
+<rect x="398.0" y="1803.5" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="412.0" y="1823.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">插入变量</text>
+<rect x="490.0" y="1808.0" width="265.3" height="21.0" rx="5" fill="#1B1C21"/>
+<rect x="499.6" y="1814.7" width="7.7" height="7.7" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="513.0" y="1823.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">{{rule.name}} · {{metric.value}} · {{device.name}}</text>
+<rect x="236.0" y="1844.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1875.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">标题模板</text>
+<rect x="775.3" y="1855.0" width="86.7" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="775.3" y="1855.0" width="86.7" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="785.3" y="1875.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">{{rule.name}}</text>
+<rect x="236.0" y="1896.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1927.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">正文模板</text>
+<rect x="640.4" y="1907.0" width="221.6" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="640.4" y="1907.0" width="221.6" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="650.4" y="1927.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">{{device.name}} 告警：{{metric.value}}</text>
+<rect x="236.0" y="1948.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="1949.0" width="640.0" height="54.0" rx="8" fill="#1B1C21"/>
+<text x="250.0" y="1980.6" font-family="Inter" font-size="11" font-weight="l" letter-spacing="0" fill="#90919A">预览</text>
+<text x="284.0" y="1972.2" font-family="Inter" font-size="12" font-weight="500" letter-spacing="0" fill="#F5F5F7">CPU 使用率</text>
+<text x="284.0" y="1990.1" font-family="Inter" font-size="11" font-weight="b" letter-spacing="0" fill="#90919A">MacBook Pro 告警：93%</text>
+<rect x="236.0" y="2029.0" width="640.0" height="155.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="2055.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">设备身份</text>
+<text x="250.0" y="2083.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">设备名</text>
+<text x="250.0" y="2102.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">留空则使用系统主机名。</text>
+<rect x="772.2" y="2071.5" width="89.8" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="772.2" y="2071.5" width="89.8" height="31.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="782.2" y="2091.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">MacBook Pro</text>
+<rect x="236.0" y="2115.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="2140.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">推送里显示的来源</text>
+<text x="250.0" y="2159.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">MacBook Pro</text>
+<rect x="236.0" y="2198.0" width="640.0" height="101.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="2224.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">源码里不存在的部分</text>
+<text x="250.0" y="2243.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">不要在界面上暗示已经支持。</text>
+<rect x="250.0" y="2256.0" width="71.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="258.0" y="2271.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">无静默时段</text>
+<rect x="329.0" y="2256.0" width="93.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="337.0" y="2271.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">无投递历史界面</text>
+<rect x="430.0" y="2256.0" width="137.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="438.0" y="2271.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">无全局开关（本页已补）</text>
+<line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
+<text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
+</svg>

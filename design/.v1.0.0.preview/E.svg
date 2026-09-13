@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1237" viewBox="0 0 900 1237">
+<rect width="900" height="1237" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="1237.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="1237.0" rx="0" fill="#191A1F"/>
+<ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
+<ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
+<ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
+<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
+<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="12.0" y="170.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">日历</text>
+<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">通用</text>
+<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">日历</text>
+<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">事件来源、月视图与节假日；权限状态放在最上面。</text>
+<rect x="755.2" y="30.0" width="120.8" height="23.0" rx="12" fill="#26272D"/>
+<ellipse cx="768.7" cy="41.5" rx="3.5" ry="3.5" fill="#32D74B"/>
+<text x="778.2" y="46.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#A6A7AF">已授权 · 3 个日历</text>
+<rect x="236.0" y="79.0" width="640.0" height="172.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="105.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">日历访问</text>
+<text x="250.0" y="124.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">MenuCue 只读取事件，不写入、不修改。</text>
+<rect x="252.4" y="148.9" width="11.2" height="11.2" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="276.0" y="151.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">完全访问已授权</text>
+<text x="276.0" y="169.1" font-family="Inter" font-size="11" font-weight="d" letter-spacing="0" fill="#90919A">3 个日历源 · 最近刷新 11:23</text>
+<rect x="236.0" y="182.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="207.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">权限被拒绝时</text>
+<text x="250.0" y="226.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">本页只保留本卡，事件来源与月视图隐藏，并给出打开系统设置的入口。</text>
+<rect x="780.0" y="200.5" width="82.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="788.0" y="215.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">降级为空状态</text>
+<rect x="236.0" y="265.0" width="640.0" height="235.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="291.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">事件来源</text>
+<text x="250.0" y="310.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">选择「仅选定」后可逐个日历开关。</text>
+<text x="250.0" y="343.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示范围</text>
+<rect x="728.0" y="323.0" width="134.0" height="31.0" rx="7" fill="#1B1C21"/>
+<rect x="730.0" y="325.0" width="70.0" height="27.0" rx="5" fill="#0A84FF"/>
+<text x="741.0" y="343.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">全部日历</text>
+<text x="813.0" y="343.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">仅选定</text>
+<rect x="236.0" y="364.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="377.0" width="15.0" height="15.0" rx="4" fill="#0A84FF"/>
+<rect x="251.5" y="381.0" width="7.0" height="7.0" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<ellipse cx="278.5" cy="384.5" rx="4.5" ry="4.5" fill="#FF9F0A"/>
+<text x="292.0" y="389.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">工作</text>
+<rect x="797.4" y="374.0" width="64.6" height="21.0" rx="5" fill="#2F3037"/>
+<text x="805.4" y="389.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">12 个事件</text>
+<rect x="236.0" y="404.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="405.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="406.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="419.0" width="15.0" height="15.0" rx="4" fill="#0A84FF"/>
+<rect x="251.5" y="423.0" width="7.0" height="7.0" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<ellipse cx="278.5" cy="426.5" rx="4.5" ry="4.5" fill="#0A84FF"/>
+<text x="292.0" y="431.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#F5F5F7">个人</text>
+<rect x="803.5" y="416.0" width="58.5" height="21.0" rx="5" fill="#2F3037"/>
+<text x="811.5" y="431.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">4 个事件</text>
+<rect x="236.0" y="446.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="447.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="236.0" y="448.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<rect x="250.0" y="461.0" width="15.0" height="15.0" rx="4" fill="#1E1F24"/>
+<rect x="250.0" y="461.0" width="15.0" height="15.0" rx="4" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<ellipse cx="278.5" cy="468.5" rx="4.5" ry="4.5" fill="#BF5AF2"/>
+<text x="292.0" y="473.8" font-family="Inter" font-size="12.5" font-weight="500" letter-spacing="0" fill="#A6A7AF">订阅 · 节假日</text>
+<rect x="813.0" y="458.0" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="821.0" y="473.1" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">已关闭</text>
+<rect x="236.0" y="514.0" width="640.0" height="387.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="540.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">月视图</text>
+<text x="250.0" y="559.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">影响面板日历标签与仪表盘日历。</text>
+<text x="250.0" y="591.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">每周起始日</text>
+<rect x="798.0" y="572.0" width="64.0" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="798.0" y="572.0" width="64.0" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="808.0" y="591.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">周一</text>
+<rect x="841.8" y="582.3" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="611.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="636.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示农历</text>
+<text x="250.0" y="655.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">在日期下方显示农历日期。</text>
+<rect x="826.0" y="630.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="836.0" cy="640.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="668.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="698.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">全天事件</text>
+<rect x="774.0" y="679.0" width="88.0" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="774.0" y="679.0" width="88.0" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="784.0" y="698.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">保持原样</text>
+<rect x="841.8" y="689.3" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="718.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="743.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示日期距离</text>
+<text x="250.0" y="762.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">在日期旁显示「今天 / 3 天后」。</text>
+<rect x="826.0" y="737.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="747.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="775.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="800.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">显示月度统计</text>
+<text x="250.0" y="819.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">本月事件计数与工作日天数。</text>
+<rect x="826.0" y="794.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="804.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="832.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="857.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">工作日依据</text>
+<text x="250.0" y="876.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">决定月度统计中的工作日与调休。</text>
+<rect x="738.0" y="846.5" width="124.0" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="738.0" y="846.5" width="124.0" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="748.0" y="865.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">中国法定节假日</text>
+<rect x="841.8" y="856.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="915.0" width="640.0" height="155.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="941.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">刷新</text>
+<text x="250.0" y="969.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">自动刷新</text>
+<text x="250.0" y="988.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">监听系统日历变更并防抖 0.2 秒刷新；无需手动操作。</text>
+<rect x="798.0" y="962.5" width="64.0" height="21.0" rx="5" fill="#0A84FF" fill-opacity="0.149"/>
+<rect x="807.6" y="969.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#0A84FF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="821.0" y="977.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#0A84FF">已开启</text>
+<rect x="236.0" y="1001.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1026.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">立即刷新</text>
+<text x="250.0" y="1045.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">重新读取事件源并重算月度统计。</text>
+<rect x="808.0" y="1015.0" width="54.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="822.0" y="1035.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">刷新</text>
+<rect x="236.0" y="1084.0" width="640.0" height="135.0" rx="10" fill="#1B1C21"/>
+<text x="250.0" y="1110.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">未授权状态（变体）</text>
+<text x="250.0" y="1129.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">权限被拒绝或受限时本页整体降级为下面这一块。</text>
+<text x="250.0" y="1158.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">MenuCue 无法读取你的日历</text>
+<text x="250.0" y="1177.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">在「隐私与安全性 › 日历」中允许 MenuCue 访问，即可恢复事件来源与月视</text>
+<text x="250.0" y="1192.3" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">图。</text>
+<rect x="638.0" y="1154.5" width="106.0" height="30.0" rx="7" fill="#0A84FF"/>
+<text x="652.0" y="1174.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">打开系统设置</text>
+<rect x="756.0" y="1154.5" width="106.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="770.0" y="1174.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">再次请求访问</text>
+<line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
+<text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
+</svg>

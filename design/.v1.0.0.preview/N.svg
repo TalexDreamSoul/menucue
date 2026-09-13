@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1382" viewBox="0 0 900 1382">
+<rect width="900" height="1382" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="900.0" height="1382.0" rx="10" fill="#1E1F24"/>
+<rect x="0.0" y="0.0" width="212.0" height="1382.0" rx="0" fill="#191A1F"/>
+<ellipse cx="19.5" cy="21.5" rx="5.5" ry="5.5" fill="#FF5F57"/>
+<ellipse cx="37.5" cy="21.5" rx="5.5" ry="5.5" fill="#FEBC2E"/>
+<ellipse cx="55.5" cy="21.5" rx="5.5" ry="5.5" fill="#28C840"/>
+<rect x="12.0" y="43.0" width="188.0" height="29.0" rx="7" fill="#26272D"/>
+<rect x="22.9" y="53.0" width="9.1" height="9.1" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="40.0" y="62.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#90919A">搜索设置</text>
+<text x="21.0" y="99.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">显示</text>
+<rect x="23.2" y="115.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="126.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">菜单栏</text>
+<rect x="23.2" y="147.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="158.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">面板</text>
+<rect x="23.2" y="179.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="190.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">日历</text>
+<text x="21.0" y="227.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">交互与动作</text>
+<rect x="23.2" y="243.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="254.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">触控板</text>
+<rect x="23.2" y="275.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="286.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">快捷键</text>
+<rect x="23.2" y="307.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="318.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">动作库</text>
+<text x="21.0" y="355.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">提醒</text>
+<rect x="23.2" y="371.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="382.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">提醒规则</text>
+<text x="21.0" y="419.0" font-family="Inter" font-size="10" font-weight="normal" letter-spacing="1" fill="#90919A">系统</text>
+<rect x="23.2" y="435.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="446.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">电源</text>
+<rect x="23.2" y="467.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="478.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">时间与区域</text>
+<rect x="12.0" y="490.0" width="188.0" height="30.0" rx="6" fill="#0A84FF"/>
+<rect x="23.2" y="499.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="510.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">通用</text>
+<rect x="23.2" y="531.8" width="10.5" height="10.5" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="45.0" y="542.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#A6A7AF">关于</text>
+<rect x="238.6" y="25.1" width="11.9" height="11.9" rx="2" fill="none" stroke="#A6A7AF" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="261.0" y="38.9" font-family="Inter" font-size="19" font-weight="600" letter-spacing="0" fill="#F5F5F7">通用</text>
+<text x="236.0" y="61.2" font-family="Inter" font-size="12" font-weight="normal" letter-spacing="0" fill="#A6A7AF">启动、更新、外观、语言与 iCloud 同步——不再收纳其他页面的内容。</text>
+<rect x="236.0" y="79.0" width="640.0" height="196.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="105.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">启动</text>
+<text x="250.0" y="134.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">登录时启动 MenuCue</text>
+<rect x="826.0" y="119.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="129.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="149.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="174.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">状态</text>
+<text x="250.0" y="193.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">已登记为登录项。</text>
+<rect x="798.0" y="167.5" width="64.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="807.6" y="174.2" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="821.0" y="182.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已启用</text>
+<rect x="236.0" y="206.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="231.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">需要批准时</text>
+<text x="250.0" y="250.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">macOS 要求你在「登录项」中确认后才会自动启动。</text>
+<rect x="743.0" y="220.0" width="119.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="757.0" y="240.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">打开登录项设置</text>
+<rect x="236.0" y="289.0" width="640.0" height="263.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="315.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">更新</text>
+<text x="250.0" y="343.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">自动检查并下载更新</text>
+<text x="250.0" y="362.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">启用后每 12 小时检查一次，下载完成后提示安装。</text>
+<rect x="826.0" y="337.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="347.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="375.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="400.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">状态</text>
+<text x="250.0" y="419.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">当前版本已是最新。</text>
+<rect x="787.0" y="393.5" width="75.0" height="21.0" rx="5" fill="#2F3037"/>
+<rect x="796.6" y="400.1" width="7.7" height="7.7" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="810.0" y="408.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#32D74B">已是最新</text>
+<rect x="236.0" y="432.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="457.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">上次检查</text>
+<text x="250.0" y="476.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">今天 09:12</text>
+<rect x="236.0" y="489.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="520.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">手动检查</text>
+<rect x="782.0" y="500.0" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="796.0" y="520.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">检查更新</text>
+<rect x="236.0" y="566.0" width="640.0" height="332.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="592.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">外观</text>
+<text x="250.0" y="611.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">动效从「面板」搬到这里：它影响整个应用，不只是一个标签页。</text>
+<text x="250.0" y="643.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">外观</text>
+<rect x="774.0" y="624.0" width="88.0" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="774.0" y="624.0" width="88.0" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="784.0" y="643.2" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">跟随系统</text>
+<rect x="841.8" y="634.3" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="663.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="688.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">自动参考时区</text>
+<text x="250.0" y="707.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">「按时区自动」时使用：07:00–19:00 为浅色。</text>
+<rect x="743.8" y="677.5" width="118.2" height="29.0" rx="7" fill="#1B1C21"/>
+<rect x="743.8" y="677.5" width="118.2" height="29.0" rx="7" fill="none" stroke="#3A3B42" stroke-width="1"/>
+<text x="753.8" y="696.7" font-family="Inter" font-size="12" font-weight="value" letter-spacing="0" fill="#F5F5F7">Asia/Shanghai</text>
+<rect x="841.8" y="687.8" width="8.4" height="8.4" rx="2" fill="none" stroke="#90919A" stroke-width="1" stroke-dasharray="2 2"/>
+<rect x="236.0" y="720.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="745.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">应用到 macOS 系统外观</text>
+<text x="250.0" y="764.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">通过 AppleScript 修改系统外观，首次会请求自动化权限。</text>
+<rect x="826.0" y="739.0" width="36.0" height="20.0" rx="10" fill="#2F3037"/>
+<ellipse cx="836.0" cy="749.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="777.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="808.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">动画效果</text>
+<rect x="716.0" y="788.0" width="146.0" height="31.0" rx="7" fill="#1B1C21"/>
+<text x="729.0" y="808.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">完整</text>
+<rect x="766.0" y="790.0" width="46.0" height="27.0" rx="5" fill="#0A84FF"/>
+<text x="777.0" y="808.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">优雅</text>
+<text x="825.0" y="808.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">精简</text>
+<rect x="236.0" y="829.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="854.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">「优雅」是什么</text>
+<text x="250.0" y="873.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">保留主数值过渡，降低连续帧成本；系统开启「减弱动态效果」时按精简处理。</text>
+<rect x="824.0" y="847.5" width="38.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="832.0" y="862.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">默认</text>
+<rect x="236.0" y="912.0" width="640.0" height="168.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="938.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">MenuCue 语言</text>
+<text x="250.0" y="957.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">需要重启应用生效。</text>
+<text x="250.0" y="990.8" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">语言</text>
+<rect x="652.4" y="970.0" width="209.6" height="31.0" rx="7" fill="#1B1C21"/>
+<text x="665.4" y="990.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">跟随系统</text>
+<text x="737.4" y="990.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#A6A7AF">English</text>
+<rect x="790.0" y="972.0" width="70.0" height="27.0" rx="5" fill="#0A84FF"/>
+<text x="801.0" y="990.2" font-family="Inter" font-size="12" font-weight="l" letter-spacing="0" fill="#FFFFFF">简体中文</text>
+<rect x="236.0" y="1011.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1036.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">重启</text>
+<text x="250.0" y="1055.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">改语言后必须重启；未应用前不会影响当前界面。</text>
+<rect x="769.0" y="1025.0" width="93.0" height="30.0" rx="7" fill="#0A84FF"/>
+<text x="783.0" y="1045.3" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#FFFFFF">应用并重启</text>
+<rect x="236.0" y="1094.0" width="640.0" height="270.0" rx="10" fill="#26272D"/>
+<text x="250.0" y="1120.3" font-family="Inter" font-size="13" font-weight="600" letter-spacing="0" fill="#F5F5F7">iCloud 同步</text>
+<text x="250.0" y="1139.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">只同步可移植偏好；钥匙串凭据与历史数据不参与。</text>
+<rect x="252.4" y="1163.9" width="11.2" height="11.2" rx="2" fill="none" stroke="#32D74B" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="276.0" y="1166.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">同步中</text>
+<text x="276.0" y="1184.1" font-family="Inter" font-size="11" font-weight="d" letter-spacing="0" fill="#90919A">上次同步 2 分钟前</text>
+<rect x="782.0" y="1154.5" width="80.0" height="30.0" rx="7" fill="#2F3037"/>
+<text x="796.0" y="1174.8" font-family="Inter" font-size="13" font-weight="normal" letter-spacing="0" fill="#F5F5F7">重试同步</text>
+<rect x="236.0" y="1197.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1223.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">同步可移植偏好</text>
+<rect x="826.0" y="1208.0" width="36.0" height="20.0" rx="10" fill="#0A84FF"/>
+<ellipse cx="836.0" cy="1218.0" rx="8.0" ry="8.0" fill="#FFFFFF"/>
+<rect x="236.0" y="1238.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1263.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">会同步</text>
+<text x="250.0" y="1282.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">外观、时钟格式与时区、触控板规则、快捷键、提醒规则与模板。</text>
+<rect x="813.0" y="1256.5" width="49.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="821.0" y="1271.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">可移植</text>
+<rect x="236.0" y="1295.0" width="640.0" height="1.0" rx="0" fill="#3A3B42"/>
+<text x="250.0" y="1320.3" font-family="Inter" font-size="13" font-weight="500" letter-spacing="0" fill="#F5F5F7">不会同步</text>
+<text x="250.0" y="1339.1" font-family="Inter" font-size="11" font-weight="normal" letter-spacing="0" fill="#90919A">渠道凭据、唤醒历史、进程能耗历史与任何本机路径。</text>
+<rect x="802.0" y="1313.5" width="60.0" height="21.0" rx="5" fill="#2F3037"/>
+<text x="810.0" y="1328.6" font-family="Inter" font-size="11" font-weight="t" letter-spacing="0" fill="#90919A">本机专属</text>
+<line x1="0" y1="680" x2="900" y2="680" stroke="#FF453A" stroke-width="1" stroke-dasharray="6 4"/>
+<text x="892" y="674" font-family="Inter" font-size="10" fill="#FF453A" text-anchor="end">window bottom (680)</text>
+</svg>
