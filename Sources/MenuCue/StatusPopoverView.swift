@@ -1185,6 +1185,13 @@ private struct MonthCalendarView: View {
 
   private func secondaryForeground(for day: CalendarDayPresentation) -> Color {
     if day.isSelected { return .white.opacity(0.82) }
+    // A traditional festival outranks a solar term or a plain lunar date in the
+    // secondary line, so it is the one row worth spotting while scanning the grid.
+    // It takes the calendar's accent the way the selected-date card already tints
+    // the same festival title, and stays muted for the neighbours of the month.
+    if day.lunar?.festival != nil {
+      return day.isInMonth ? Color.accentColor : Color.accentColor.opacity(0.45)
+    }
     return day.isInMonth ? .secondary : .secondary.opacity(0.35)
   }
 

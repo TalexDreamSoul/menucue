@@ -165,9 +165,7 @@ jobs:
           cat > "$NOTES" <<EOF
           ## Changes
 
-          - Calendar data refresh no longer blocks the popover's main thread.
-          - Month presentation and lunar formatters are reused across tab switches.
-          - Calendar navigation uses a shorter transition to keep interaction responsive.
+          - Traditional festivals such as Mid-Autumn now carry the accent colour on the month grid, so they read at a glance instead of blending into solar terms and plain lunar dates.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF
