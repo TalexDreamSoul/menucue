@@ -268,7 +268,44 @@ struct GeneralSettingsView: View {
           SettingsChip(L10n.string("Default"))
         }
       }
+
+      if let failure = model.systemAppearanceFailure {
+        systemAppearanceFailureBanner(failure)
+      }
     }
+  }
+
+  /// What a refused write looks like. Before this existed the switch simply looked on while
+  /// nothing happened, because the only report of the failure was an AppleScript error the
+  /// app discarded.
+  private func systemAppearanceFailureBanner(
+    _ failure: AppleScriptRunner.Failure
+  ) -> some View {
+    SettingsBanner(
+      L10n.string("macOS did not apply the requested system appearance."),
+      desc: failure.message,
+      systemImage: "exclamationmark.triangle.fill",
+      tint: .orange
+    ) {
+      HStack(spacing: 8) {
+        if failure.isPermissionRelated {
+          Button(L10n.string("Open Automation Settings")) {
+            WorkspaceOpener.openSettings(AutomationPermission.settingsURL)
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+          .accessibilityHint(L10n.string("Allow MenuCue to control System Events, then retry."))
+        }
+        Button(L10n.string("Retry")) {
+          model.retrySystemAppearance()
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+      }
+    }
+    .padding(.horizontal, SettingsMetrics.rowPaddingH)
+    .padding(.top, 10)
+    .padding(.bottom, 12)
   }
 
   /// `SettingsRowSegmented` works in indices while the setting is an enum, so the bridge

@@ -165,8 +165,9 @@ jobs:
           cat > "$NOTES" <<EOF
           ## Changes
 
-          - "Apply to macOS system appearance" now writes the system Light/Dark setting only at its own switch points (07:00 and 19:00 in the reference time zone) and at launch. The 15-second drift audit that reverted manual changes — and macOS's own sunrise switch, eight seconds after it happened — is gone.
-          - The row that owns the switch now names the clock it follows, shows the equivalent window on this Mac's clock when the reference time zone differs, and is disabled while Appearance is set to Follow System.
+          - The system appearance is now read from the same global preference AppKit reads, instead of asking System Events for it. The Dark Mode quick action reports the real state even when the Automation grant is missing, and no longer pays an Apple Event to answer a question the app already had.
+          - When macOS refuses the scheduled appearance write, the row that owns the switch says so: it shows what macOS answered, opens the Automation pane, and offers a retry. The refusal is no longer discarded behind a switch that looks on while nothing happens.
+          - The write path is covered by tests that pin the edge-triggered contract: the schedule writes when the target flips, and the ticks in between leave the setting alone.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF

@@ -85,6 +85,9 @@ final class AppModel: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var launchAtLoginState: LaunchAtLoginState
     @Published var launchAtLoginErrorMessage: String?
+    /// The last system-appearance write macOS refused, mirrored from the service so the
+    /// appearance card redraws when a switch that looks on turns out not to have taken.
+    @Published private(set) var systemAppearanceFailure: AppleScriptRunner.Failure?
     let quickActionService: QuickActionService
     let trackpadGestureService: TrackpadGestureService
     let hotkeyService: HotkeyService
@@ -183,6 +186,9 @@ final class AppModel: ObservableObject {
             self?.refreshCalendarData()
         }
         configureNotificationServices(settings.notificationSettings)
+        // The service writes, the pane reads: mirroring the refusal is what makes a write
+        // that macOS rejected show up in the row that asked for it.
+        appearanceService.$systemWriteFailure.assign(to: &$systemAppearanceFailure)
     }
 
     deinit {
@@ -575,6 +581,12 @@ final class AppModel: ObservableObject {
 
     func refreshTimeDrivenState() {
         appearanceService.apply(settings: settings)
+    }
+
+    /// Re-applies the schedule now, which is what the appearance card's failure banner
+    /// offers once the Automation grant has been added in System Settings.
+    func retrySystemAppearance() {
+        appearanceService.retrySystemAppearance(settings: settings)
     }
 
     private func applySettings(_ nextSettings: AppSettings) {

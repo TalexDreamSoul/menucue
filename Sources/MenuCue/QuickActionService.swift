@@ -519,7 +519,7 @@ final class QuickActionService: ObservableObject {
   private func refreshDarkModeState() {
     setState(
       .darkMode,
-      isOn: appearanceService.currentSystemDarkMode ?? false,
+      isOn: appearanceService.currentSystemDarkMode,
       isRunning: false
     )
   }

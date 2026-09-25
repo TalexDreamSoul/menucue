@@ -202,6 +202,7 @@
 "CPU: %@ · %@" = "CPU：%@ · %@";
 "Manual scan only; nothing runs in the background." = "仅在手动扫描时分析，不在后台运行。";
 "Open Activity Monitor" = "打开活动监视器";
+"Open Automation Settings" = "打开自动化设置";
 "Process Health" = "进程健康";
 "Threads: %@ · %d" = "线程：%@ · %d";
 "Zombie: %@ · PID %d" = "僵尸进程：%@ · PID %d";
@@ -800,6 +801,7 @@
 "Allow Accessibility access to send keyboard shortcuts." = "请允许辅助功能权限以发送键盘快捷键。";
 "Allow Accessibility access to send mouse clicks." = "请允许辅助功能权限以发送鼠标点击。";
 "Allow Accessibility access to send mouse scrolling." = "请允许辅助功能权限以发送鼠标滚动。";
+"Allow MenuCue to control System Events, then retry." = "允许 MenuCue 控制 System Events，然后重试。";
 "Brightness %d%%" = "亮度 %d%%";
 "Display brightness control is unavailable on this Mac." = "这台 Mac 无法使用显示器亮度控制。";
 "Mute is not a display brightness action." = "静音不是显示器亮度操作。";
@@ -842,6 +844,7 @@
 "macOS could not read the focused window frame." = "macOS 无法读取当前窗口的位置和大小。";
 "macOS did not apply the requested display brightness." = "macOS 未应用请求的显示器亮度。";
 "macOS did not apply the requested mute state." = "macOS 未应用请求的静音状态。";
+"macOS did not apply the requested system appearance." = "macOS 未应用请求的系统外观。";
 "macOS did not apply the requested volume." = "macOS 未应用请求的音量。";
 "macOS did not apply the requested window placement." = "macOS 未应用请求的窗口位置。";
 "the window under the pointer" = "指针下方的窗口";
