@@ -250,11 +250,10 @@ struct GeneralSettingsView: View {
 
         SettingsRowToggle(
           L10n.string("Apply to macOS system appearance"),
-          desc: L10n.string(
-            "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance."
-          ),
+          desc: systemAppearanceDescription,
           isOn: model.settingsBinding(\.appliesSystemAppearance)
         )
+        .disabled(model.settings.appearanceMode == .system)
 
         SettingsRowSegmented(
           L10n.string("Animation effects"),
@@ -283,6 +282,64 @@ struct GeneralSettingsView: View {
         quality.wrappedValue = AnimationQuality.allCases[index]
       }
     )
+  }
+
+  /// What the system-appearance switch actually does, stated on its own row.
+  ///
+  /// The switch is the bridge between the appearance above it and macOS, so "启用后…"
+  /// alone hid the part that decides *when* the system flips: the schedule runs in the
+  /// reference time zone, not on this Mac's clock. Naming that zone — and the local
+  /// window it resolves to — is what makes the difference visible before it is switched
+  /// on rather than after the system changes under the user.
+  private var systemAppearanceDescription: String {
+    switch model.settings.appearanceMode {
+    case .system:
+      return L10n.string(
+        "Inactive while Appearance is set to Follow System — there is no target appearance to sync."
+      )
+    case .light, .dark:
+      return L10n.string(
+        "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time."
+      )
+    case .automaticByTimeZone:
+      var sentences = [
+        L10n.format(
+          "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@).",
+          TimeZoneCatalog.displayName(for: model.settings.appearanceTimeZoneID)
+        )
+      ]
+      if let localWindow = referenceZoneLocalLightWindow {
+        sentences.append(localWindow)
+      }
+      sentences.append(
+        L10n.string("MenuCue writes only at those two edges; a manual switch stays yours.")
+      )
+      // Joined without a separator: each translated clause carries its own leading space
+      // when its language wants one. A hardcoded space here would land between 。 and the
+      // next Chinese sentence.
+      return sentences.joined()
+    }
+  }
+
+  /// The reference zone's `07:00–19:00` on this Mac's clock, or `nil` when the two agree.
+  /// `Asia/Shanghai` on a Mac set to `America/Los_Angeles` really means 16:00–04:00 here,
+  /// and nothing else in the row would reveal that the day is inverted.
+  private var referenceZoneLocalLightWindow: String? {
+    let date = Date()
+    let deltaMinutes =
+      (model.settings.appearanceTimeZone.secondsFromGMT(for: date)
+        - TimeZone.current.secondsFromGMT(for: date)) / 60
+    guard deltaMinutes != 0 else { return nil }
+    return L10n.format(
+      "On this Mac that is %@–%@ light.",
+      Self.clockText(minutes: 7 * 60 - deltaMinutes),
+      Self.clockText(minutes: 19 * 60 - deltaMinutes)
+    )
+  }
+
+  private static func clockText(minutes: Int) -> String {
+    let wrapped = ((minutes % 1440) + 1440) % 1440
+    return String(format: "%02d:%02d", wrapped / 60, wrapped % 60)
   }
 
   // MARK: - Bindings and status text

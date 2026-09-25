@@ -26,7 +26,10 @@ final class LocalizationResourceTests: XCTestCase {
   func testBrandBearingSwiftUIKeysResolveInSimplifiedChinese() throws {
     let simplifiedChinese = try L10n.entries(for: "zh-Hans")
     let keys = [
-      "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance.",
+      "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time.",
+      "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@).",
+      "Inactive while Appearance is set to Follow System — there is no target appearance to sync.",
+      "On this Mac that is %@–%@ light.",
       "Launch MenuCue at login",
       "MenuCue starts only when you open it.",
       "MenuCue will start automatically after you sign in.",

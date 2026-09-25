@@ -1,10 +1,22 @@
 import AppKit
 import Foundation
 
+/// Owns the appearance the app renders, and — when the user asks for it — macOS's own
+/// Light/Dark setting.
+///
+/// The system side is **edge triggered**: it is written at the moment the resolved
+/// appearance flips (07:00/19:00 in the reference time zone, or a change to the
+/// appearance above this row). Between those edges the system appearance belongs to
+/// whoever else set it — macOS's own Auto schedule, Control Center, the Dark Mode quick
+/// action — and this service deliberately does not take it back.
+///
+/// Correcting drift was tried and removed. Because the target comes from a schedule
+/// rather than from what the user wants right now, every external change looked like a
+/// fault to repair: a manual switch survived until the next audit tick, and macOS's own
+/// sunrise switch was undone eight seconds after it happened, so the two schedules
+/// fought over the same setting at every sunrise and sunset.
 final class AppearanceService {
-    private let systemAppearanceAuditInterval: TimeInterval = 15
     private var lastAppliedSystemDarkMode: Bool?
-    private var lastSystemAppearanceAuditDate: Date?
     private var hasAppliedAppAppearance = false
     private var lastAppliedAppearanceName: NSAppearance.Name?
 
@@ -13,15 +25,13 @@ final class AppearanceService {
         applyAppAppearance(settings: settings, targetDarkMode: targetDarkMode)
 
         guard settings.appliesSystemAppearance, let targetDarkMode else {
+            // Forget what was written: re-enabling the switch has to re-assert the
+            // schedule even when it resolves to the appearance already in force.
             lastAppliedSystemDarkMode = nil
-            lastSystemAppearanceAuditDate = nil
             return
         }
 
-        let targetChanged = lastAppliedSystemDarkMode != targetDarkMode
-        let systemDrifted = !targetChanged && systemAppearanceDidDrift(from: targetDarkMode, at: date)
-        guard targetChanged || systemDrifted else { return }
-
+        guard lastAppliedSystemDarkMode != targetDarkMode else { return }
         setSystemDarkMode(targetDarkMode)
         lastAppliedSystemDarkMode = targetDarkMode
     }
@@ -73,26 +83,6 @@ final class AppearanceService {
         """
         var error: NSDictionary?
         NSAppleScript(source: script)?.executeAndReturnError(&error)
-    }
-
-    private func systemAppearanceDidDrift(from targetDarkMode: Bool, at date: Date) -> Bool {
-        guard shouldAuditSystemAppearance(at: date) else { return false }
-        guard let currentSystemDarkMode else { return false }
-        return currentSystemDarkMode != targetDarkMode
-    }
-
-    private func shouldAuditSystemAppearance(at date: Date) -> Bool {
-        guard let lastSystemAppearanceAuditDate else {
-            self.lastSystemAppearanceAuditDate = date
-            return true
-        }
-
-        guard date.timeIntervalSince(lastSystemAppearanceAuditDate) >= systemAppearanceAuditInterval else {
-            return false
-        }
-
-        self.lastSystemAppearanceAuditDate = date
-        return true
     }
 
     var currentSystemDarkMode: Bool? {

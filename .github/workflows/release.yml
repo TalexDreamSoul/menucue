@@ -165,7 +165,8 @@ jobs:
           cat > "$NOTES" <<EOF
           ## Changes
 
-          - Traditional festivals such as Mid-Autumn now carry the accent colour on the month grid, so they read at a glance instead of blending into solar terms and plain lunar dates.
+          - "Apply to macOS system appearance" now writes the system Light/Dark setting only at its own switch points (07:00 and 19:00 in the reference time zone) and at launch. The 15-second drift audit that reverted manual changes — and macOS's own sunrise switch, eight seconds after it happened — is gone.
+          - The row that owns the switch now names the clock it follows, shows the equivalent window on this Mac's clock when the reference time zone differs, and is disabled while Appearance is set to Follow System.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF

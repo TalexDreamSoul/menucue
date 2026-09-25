@@ -240,6 +240,7 @@
 "ISO" = "ISO";
 "Idle" = "Idle";
 "In %d days" = "In %d days";
+"Inactive while Appearance is set to Follow System — there is no target appearance to sync." = "Inactive while Appearance is set to Follow System — there is no target appearance to sync.";
 "Install Helper" = "Install Helper";
 "Install the privileged Helper to change protected power settings." = "Install the privileged Helper to change protected power settings.";
 "Installing version %@..." = "Installing version %@...";
@@ -287,6 +288,7 @@
 "MenuCue is up to date." = "MenuCue is up to date.";
 "MenuCue starts only when you open it." = "MenuCue starts only when you open it.";
 "MenuCue will start automatically after you sign in." = "MenuCue will start automatically after you sign in.";
+"MenuCue writes only at those two edges; a manual switch stays yours." = " MenuCue writes at those switch points and at launch, and leaves the system alone the rest of the time.";
 "MenuCueHelper must run as a root LaunchDaemon." = "MenuCueHelper must run as a root LaunchDaemon.";
 "Mixed" = "Mixed";
 "Mixed or unsupported" = "Mixed or unsupported";
@@ -335,6 +337,7 @@
 "Now sampling every %@" = "Now sampling every %@";
 "Off" = "Off";
 "On" = "On";
+"On this Mac that is %@–%@ light." = " On this Mac that is %@–%@ light.";
 "On wall power / full battery" = "On wall power / full battery";
 "Open Language & Region Settings" = "Open Language & Region Settings";
 "Open Login Items Settings" = "Open Login Items Settings";
@@ -553,7 +556,8 @@
 "Went to sleep after being idle" = "Went to sleep after being idle";
 "Went to sleep to save power" = "Went to sleep to save power";
 "Went to sleep — %@" = "Went to sleep — %@";
-"When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance." = "When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance.";
+"When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@)." = "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@).";
+"When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time." = "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time.";
 "Wired" = "Wired";
 "Woken by %@" = "Woken by %@";
 "World Clocks" = "World Clocks";

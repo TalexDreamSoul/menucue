@@ -240,6 +240,7 @@
 "ISO" = "ISO";
 "Idle" = "空闲";
 "In %d days" = "%d 天后";
+"Inactive while Appearance is set to Follow System — there is no target appearance to sync." = "「外观」设为「跟随系统」时没有可同步的目标外观，此开关不生效。";
 "Install Helper" = "安装助手";
 "Install the privileged Helper to change protected power settings." = "安装特权助手以更改受保护的电源设置。";
 "Installing version %@..." = "正在安装版本 %@...";
@@ -287,6 +288,7 @@
 "MenuCue is up to date." = "MenuCue 已是最新版本。";
 "MenuCue starts only when you open it." = "MenuCue 仅在手动打开时启动。";
 "MenuCue will start automatically after you sign in." = "登录后 MenuCue 将自动启动。";
+"MenuCue writes only at those two edges; a manual switch stays yours." = "只在切换点和启动时写入，其余时间不会干预系统外观。";
 "MenuCueHelper must run as a root LaunchDaemon." = "MenuCueHelper 必须以 root LaunchDaemon 运行。";
 "Mixed" = "混合";
 "Mixed or unsupported" = "配置不一致或不支持";
@@ -335,6 +337,7 @@
 "Now sampling every %@" = "当前每 %@ 采样一次";
 "Off" = "关闭";
 "On" = "开启";
+"On this Mac that is %@–%@ light." = "在本机相当于 %@–%@ 为浅色。";
 "On wall power / full battery" = "接通电源或电量充足时";
 "Open Language & Region Settings" = "打开语言与地区设置";
 "Open Login Items Settings" = "打开登录项设置";
@@ -553,7 +556,8 @@
 "Went to sleep after being idle" = "闲置后进入睡眠";
 "Went to sleep to save power" = "为节省电量进入睡眠";
 "Went to sleep — %@" = "已进入睡眠 — %@";
-"When enabled, MenuCue switches the system Light/Dark appearance via macOS Automation permissions. When disabled, only this app previews the selected appearance." = "启用后，MenuCue 会通过 macOS 自动化权限切换系统浅色/深色外观。关闭后，仅此应用预览所选外观。";
+"When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@)." = "启用后，系统外观跟随上面的设置：「按时区自动切换」按参考时区 %@ 的 07:00–19:00 使用浅色。";
+"When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time." = "启用后，macOS 系统外观会被设为上面选定的浅色或深色：仅在启动和改动设置时写入，其余时间不会干预。";
 "Wired" = "联动内存";
 "Woken by %@" = "由 %@ 唤醒";
 "World Clocks" = "世界时钟";
