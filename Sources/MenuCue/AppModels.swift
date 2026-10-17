@@ -245,7 +245,7 @@ struct AppSettings: Equatable {
     var portableModificationDates: [PortableSettingField: Date]
     var iCloudIdentityTokenData: Data?
     var syncDeviceID: String
-
+    var popoverHeight: CGFloat
     init(
         menuBarFormat: MenuBarFormatSettings = .compatibilityDefault,
         clockEntries: [ClockEntry] = [.system()],
@@ -275,7 +275,8 @@ struct AppSettings: Equatable {
         preferenceSyncOnboardingCompleted: Bool = false,
         portableModificationDates: [PortableSettingField: Date] = [:],
         iCloudIdentityTokenData: Data? = nil,
-        syncDeviceID: String = UUID().uuidString
+        syncDeviceID: String = UUID().uuidString,
+        popoverHeight: CGFloat = 680
     ) {
         self.menuBarFormat = menuBarFormat
         self.clockEntries = Self.normalizedClockEntries(clockEntries)
@@ -308,6 +309,7 @@ struct AppSettings: Equatable {
         self.portableModificationDates = portableModificationDates
         self.iCloudIdentityTokenData = iCloudIdentityTokenData
         self.syncDeviceID = syncDeviceID
+        self.popoverHeight = max(480, min(900, popoverHeight))
     }
 
     var clockTimeZones: [ClockTimeZone] {

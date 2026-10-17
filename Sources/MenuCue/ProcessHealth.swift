@@ -36,7 +36,7 @@ struct ProcessHealthSnapshot: Equatable {
 enum ProcessHealthParseError: LocalizedError {
   case noRows
 
-  var errorDescription: String? { "No process health rows were found." }
+  var errorDescription: String? { L10n.string("No process health data found.") }
 }
 
 enum ProcessHealthParser {

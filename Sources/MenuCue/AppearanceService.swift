@@ -81,6 +81,10 @@ final class AppearanceService: ObservableObject {
         apply(settings: settings, date: date)
     }
 
+    func invalidateSchedule() {
+        lastAppliedSystemDarkMode = nil
+        hasAppliedAppAppearance = false
+    }
     private func performWrite(_ targetDarkMode: Bool) {
         switch writeSystemAppearance(targetDarkMode) {
         case .success:

@@ -39,6 +39,7 @@ extension PopoverTab {
 
   var title: String {
     switch self {
+    case .overview: return L10n.string("Overview")
     case .status: return L10n.string("Status")
     case .power: return L10n.string("Power")
     case .calendar: return L10n.string("Calendar")
@@ -48,6 +49,7 @@ extension PopoverTab {
 
   var systemImage: String {
     switch self {
+    case .overview: return "square.grid.3x3.fill"
     case .status: return "waveform.path.ecg"
     case .power: return "bolt.heart.fill"
     case .calendar: return "calendar"
@@ -125,7 +127,7 @@ struct StatusPopoverView: View {
       .padding(.horizontal, PopoverMetrics.contentPadding)
       .padding(.vertical, 7)
     }
-    .frame(width: PopoverMetrics.width, height: PopoverMetrics.height, alignment: .top)
+    .frame(width: PopoverMetrics.width, height: model.settings.popoverHeight, alignment: .top)
     .background(VisualEffectBackground(material: .popover, blendingMode: .behindWindow, state: .active))
     .focusable()
     .focused($isPopoverFocused)
@@ -199,6 +201,9 @@ struct StatusPopoverView: View {
   @ViewBuilder
   private var tabContent: some View {
     switch selectedTab {
+    case .overview:
+      OverviewTabView(model: model, metrics: metrics)
+        .transition(tabTransition)
     case .status:
       StatusTabView(model: model, metrics: metrics)
         .transition(tabTransition)

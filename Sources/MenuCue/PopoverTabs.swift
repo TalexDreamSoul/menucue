@@ -1,11 +1,11 @@
 import Foundation
 
 enum PopoverTab: String, CaseIterable, Codable, Identifiable {
+  case overview
   case status
   case calendar
   case power
   case actions
-
   var id: String { rawValue }
 
   static func normalizedOrder(rawValues: [String]) -> [PopoverTab] {

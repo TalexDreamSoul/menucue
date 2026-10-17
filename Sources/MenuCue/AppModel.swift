@@ -592,8 +592,12 @@ final class AppModel: ObservableObject {
     private func applySettings(_ nextSettings: AppSettings) {
         let previousTrackpadSettings = settings.trackpadGestureSettings
         let previousHotkeyBindings = settings.registeredHotkeyBindings
+        let timeZoneChanged = settings.appearanceTimeZoneID != nextSettings.appearanceTimeZoneID
         settings = nextSettings
         settingsStore.save(nextSettings)
+        if timeZoneChanged {
+            appearanceService.invalidateSchedule()
+        }
         appearanceService.apply(settings: nextSettings)
         if previousTrackpadSettings != nextSettings.trackpadGestureSettings {
             trackpadGestureService.apply(settings: nextSettings.trackpadGestureSettings)

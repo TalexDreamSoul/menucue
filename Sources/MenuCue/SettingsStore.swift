@@ -32,6 +32,7 @@ final class SettingsStore {
         static let portableModificationDates = "portableModificationDates.v1"
         static let iCloudIdentityTokenData = "iCloudIdentityTokenData"
         static let syncDeviceID = "syncDeviceID"
+        static let popoverHeight = "popoverHeight.v1"
 
         static let legacyDisplayTimeZoneMode = "displayTimeZoneMode"
         static let legacyCustomDisplayTimeZoneID = "customDisplayTimeZoneID"
@@ -113,7 +114,8 @@ final class SettingsStore {
             ),
             portableModificationDates: loadPortableModificationDates(),
             iCloudIdentityTokenData: defaults.data(forKey: Key.iCloudIdentityTokenData),
-            syncDeviceID: loadSyncDeviceID()
+            syncDeviceID: loadSyncDeviceID(),
+            popoverHeight: defaults.double(forKey: Key.popoverHeight) > 300 ? CGFloat(defaults.double(forKey: Key.popoverHeight)) : 680
         )
     }
 
@@ -138,6 +140,7 @@ final class SettingsStore {
         defaults.set(settings.calendarSelectionMode.rawValue, forKey: Key.calendarSelectionMode)
         defaults.set(Array(settings.selectedCalendarIDs).sorted(), forKey: Key.selectedCalendarIDs)
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
+        defaults.set(Double(settings.popoverHeight), forKey: Key.popoverHeight)
         defaults.set(settings.popoverTabOrder.map(\.rawValue), forKey: Key.popoverTabOrder)
         defaults.set(settings.powerMonitoringEnabled, forKey: Key.powerMonitoringEnabled)
         if let data = try? encoder.encode(settings.notificationSettings) {

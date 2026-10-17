@@ -18,6 +18,7 @@ struct PanelSettingsView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
       popoverTabsCard
+      popoverDimensionCard
       samplingCard
     }
     .onAppear {
@@ -48,6 +49,23 @@ struct PanelSettingsView: View {
         ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
           tabRow(tab, isFirst: index == 0)
         }
+      }
+    }
+  }
+  private var popoverDimensionCard: some View {
+    SettingsCard(L10n.string("Popover Dimensions")) {
+      SettingsRows {
+        SettingsRowSelect(
+          L10n.string("Popover Height"),
+          desc: L10n.string("Adjust the popover height to fit more content comfortably."),
+          selection: model.settingsBinding(\.popoverHeight),
+          options: [
+            (value: 560, label: L10n.string("Compact (560 pt)")),
+            (value: 620, label: L10n.string("Standard (620 pt)")),
+            (value: 680, label: L10n.string("Expanded (680 pt)")),
+            (value: 760, label: L10n.string("Tall (760 pt)"))
+          ]
+        )
       }
     }
   }
@@ -115,6 +133,7 @@ struct PanelSettingsView: View {
   /// The design document's one-line description of what each tab shows.
   private func summary(for tab: PopoverTab) -> String {
     switch tab {
+    case .overview: return L10n.string("Comprehensive overview with calendar and hardware")
     case .status: return L10n.string("CPU / Memory / Disk / Network + quick actions")
     case .calendar: return L10n.string("Month view and recent events")
     case .power: return L10n.string("Energy use and wake")

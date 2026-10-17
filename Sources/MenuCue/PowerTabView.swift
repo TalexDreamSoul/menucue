@@ -10,6 +10,7 @@ struct PowerTabView: View {
 
   @State private var selectedProcess: ProcessEnergyEntry?
   @State private var selectedGroup: ProcessEnergyGroup?
+  @State private var processToTerminate: ProcessEnergyEntry?
   @State private var isSamplingActive = false
 
   private var helper: PowerHelperManager { model.quickActionService.powerHelperManager }
@@ -19,10 +20,10 @@ struct PowerTabView: View {
       VStack(spacing: PopoverMetrics.cardSpacing) {
         monitoringNotice
         batteryCard
+        processCard
         sleepBlockersCard
         wakeCard
         profilesCard
-        processCard
         processHealthCard
       }
     }
@@ -45,6 +46,28 @@ struct PowerTabView: View {
       ProcessTerminationSheet(name: group.name, members: group.members, helper: helper) {
         processEnergy.refresh()
       }
+    }
+    .confirmationDialog(
+      L10n.format("Terminate %@ (PID %d)?", processToTerminate?.name ?? "", processToTerminate?.identity.pid ?? 0),
+      isPresented: Binding(
+        get: { processToTerminate != nil },
+        set: { if !$0 { processToTerminate = nil } }
+      ),
+      titleVisibility: .visible
+    ) {
+      Button(L10n.string("Force Terminate"), role: .destructive) {
+        if let entry = processToTerminate {
+          helper.terminateProcess(entry.identity) { _ in
+            processEnergy.refresh()
+          }
+          processToTerminate = nil
+        }
+      }
+      Button(L10n.string("Cancel"), role: .cancel) {
+        processToTerminate = nil
+      }
+    } message: {
+      Text(L10n.string("SIGTERM will be sent to this confirmed process."))
     }
   }
 
@@ -361,24 +384,48 @@ struct PowerTabView: View {
 
       if processEnergy.viewMode == .apps {
         ForEach(processEnergy.groups.prefix(8)) { group in
-          Button {
-            selectedGroup = group
-          } label: {
-            ProcessEnergyRow(name: group.name, impact: group.energyImpact, detail: "\(group.members.count)")
+          HStack(spacing: 6) {
+            Button {
+              selectedGroup = group
+            } label: {
+              ProcessEnergyRow(name: group.name, impact: group.energyImpact, detail: "\(group.members.count)")
+            }
+            .buttonStyle(.plain)
+
+            Button {
+              selectedGroup = group
+            } label: {
+              Image(systemName: "xmark.circle")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.string("Terminate Application"))
           }
-          .buttonStyle(.plain)
         }
       } else {
         ForEach(processEnergy.entries.prefix(12)) { entry in
-          Button {
-            selectedProcess = entry
-          } label: {
-            ProcessEnergyRow(
-              name: entry.name,
-              impact: entry.energyImpact,
-              detail: "PID \(entry.identity.pid)")
+          HStack(spacing: 6) {
+            Button {
+              selectedProcess = entry
+            } label: {
+              ProcessEnergyRow(
+                name: entry.name,
+                impact: entry.energyImpact,
+                detail: "PID \(entry.identity.pid)")
+            }
+            .buttonStyle(.plain)
+
+            Button {
+              processToTerminate = entry
+            } label: {
+              Image(systemName: "xmark.circle")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.string("Terminate Process"))
           }
-          .buttonStyle(.plain)
         }
       }
 
@@ -412,11 +459,21 @@ struct PowerTabView: View {
         let zombies = snapshot.zombies
         HStack(spacing: 8) {
           HealthReadout(
-            label: "Zombies",
+            label: L10n.string("Zombies"),
             value: "\(zombies.count)",
             tint: zombies.isEmpty ? .secondary : .red)
-          HealthReadout(label: "Threads", value: "\(snapshot.totalThreads)", tint: .secondary)
-          HealthReadout(label: "Processes", value: "\(snapshot.processes.count)", tint: .secondary)
+          HealthReadout(label: L10n.string("Threads"), value: "\(snapshot.totalThreads)", tint: .secondary)
+          HealthReadout(label: L10n.string("Processes"), value: "\(snapshot.processes.count)", tint: .secondary)
+        }
+        if zombies.isEmpty {
+          HStack(spacing: 5) {
+            Image(systemName: "checkmark.circle.fill")
+              .font(.system(size: 10))
+              .foregroundStyle(.green)
+            Text(L10n.string("All processes are healthy; no zombies found."))
+              .font(.system(size: 9))
+              .foregroundStyle(.secondary)
+          }
         }
         if let busiest = snapshot.busiestProcesses.first {
           Text(L10n.format("CPU: %@ · %@", busiest.command, String(format: "%.1f%%", busiest.cpuPercent)))
@@ -438,6 +495,18 @@ struct PowerTabView: View {
         }
       } else if let error = processHealth.errorMessage {
         Text(error).font(.system(size: 9)).foregroundStyle(.red).lineLimit(2)
+      } else {
+        HStack {
+          Text(L10n.string("Ready to scan process health."))
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+          Spacer()
+          Button(L10n.string("Scan Now")) {
+            processHealth.analyze()
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.mini)
+        }
       }
     }
   }

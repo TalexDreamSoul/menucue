@@ -205,7 +205,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   private func configurePopover() {
     popover.behavior = .transient
     popover.delegate = self
-    popover.contentSize = NSSize(width: PopoverMetrics.width, height: PopoverMetrics.height)
+    popover.contentSize = NSSize(width: PopoverMetrics.width, height: model.settings.popoverHeight)
     let relay = SwipeRelay()
     let hostingController = SwipeForwardingController(
       rootView: StatusPopoverView(
@@ -256,8 +256,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
   }
 
   private func observeSettings() {
-    settingsCancellable = model.$settings.sink { [weak self] _ in
-      self?.refreshClockTitle()
+    settingsCancellable = model.$settings.sink { [weak self] settings in
+      guard let self else { return }
+      self.popover.contentSize = NSSize(width: PopoverMetrics.width, height: settings.popoverHeight)
+      self.refreshClockTitle()
     }
     syncStatusCancellable = model.preferenceSyncService.$status
       .removeDuplicates()
