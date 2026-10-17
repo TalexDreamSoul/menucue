@@ -461,17 +461,35 @@ struct BarkNotificationChannel: NotificationChannel {
   private let endpoint: URL
   private let transport: any NotificationHTTPTransport
 
+  static func sanitizeDeviceKey(_ raw: String) -> String {
+    var key = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let url = URL(string: key), let scheme = url.scheme, ["http", "https"].contains(scheme.lowercased()) {
+      let components = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+      if let last = components.last, last != "push" {
+        key = last
+      }
+    } else {
+      key = key.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+    return key
+  }
+
   init(
     configuration: BarkNotificationConfiguration,
     transport: any NotificationHTTPTransport = URLSessionNotificationHTTPTransport()
   ) throws {
     try NotificationRequestSupport.validateHTTPS(configuration.serverBaseURL)
+    let cleanedKey = Self.sanitizeDeviceKey(configuration.deviceKey)
     guard configuration.serverBaseURL.query == nil,
-      !configuration.deviceKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      !cleanedKey.isEmpty
     else {
       throw NotificationDeliveryError.invalidConfiguration
     }
-    self.configuration = configuration
+    self.configuration = BarkNotificationConfiguration(
+      serverBaseURL: configuration.serverBaseURL,
+      deviceKey: cleanedKey,
+      group: configuration.group
+    )
     var url = configuration.serverBaseURL
     if !url.path.hasSuffix("/push") {
       url = url.appendingPathComponent("push")
@@ -493,14 +511,16 @@ struct BarkNotificationChannel: NotificationChannel {
     let request = NotificationRequestSupport.request(url: endpoint, body: body)
     do {
       let response = try await transport.data(for: request)
-      try NotificationRequestSupport.validateSuccess(response)
-      let result = try JSONDecoder().decode(BarkResponse.self, from: response.data)
-      guard result.code == 200 else {
-        throw NotificationDeliveryError.remoteRejected(
-          code: String(result.code),
-          retryAfter: nil
-        )
+      if let result = try? JSONDecoder().decode(BarkResponse.self, from: response.data) {
+        if result.code != 200 {
+          let codeMessage = result.message ?? String(result.code)
+          throw NotificationDeliveryError.remoteRejected(
+            code: codeMessage,
+            retryAfter: NotificationRequestSupport.retryAfter(from: response)
+          )
+        }
       }
+      try NotificationRequestSupport.validateSuccess(response)
       return NotificationReceipt(kind: kind, eventID: message.eventID)
     } catch {
       if error is DecodingError { throw NotificationDeliveryError.invalidResponse }
@@ -523,8 +543,10 @@ private struct BarkPayload: Encodable {
   }
 }
 
-private struct BarkResponse: Decodable { let code: Int }
-
+private struct BarkResponse: Decodable {
+  let code: Int
+  let message: String?
+}
 // MARK: - Telegram
 
 struct TelegramNotificationConfiguration: Equatable, Sendable {

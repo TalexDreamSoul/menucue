@@ -179,61 +179,24 @@ struct NotificationSettingsView: View {
   /// metric column takes the width the condition column does not need in English.
   private var rulesColumns: [SettingsTableColumn] {
     [
-      SettingsTableColumn(L10n.string("Rule"), weight: 120),
-      SettingsTableColumn(L10n.string("Metric"), weight: 205),
-      SettingsTableColumn(L10n.string("Condition"), weight: 92),
-      SettingsTableColumn(L10n.string("Sustained"), weight: 36),
-      SettingsTableColumn(L10n.string("Cooldown"), weight: 36),
-      SettingsTableColumn("", weight: 50, alignment: .trailing),
+      SettingsTableColumn(L10n.string("Rule"), weight: 130),
+      SettingsTableColumn(L10n.string("Energy Impact"), weight: 80),
+      SettingsTableColumn(L10n.string("Metric"), weight: 160),
+      SettingsTableColumn(L10n.string("Condition"), weight: 90),
+      SettingsTableColumn(L10n.string("Sustained"), weight: 45),
+      SettingsTableColumn(L10n.string("Cooldown"), weight: 45),
+      SettingsTableColumn("", weight: 40, alignment: .trailing),
     ]
   }
 
   private func ruleTableRow(_ rule: AlertRule) -> some View {
-    SettingsTableRow {
-      HStack(spacing: 6) {
-        Image(systemName: rule.isEnabled ? "bell.fill" : "bell.slash")
-          .font(.system(size: 11))
-          .foregroundStyle(rule.isEnabled ? Color.accentColor : Color.secondary)
-        Text(rule.name)
-          .font(.system(size: 12.5, weight: .medium))
-          .lineLimit(1)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-
-      Text(rule.metricID.rawValue)
-        .font(.system(size: 11.5, design: .monospaced))
-        .foregroundStyle(.tertiary)
-        .lineLimit(1)
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-      Text(conditionSummary(rule))
-        .font(.system(size: 12))
-        .lineLimit(1)
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-      Text(sustainedSummary(rule))
-        .font(.system(size: 12))
-        .foregroundStyle(.tertiary)
-        .lineLimit(1)
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-      Text(secondsSummary(rule.cooldown))
-        .font(.system(size: 12))
-        .foregroundStyle(.tertiary)
-        .lineLimit(1)
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-      Group {
-        if selectedRule?.id == rule.id {
-          Image(systemName: "checkmark")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
-        } else {
-          Color.clear.frame(width: 11, height: 11)
-        }
-      }
-      .frame(maxWidth: .infinity, alignment: .trailing)
-    }
+    RuleTableRowView(
+      rule: rule,
+      isSelected: selectedRule?.id == rule.id,
+      conditionText: conditionSummary(rule),
+      sustainedText: sustainedSummary(rule),
+      cooldownText: secondsSummary(rule.cooldown)
+    )
   }
 
   private func conditionSummary(_ rule: AlertRule) -> String {
@@ -1197,6 +1160,191 @@ extension AlertMetricUnit {
     case .watts: return "W"
     case .percentPerHour: return "%/h"
     case .load, .none: return ""
+    }
+  }
+}
+private struct RuleTableRowView: View {
+  let rule: AlertRule
+  let isSelected: Bool
+  let conditionText: String
+  let sustainedText: String
+  let cooldownText: String
+
+  @State private var isHovering = false
+  @State private var showDetailPopover = false
+
+  var body: some View {
+    SettingsTableRow {
+      HStack(spacing: 6) {
+        Image(systemName: rule.isEnabled ? "bell.fill" : "bell.slash")
+          .font(.system(size: 11))
+          .foregroundStyle(rule.isEnabled ? Color.accentColor : Color.secondary)
+        Text(rule.name)
+          .font(.system(size: 12.5, weight: .medium))
+          .lineLimit(1)
+        if isHovering {
+          Image(systemName: "info.circle")
+            .font(.system(size: 10.5))
+            .foregroundStyle(Color.accentColor)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+
+      let level = AlertEnergyLevel.level(for: rule.metricID)
+      energyBadge(level)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(rule.metricID.rawValue)
+        .font(.system(size: 11.5, design: .monospaced))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(conditionText)
+        .font(.system(size: 12))
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(sustainedText)
+        .font(.system(size: 12))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(cooldownText)
+        .font(.system(size: 12))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Group {
+        if isSelected {
+          Image(systemName: "checkmark")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Color.accentColor)
+        } else {
+          Color.clear.frame(width: 11, height: 11)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+    .onHover { hovering in
+      isHovering = hovering
+      showDetailPopover = hovering
+    }
+    .popover(isPresented: $showDetailPopover, arrowEdge: .top) {
+      RuleDetailPopoverView(
+        rule: rule,
+        level: AlertEnergyLevel.level(for: rule.metricID),
+        conditionText: conditionText,
+        sustainedText: sustainedText,
+        cooldownText: cooldownText
+      )
+    }
+  }
+
+  @ViewBuilder
+  private func energyBadge(_ level: AlertEnergyLevel) -> some View {
+    let (tint, label): (Color, String) = {
+      switch level {
+      case .level1: return (.green, "⚡️ 1级 (极轻)")
+      case .level2: return (.mint, "⚡️ 2级 (轻量)")
+      case .level3: return (.yellow, "⚡️ 3级 (中等)")
+      case .level4: return (.orange, "⚡️ 4级 (较高)")
+      case .level5: return (.red, "⚡️ 5级 (重度)")
+      }
+    }()
+    Text(label)
+      .font(.system(size: 10, weight: .semibold))
+      .foregroundStyle(tint)
+      .padding(.horizontal, 5)
+      .padding(.vertical, 2)
+      .background(tint.opacity(0.12))
+      .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+  }
+}
+
+private struct RuleDetailPopoverView: View {
+  let rule: AlertRule
+  let level: AlertEnergyLevel
+  let conditionText: String
+  let sustainedText: String
+  let cooldownText: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 8) {
+        Image(systemName: rule.isEnabled ? "bell.fill" : "bell.slash")
+          .font(.system(size: 13))
+          .foregroundStyle(rule.isEnabled ? Color.accentColor : Color.secondary)
+        Text(rule.name)
+          .font(.system(size: 13.5, weight: .bold))
+          .fixedSize(horizontal: false, vertical: true)
+        Spacer()
+        SettingsChip(
+          rule.isEnabled ? L10n.string("Active") : L10n.string("Disabled"),
+          tint: rule.isEnabled ? .green : .secondary
+        )
+      }
+
+      Divider()
+
+      VStack(alignment: .leading, spacing: 4) {
+        HStack {
+          Text(L10n.string("Energy Impact"))
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+          Spacer()
+          Text("⚡️ \(level.title)")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(levelColor(level))
+        }
+        Text(level.description)
+          .font(.system(size: 10.5))
+          .foregroundStyle(.tertiary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      .padding(8)
+      .background(Color.secondary.opacity(0.08))
+      .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 6) {
+        detailRow(title: L10n.string("Metric"), value: rule.metricID.rawValue, isMonospaced: true)
+        detailRow(title: L10n.string("Condition"), value: conditionText)
+        detailRow(title: L10n.string("Sustained"), value: sustainedText)
+        detailRow(title: L10n.string("Cooldown"), value: cooldownText)
+        detailRow(title: L10n.string("Target Channels"), value: channelsSummary(rule.channels))
+      }
+    }
+    .padding(14)
+    .frame(width: 320)
+  }
+
+  private func detailRow(title: String, value: String, isMonospaced: Bool = false) -> some View {
+    HStack(alignment: .top, spacing: 10) {
+      Text(title)
+        .font(.system(size: 11))
+        .foregroundStyle(.secondary)
+        .frame(width: 68, alignment: .leading)
+      Text(value)
+        .font(isMonospaced ? .system(size: 10.5, design: .monospaced) : .system(size: 11))
+        .foregroundStyle(.primary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+  }
+
+  private func channelsSummary(_ channels: Set<NotificationChannelKind>) -> String {
+    if channels.isEmpty { return L10n.string("None") }
+    return channels.map { $0.title }.sorted().joined(separator: " · ")
+  }
+
+  private func levelColor(_ level: AlertEnergyLevel) -> Color {
+    switch level {
+    case .level1: return .green
+    case .level2: return .mint
+    case .level3: return .yellow
+    case .level4: return .orange
+    case .level5: return .red
     }
   }
 }

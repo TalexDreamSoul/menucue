@@ -76,41 +76,84 @@ struct OverviewTabView: View {
       }
     } content: {
       TimelineView(.periodic(from: Date(), by: 1)) { context in
-        HStack(alignment: .center, spacing: 12) {
-          VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-              Text(todayDateText(date: context.date))
-                .font(.system(size: 13, weight: .semibold))
-              Text(currentTimeText(date: context.date))
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(Color.accentColor)
-            }
-            HStack(spacing: 6) {
-              if let lunar = todayLunarText(date: context.date) {
-                Text(lunar)
+        VStack(alignment: .leading, spacing: 8) {
+          HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+              HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(todayDateText(date: context.date))
+                  .font(.system(size: 13, weight: .semibold))
+                Text(currentTimeText(date: context.date))
+                  .font(.system(size: 12, weight: .semibold, design: .rounded))
+                  .monospacedDigit()
+                  .foregroundStyle(Color.accentColor)
+              }
+              HStack(spacing: 6) {
+                if let lunar = todayLunarText(date: context.date) {
+                  Text(lunar)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                }
+                Text(timeZoneSubtitle)
                   .font(.system(size: 10))
+                  .foregroundStyle(.tertiary)
+              }
+            }
+            Spacer()
+            if let nextEvent = upcomingEvent(date: context.date) {
+              VStack(alignment: .trailing, spacing: 2) {
+                Text(nextEvent.title)
+                  .font(.system(size: 11, weight: .medium))
+                  .lineLimit(1)
+                Text(eventTimeText(nextEvent, date: context.date))
+                  .font(.system(size: 9.5))
                   .foregroundStyle(.secondary)
               }
-              Text(timeZoneSubtitle)
+            } else {
+              Text(L10n.string("No upcoming events"))
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
             }
           }
-          Spacer()
-          if let nextEvent = upcomingEvent(date: context.date) {
-            VStack(alignment: .trailing, spacing: 2) {
-              Text(nextEvent.title)
-                .font(.system(size: 11, weight: .medium))
-                .lineLimit(1)
-              Text(eventTimeText(nextEvent, date: context.date))
-                .font(.system(size: 9.5))
-                .foregroundStyle(.secondary)
+
+          let secondary = secondaryTimeZones
+          if !secondary.isEmpty {
+            Divider()
+              .opacity(0.6)
+
+            HStack(spacing: 8) {
+              ForEach(secondary) { clock in
+                Button {
+                  model.updateSettings { $0.overviewTimeZoneID = clock.timeZone.identifier }
+                } label: {
+                  HStack(spacing: 4) {
+                    Text(clock.flag)
+                      .font(.system(size: 10))
+                    Text(clock.title)
+                      .font(.system(size: 10.5, weight: .medium))
+                      .foregroundStyle(.secondary)
+                    Text(timeText(for: clock.timeZone, date: context.date))
+                      .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                      .monospacedDigit()
+                      .foregroundStyle(.primary)
+
+                    let offset = relativeOffsetString(
+                      from: model.settings.overviewTimeZone,
+                      to: clock.timeZone,
+                      date: context.date
+                    )
+                    Text(offset)
+                      .font(.system(size: 9))
+                      .foregroundStyle(Color.accentColor)
+                  }
+                  .padding(.horizontal, 6)
+                  .padding(.vertical, 3)
+                  .background(Color.secondary.opacity(0.08))
+                  .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+              }
+              Spacer()
             }
-          } else {
-            Text(L10n.string("No upcoming events"))
-              .font(.system(size: 10))
-              .foregroundStyle(.tertiary)
           }
         }
       }
@@ -150,6 +193,53 @@ struct OverviewTabView: View {
     .fixedSize()
   }
 
+  private var fusedTimeZones: [ClockTimeZone] {
+    var result: [ClockTimeZone] = []
+    if let primary = currentClockTimeZone {
+      result.append(primary)
+    } else if let custom = ClockTimeZone.custom(identifier: model.settings.overviewTimeZoneID) {
+      result.append(custom)
+    }
+    for clock in model.settings.clockTimeZones {
+      if !result.contains(where: { $0.timeZone.identifier == clock.timeZone.identifier }) {
+        result.append(clock)
+      }
+      if result.count >= 3 { break }
+    }
+    return result
+  }
+
+  private var secondaryTimeZones: [ClockTimeZone] {
+    fusedTimeZones.filter { $0.timeZone.identifier != model.settings.overviewTimeZoneID }
+  }
+
+  private func timeText(for timeZone: TimeZone, date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.timeZone = timeZone
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.dateFormat = "HH:mm:ss"
+    return formatter.string(from: date)
+  }
+
+  private func relativeOffsetString(from primary: TimeZone, to target: TimeZone, date: Date) -> String {
+    let diffSeconds = target.secondsFromGMT(for: date) - primary.secondsFromGMT(for: date)
+    let hours = diffSeconds / 3600
+    let minutes = abs((diffSeconds % 3600) / 60)
+    let sign = hours >= 0 ? "+" : ""
+    let offsetStr = minutes == 0 ? "\(sign)\(hours)h" : "\(sign)\(hours)h\(minutes)m"
+
+    var cal = Calendar(identifier: .gregorian)
+    cal.timeZone = primary
+    let primaryDay = cal.component(.day, from: date)
+    cal.timeZone = target
+    let targetDay = cal.component(.day, from: date)
+    if targetDay > primaryDay {
+      return "\(offsetStr) 明天"
+    } else if targetDay < primaryDay {
+      return "\(offsetStr) 昨天"
+    }
+    return offsetStr
+  }
   private var currentClockTimeZone: ClockTimeZone? {
     model.settings.clockTimeZones.first { $0.timeZone.identifier == model.settings.overviewTimeZoneID }
   }

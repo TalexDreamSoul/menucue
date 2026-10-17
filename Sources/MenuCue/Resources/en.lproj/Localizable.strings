@@ -1328,6 +1328,15 @@
 "Reset Rules" = "Reset Rules";
 "Restore Default Rules" = "Restore Default Rules";
 "Reset Tab Order" = "Reset Tab Order";
+"Level 1 (Minimal)" = "Level 1 (Minimal)";
+"Level 2 (Light)" = "Level 2 (Light)";
+"Level 3 (Moderate)" = "Level 3 (Moderate)";
+"Level 4 (Elevated)" = "Level 4 (Elevated)";
+"Level 5 (Heavy)" = "Level 5 (Heavy)";
+"Rule Details" = "Rule Details";
+"Target Channels" = "Target Channels";
+"Energy Impact: %@" = "Energy Impact: %@";
+"Disabled" = "Disabled";
 "5%–95%; must stay below the full-speed threshold." = "5%–95%; must stay below the full-speed threshold.";
 "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility." = "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility.";
 "A shortcut only defines how to trigger an action; the action itself comes from the action library." = "A shortcut only defines how to trigger an action; the action itself comes from the action library.";

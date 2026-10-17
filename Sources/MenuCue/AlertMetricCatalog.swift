@@ -189,3 +189,55 @@ enum AlertMetricCatalog {
     )
   }
 }
+enum AlertEnergyLevel: Int, CaseIterable, Comparable, Sendable {
+  case level1 = 1
+  case level2 = 2
+  case level3 = 3
+  case level4 = 4
+  case level5 = 5
+
+  static func < (lhs: AlertEnergyLevel, rhs: AlertEnergyLevel) -> Bool {
+    lhs.rawValue < rhs.rawValue
+  }
+
+  var title: String {
+    switch self {
+    case .level1: return L10n.string("Level 1 (Minimal)")
+    case .level2: return L10n.string("Level 2 (Light)")
+    case .level3: return L10n.string("Level 3 (Moderate)")
+    case .level4: return L10n.string("Level 4 (Elevated)")
+    case .level5: return L10n.string("Level 5 (Heavy)")
+    }
+  }
+
+  var shortBadge: String {
+    "\(rawValue)级"
+  }
+
+  var description: String {
+    switch self {
+    case .level1: return "事件驱动，平时零唤醒，能耗极轻。"
+    case .level2: return "读取内核 Mach 瞬时快照，开销微秒级，轻量省电。"
+    case .level3: return "查询硬件子系统与驱动，开销中等。"
+    case .level4: return "频繁轮询存储 I/O 计数器，后台活动较高。"
+    case .level5: return "遍历并排序全系统所有进程，能耗与 CPU 占用最高。"
+    }
+  }
+
+  static func level(for metricID: AlertMetricID) -> AlertEnergyLevel {
+    let raw = metricID.rawValue.lowercased()
+    if raw.contains("process") {
+      return .level5
+    }
+    if raw.contains("disk") || raw.contains("io.") {
+      return .level4
+    }
+    if raw.contains("gpu") || raw.contains("network") || raw.contains("thermal") || raw.contains("fan") {
+      return .level3
+    }
+    if raw.contains("power.darkwake") || raw.contains("battery") {
+      return .level1
+    }
+    return .level2
+  }
+}

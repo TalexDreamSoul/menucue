@@ -1329,6 +1329,15 @@
 "Reset Rules" = "重置规则";
 "Restore Default Rules" = "恢复默认规则";
 "Reset Tab Order" = "恢复默认顺序";
+"Level 1 (Minimal)" = "1 级 (极轻)";
+"Level 2 (Light)" = "2 级 (轻量)";
+"Level 3 (Moderate)" = "3 级 (中等)";
+"Level 4 (Elevated)" = "4 级 (较高)";
+"Level 5 (Heavy)" = "5 级 (重度)";
+"Rule Details" = "规则详细信息";
+"Target Channels" = "目标推送渠道";
+"Energy Impact: %@" = "能耗等级：%@";
+"Disabled" = "已禁用";
 "5%–95%; must stay below the full-speed threshold." = "5%–95%；必须低于全速阈值。";
 "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility." = "多指轻点后可抑制左键以避免误触；该抑制需要辅助功能权限。";
 "A shortcut only defines how to trigger an action; the action itself comes from the action library." = "动作来自统一动作库，快捷键只定义触发方式。";

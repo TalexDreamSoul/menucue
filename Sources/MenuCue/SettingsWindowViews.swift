@@ -203,7 +203,6 @@ private struct SettingsContentView: View {
         selectedPaneContent
       }
       .padding(24)
-      .frame(maxWidth: SettingsMetrics.contentWidth, alignment: .leading)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .background(Color(nsColor: .windowBackgroundColor))

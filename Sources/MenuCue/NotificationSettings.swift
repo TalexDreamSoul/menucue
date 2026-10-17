@@ -240,7 +240,18 @@ final class NotificationConfigurationService: ObservableObject, @unchecked Senda
           NotificationSecretField.webhookBearerToken)
       )
     case .bark:
-      guard let url = URL(string: channel.barkServerURL) else {
+      var serverURLString = channel.barkServerURL.trimmingCharacters(in: .whitespacesAndNewlines)
+      if serverURLString.isEmpty {
+        serverURLString = "https://api.day.app"
+      }
+      if let parsed = URL(string: serverURLString), let host = parsed.host {
+        let components = parsed.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        if components.count == 1 && components.first != "push" {
+          let scheme = parsed.scheme ?? "https"
+          serverURLString = "\(scheme)://\(host)"
+        }
+      }
+      guard let url = URL(string: serverURLString) else {
         throw NotificationDeliveryError.invalidConfiguration
       }
       let group = channel.barkGroup.trimmingCharacters(in: .whitespacesAndNewlines)

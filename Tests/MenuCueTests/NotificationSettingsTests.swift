@@ -255,6 +255,23 @@ final class NotificationConfigurationServiceTests: XCTestCase {
     let recovered = try XCTUnwrap(service.makeEnabledChannels(settings: settings)[.bark])
     _ = try await recovered.send(testMessage())
   }
+  func testBarkDeviceKeySanitization() {
+    XCTAssertEqual(BarkNotificationChannel.sanitizeDeviceKey("  P4xxxxxxxx  "), "P4xxxxxxxx")
+    XCTAssertEqual(BarkNotificationChannel.sanitizeDeviceKey("https://api.day.app/P4xxxxxxxx/"), "P4xxxxxxxx")
+    XCTAssertEqual(BarkNotificationChannel.sanitizeDeviceKey("https://api.day.app/P4xxxxxxxx"), "P4xxxxxxxx")
+    XCTAssertEqual(BarkNotificationChannel.sanitizeDeviceKey("/P4xxxxxxxx/"), "P4xxxxxxxx")
+    XCTAssertEqual(BarkNotificationChannel.sanitizeDeviceKey("http://127.0.0.1:8080/myCustomKey"), "myCustomKey")
+  }
+
+  func testAlertEnergyLevelsCoverAllMetrics() {
+    let metrics = DefaultAlertRules.systemNotifications().map(\.metricID)
+    for metric in metrics {
+      let level = AlertEnergyLevel.level(for: metric)
+      XCTAssertTrue((1...5).contains(level.rawValue))
+      XCTAssertFalse(level.title.isEmpty)
+      XCTAssertFalse(level.description.isEmpty)
+    }
+  }
 
   private func testMessage() -> NotificationMessage {
     NotificationMessage(
