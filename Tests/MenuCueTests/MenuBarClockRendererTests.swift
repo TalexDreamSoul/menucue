@@ -10,9 +10,9 @@ final class MenuBarClockRendererTests: XCTestCase {
     func testCompatibilityPresetRendersLegacyDateAndTimeAtFixedLocaleAndTimeZone() {
         let output = render(.compatibilityDefault)
 
-        XCTAssertEqual(output.dateText, "Thu Jan 15")
+        XCTAssertEqual(output.dateText, "Thu Jan15日")
         XCTAssertEqual(output.timeText, "13:04:05")
-        XCTAssertEqual(output.combinedText, "Thu Jan 15 13:04:05")
+        XCTAssertEqual(output.combinedText, "Thu Jan15日 13:04:05")
     }
 
     func testStructuredClockCyclesRespectSecondsAtFixedLocaleAndTimeZone() {
@@ -105,7 +105,7 @@ final class MenuBarClockRendererTests: XCTestCase {
         changed.advancedTimePattern = "HH:mm"
 
         XCTAssertNotEqual(render(changed).combinedText, render(.compatibilityDefault).combinedText)
-        XCTAssertEqual(render(.compatibilityDefault).combinedText, "Thu Jan 15 13:04:05")
+        XCTAssertEqual(render(.compatibilityDefault).combinedText, "Thu Jan15日 13:04:05")
     }
 
     func testRecommendedWidthWarningDistinguishesCompatibilityAndExcessiveClockText() {
@@ -119,6 +119,7 @@ final class MenuBarClockRendererTests: XCTestCase {
 
     private func hiddenDateFormat() -> MenuBarFormatSettings {
         var format = MenuBarFormatSettings.compatibilityDefault
+        format.mode = .structured
         format.dateStyle = .hidden
         format.weekdayStyle = .hidden
         format.showsSeconds = false

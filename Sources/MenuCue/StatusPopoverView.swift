@@ -126,7 +126,7 @@ struct StatusPopoverView: View {
       .padding(.vertical, 7)
     }
     .frame(width: PopoverMetrics.width, height: PopoverMetrics.height, alignment: .top)
-    .background(Color(nsColor: .windowBackgroundColor))
+    .background(VisualEffectBackground(material: .popover, blendingMode: .behindWindow, state: .active))
     .focusable()
     .focused($isPopoverFocused)
     .menuCueFocusEffectDisabled()
@@ -1432,5 +1432,25 @@ private struct EventRow: View {
     formatter.dateStyle = .none
     formatter.timeStyle = .short
     return formatter.string(from: event.startDate)
+  }
+}
+
+struct VisualEffectBackground: NSViewRepresentable {
+  var material: NSVisualEffectView.Material = .popover
+  var blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
+  var state: NSVisualEffectView.State = .active
+
+  func makeNSView(context: Context) -> NSVisualEffectView {
+    let view = NSVisualEffectView()
+    view.material = material
+    view.blendingMode = blendingMode
+    view.state = state
+    return view
+  }
+
+  func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+    nsView.material = material
+    nsView.blendingMode = blendingMode
+    nsView.state = state
   }
 }

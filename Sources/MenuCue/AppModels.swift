@@ -123,13 +123,13 @@ struct MenuBarFormatSettings: Codable, Equatable {
     var statusItemIcon: StatusBarIcon
 
     static let compatibilityDefault = MenuBarFormatSettings(
-        mode: .structured,
+        mode: .advanced,
         clockCycle: .twentyFourHour,
         showsSeconds: true,
         dateStyle: .abbreviated,
         weekdayStyle: .short,
         segmentOrder: .dateThenTime,
-        advancedDatePattern: "EEE MMM d",
+        advancedDatePattern: "EEE MMMd日",
         advancedTimePattern: "HH:mm:ss"
     )
 
@@ -164,13 +164,13 @@ struct MenuBarFormatSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        mode = try values.decodeIfPresent(MenuBarFormatMode.self, forKey: .mode) ?? .structured
+        mode = try values.decodeIfPresent(MenuBarFormatMode.self, forKey: .mode) ?? .advanced
         clockCycle = try values.decodeIfPresent(ClockCycle.self, forKey: .clockCycle) ?? .twentyFourHour
         showsSeconds = try values.decodeIfPresent(Bool.self, forKey: .showsSeconds) ?? true
         dateStyle = try values.decodeIfPresent(MenuBarDateStyle.self, forKey: .dateStyle) ?? .abbreviated
         weekdayStyle = try values.decodeIfPresent(WeekdayStyle.self, forKey: .weekdayStyle) ?? .short
         segmentOrder = try values.decodeIfPresent(MenuBarSegmentOrder.self, forKey: .segmentOrder) ?? .dateThenTime
-        advancedDatePattern = try values.decodeIfPresent(String.self, forKey: .advancedDatePattern) ?? "EEE MMM d"
+        advancedDatePattern = try values.decodeIfPresent(String.self, forKey: .advancedDatePattern) ?? "EEE MMMd日"
         advancedTimePattern = try values.decodeIfPresent(String.self, forKey: .advancedTimePattern) ?? "HH:mm:ss"
         statusItemContent = try values.decodeIfPresent(StatusBarContent.self, forKey: .statusItemContent) ?? .clock
         statusItemIcon = try values.decodeIfPresent(StatusBarIcon.self, forKey: .statusItemIcon) ?? .appIcon

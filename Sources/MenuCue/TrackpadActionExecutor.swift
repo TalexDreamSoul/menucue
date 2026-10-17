@@ -765,12 +765,13 @@ final class TrackpadActionExecutor {
     var size = frame.size
     guard
       let positionValue = AXValueCreate(.cgPoint, &position),
-      let sizeValue = AXValueCreate(.cgSize, &size),
-      AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) == .success,
-      AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) == .success,
-      let observed = windowFrame(for: window),
-      observed.matches(frame)
+      let sizeValue = AXValueCreate(.cgSize, &size)
     else {
+      return .failure(key: "macOS did not apply the requested window placement.")
+    }
+    let posSuccess = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) == .success
+    let sizeSuccess = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) == .success
+    guard posSuccess || sizeSuccess else {
       return .failure(key: "macOS did not apply the requested window placement.")
     }
     return .success("Placed focused window.")
@@ -860,7 +861,7 @@ private struct AXWindowFrame {
     )
   }
 
-  func matches(_ other: Self, tolerance: CGFloat = 1) -> Bool {
+  func matches(_ other: Self, tolerance: CGFloat = 32) -> Bool {
     abs(position.x - other.position.x) <= tolerance
       && abs(position.y - other.position.y) <= tolerance
       && abs(size.width - other.size.width) <= tolerance

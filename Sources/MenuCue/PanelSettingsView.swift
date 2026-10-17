@@ -19,7 +19,6 @@ struct PanelSettingsView: View {
     VStack(alignment: .leading, spacing: 24) {
       popoverTabsCard
       samplingCard
-      animationMovedCard
     }
     .onAppear {
       powerSource = PowerSourceReader.current()
@@ -319,22 +318,6 @@ struct PanelSettingsView: View {
     }
   }
 
-  // MARK: - Animation quality
-
-  /// The animation-quality control affects the whole app and the settings window, so the
-  /// design document moves it to General › Appearance rather than duplicating it here.
-  private var animationMovedCard: some View {
-    SettingsCard(L10n.string("Animation Effects Moved to General › Appearance"), tone: .inset) {
-      SettingsRows {
-        SettingsPaneLinkRow(
-          L10n.string("Animation effects"),
-          desc: L10n.string("It affects the whole app and the settings window, not just the panel."),
-          destination: .general,
-          actionTitle: L10n.string("Open General")
-        )
-      }
-    }
-  }
 }
 
 /// Reorders the popover tabs when one row is dropped on another. The dragged row is kept

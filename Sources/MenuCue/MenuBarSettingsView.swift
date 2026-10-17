@@ -211,7 +211,9 @@ private struct MenuBarFormatSettingsView: View {
     VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
       statusItemCard
       formatCard
-      structuredOptionsCard
+      if isStructuredMode {
+        structuredOptionsCard
+      }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .onChange(of: model.settings.menuBarFormat.advancedDatePattern) { value in
