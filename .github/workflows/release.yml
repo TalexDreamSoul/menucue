@@ -21,8 +21,9 @@ concurrency:
 
 jobs:
   release:
-    runs-on: macos-14
+    runs-on: macos-26
     env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       APPLE_TEAM_ID: 2L5YC85FQ7
       CODESIGN_IDENTITY: 'Developer ID Application: ZiXian Tang (2L5YC85FQ7)'
       SPARKLE_KEY_ACCOUNT: com.tagzxia.app.menucue.sparkle
@@ -43,6 +44,15 @@ jobs:
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
+
+      - name: Verify release toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          swift --version
 
       - name: Resolve release version
         id: release
@@ -112,6 +122,23 @@ jobs:
           REQUIRE_STABLE_SIGNING=true \
           PROVISIONING_PROFILE="$PROVISIONING_PROFILE_PATH" \
           scripts/build-app.sh
+
+      - name: Verify packaged macOS SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          for EXECUTABLE in MenuCue MenuCueHelper; do
+            BUILD_INFO="$(xcrun vtool -show-build ".build/app/MenuCue.app/Contents/MacOS/$EXECUTABLE")"
+            printf '%s\n' "$BUILD_INFO"
+            SDK_VERSIONS="$(awk '$1 == "sdk" {print $2}' <<< "$BUILD_INFO")"
+            [[ -n "$SDK_VERSIONS" ]] || { echo "No SDK version found for $EXECUTABLE." >&2; exit 1; }
+            while IFS= read -r SDK_VERSION; do
+              [[ "${SDK_VERSION%%.*}" -ge 26 ]] || {
+                echo "$EXECUTABLE was built with macOS SDK $SDK_VERSION; SDK 26 or newer is required for the new system appearance." >&2
+                exit 1
+              }
+            done <<< "$SDK_VERSIONS"
+          done
 
       - name: Import Sparkle signing key
         shell: bash

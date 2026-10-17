@@ -67,6 +67,42 @@ Packaging must set `CFBundleDisplayName`, `CFBundleName`, and `CFBundleExecutabl
 - Inspect Mach-O `LC_BUILD_VERSION` for both MenuCue and MenuCueHelper.
 - Verify the app extracted from the final notarized ZIP and check the Sparkle item's `minimumSystemVersion`.
 
+### Release SDK contract
+
+#### 1. Scope / Trigger
+
+Changes to the release runner or Xcode selection must preserve automatic adoption of the new macOS appearance. A new app version alone does not prove that the binary uses a new SDK.
+
+#### 2. Signatures
+
+`.github/workflows/release.yml` runs `xcodebuild -version`, `xcrun --sdk macosx --show-sdk-version`, and `swift --version` before building. After signing, it runs `xcrun vtool -show-build .build/app/MenuCue.app/Contents/MacOS/<executable>` for `MenuCue` and `MenuCueHelper`.
+
+#### 3. Contracts
+
+Use `runs-on: macos-26` and `DEVELOPER_DIR=/Applications/Xcode_26.2.app/Contents/Developer`, not the runner's default Xcode. Every packaged architecture must report a macOS SDK major version of at least 26. Keep the deployment target at macOS 13; the SDK and deployment target serve different purposes.
+
+#### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| All packaged slices report SDK 26 or newer | Continue to notarization and publication |
+| Any slice reports an older SDK | Exit 1 with executable name and SDK version |
+| SDK metadata is absent or binary inspection fails | Fail the release before notarization |
+
+#### 5. Good / Base / Bad Cases
+
+- Good: main app and Helper both built with SDK 26.2, with minimum OS 13.0.
+- Base: another SDK 26 minor version satisfies the artifact floor, but changing the pinned Xcode remains an explicit workflow change.
+- Bad: an SDK 26 main app packaged with an SDK 14.5 Helper must fail, just like an entirely old-SDK package.
+
+#### 6. Tests Required
+
+Run `actionlint` on the workflow and execute its SDK gate against real new-SDK and old-SDK binaries. Assert success for the new pair and failure for both the old pair and a mixed main/Helper pair. No signing, notarization, or public release is needed for this smoke check.
+
+#### 7. Wrong vs Correct
+
+Wrong: accept a release because its version increased, its CI passed, or the developer's local Xcode is current. Correct: fix the CI toolchain explicitly and inspect `LC_BUILD_VERSION` in the packaged executables before publication.
+
 ## Settings navigation and section deep links
 
 ### Convention: Route status actions to the owning section

@@ -44,6 +44,8 @@ scripts/build-app.sh
 open .build/app/MenuCue.app
 ```
 
+Official CI releases use the `macos-26` runner with Xcode 26.2 pinned through `DEVELOPER_DIR`. Before notarization, the workflow inspects the packaged `MenuCue` and `MenuCueHelper` executables and rejects missing SDK metadata or any architecture built with a macOS SDK older than 26. This enables the new system appearance without raising the macOS 13 deployment target.
+
 By default, the script uses an available `Apple Development` identity so local macOS privacy grants remain valid across rebuilds. If none is available, it falls back to ad-hoc signing; explicitly use `CODESIGN_IDENTITY="-"` for the same local-only fallback. Public releases must use a `Developer ID Application` identity, a non-device-bound Developer ID provisioning profile, hardened runtime, and Apple notarization:
 
 ```bash
