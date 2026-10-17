@@ -900,12 +900,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     window.tabbingMode = .disallowed
     window.setContentSize(NSSize(width: Self.settingsDefaultSize.width, height: Self.settingsDefaultSize.height))
     window.minSize = NSSize(width: 720, height: 540)
-    // `.preference` is for the tab-strip style of Settings window. This one has a
-    // sidebar, so it wants the unified titlebar System Settings uses.
+    let toolbar = NSToolbar(identifier: "MenuCueSettingsToolbar")
+    toolbar.showsBaselineSeparator = false
+    window.toolbar = toolbar
     window.toolbarStyle = .unified
-    window.titlebarSeparatorStyle = .automatic
+    window.titleVisibility = .hidden
+    window.titlebarAppearsTransparent = true
+    window.titlebarSeparatorStyle = .none
     window.isReleasedWhenClosed = false
-
     // Order matters: naming the autosave first lets `setFrameUsingName` restore the
     // saved frame, and only a first run — where there is nothing to restore — gets
     // centred. Centring unconditionally is what threw the remembered size away.

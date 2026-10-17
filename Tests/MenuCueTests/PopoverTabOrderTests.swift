@@ -25,7 +25,7 @@ final class PopoverTabOrderTests: XCTestCase {
   }
 
   func testMissingPreferenceUsesProductDefaultOrder() {
-    XCTAssertEqual(store.load().popoverTabOrder, [.overview, .status, .calendar, .power, .actions])
+    XCTAssertEqual(store.load().popoverTabOrder, [.status, .calendar, .overview, .power, .actions])
   }
 
   func testStoredOrderKeepsKnownTabsOnceAndAppendsMissingTabs() {
@@ -51,7 +51,7 @@ final class PopoverTabOrderTests: XCTestCase {
 
     XCTAssertEqual(
       SettingsStore(defaults: defaults).load().popoverTabOrder,
-      [.status, .calendar, .power, .actions, .overview]
+      [.calendar, .overview, .power, .actions, .status]
     )
   }
 

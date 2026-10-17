@@ -4,19 +4,19 @@ import XCTest
 
 final class PopoverTabNavigationTests: XCTestCase {
   func testMovingForwardCyclesThroughTabsAndWraps() {
-    XCTAssertEqual(PopoverTab.overview.moving(by: 1), .status)
     XCTAssertEqual(PopoverTab.status.moving(by: 1), .calendar)
-    XCTAssertEqual(PopoverTab.calendar.moving(by: 1), .power)
+    XCTAssertEqual(PopoverTab.calendar.moving(by: 1), .overview)
+    XCTAssertEqual(PopoverTab.overview.moving(by: 1), .power)
     XCTAssertEqual(PopoverTab.power.moving(by: 1), .actions)
-    XCTAssertEqual(PopoverTab.actions.moving(by: 1), .overview)
+    XCTAssertEqual(PopoverTab.actions.moving(by: 1), .status)
   }
 
   func testMovingBackwardCyclesThroughTabsAndWraps() {
-    XCTAssertEqual(PopoverTab.overview.moving(by: -1), .actions)
+    XCTAssertEqual(PopoverTab.status.moving(by: -1), .actions)
     XCTAssertEqual(PopoverTab.actions.moving(by: -1), .power)
-    XCTAssertEqual(PopoverTab.power.moving(by: -1), .calendar)
+    XCTAssertEqual(PopoverTab.power.moving(by: -1), .overview)
+    XCTAssertEqual(PopoverTab.overview.moving(by: -1), .calendar)
     XCTAssertEqual(PopoverTab.calendar.moving(by: -1), .status)
-    XCTAssertEqual(PopoverTab.status.moving(by: -1), .overview)
   }
 
   func testOnlyUserShortcutModifiersBlockArrowNavigation() {

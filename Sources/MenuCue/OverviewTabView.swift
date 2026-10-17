@@ -64,65 +64,132 @@ struct OverviewTabView: View {
 
   private var todayOverviewCard: some View {
     PopoverCard(title: L10n.string("Today"), systemImage: "calendar", tint: .red) {
-      Button(L10n.string("Calendar")) {
-        router.openPopover(tab: .calendar)
-      }
-      .buttonStyle(.plain)
-      .font(.system(size: 10, weight: .semibold))
-      .foregroundStyle(Color.accentColor)
-    } content: {
-      HStack(alignment: .center, spacing: 12) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text(todayDateText)
-            .font(.system(size: 13, weight: .semibold))
-          if let lunar = todayLunarText {
-            Text(lunar)
-              .font(.system(size: 10))
-              .foregroundStyle(.secondary)
-          }
+      HStack(spacing: 8) {
+        timeZoneMenu
+
+        Button(L10n.string("Calendar")) {
+          router.openPopover(tab: .calendar)
         }
-        Spacer()
-        if let nextEvent = upcomingEvent {
-          VStack(alignment: .trailing, spacing: 2) {
-            Text(nextEvent.title)
-              .font(.system(size: 11, weight: .medium))
-              .lineLimit(1)
-            Text(eventTimeText(nextEvent))
-              .font(.system(size: 9.5))
-              .foregroundStyle(.secondary)
+        .buttonStyle(.plain)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+      }
+    } content: {
+      TimelineView(.periodic(from: Date(), by: 1)) { context in
+        HStack(alignment: .center, spacing: 12) {
+          VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+              Text(todayDateText(date: context.date))
+                .font(.system(size: 13, weight: .semibold))
+              Text(currentTimeText(date: context.date))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(Color.accentColor)
+            }
+            HStack(spacing: 6) {
+              if let lunar = todayLunarText(date: context.date) {
+                Text(lunar)
+                  .font(.system(size: 10))
+                  .foregroundStyle(.secondary)
+              }
+              Text(timeZoneSubtitle)
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+            }
           }
-        } else {
-          Text(L10n.string("No upcoming events"))
-            .font(.system(size: 10))
-            .foregroundStyle(.tertiary)
+          Spacer()
+          if let nextEvent = upcomingEvent(date: context.date) {
+            VStack(alignment: .trailing, spacing: 2) {
+              Text(nextEvent.title)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+              Text(eventTimeText(nextEvent, date: context.date))
+                .font(.system(size: 9.5))
+                .foregroundStyle(.secondary)
+            }
+          } else {
+            Text(L10n.string("No upcoming events"))
+              .font(.system(size: 10))
+              .foregroundStyle(.tertiary)
+          }
         }
       }
     }
   }
 
-  private var todayDateText: String {
+  private var timeZoneMenu: some View {
+    Menu {
+      ForEach(model.settings.clockTimeZones) { clock in
+        Button {
+          model.updateSettings { $0.overviewTimeZoneID = clock.timeZone.identifier }
+        } label: {
+          HStack {
+            Text("\(clock.flag) \(clock.title) (\(clock.subtitle))")
+            if clock.timeZone.identifier == model.settings.overviewTimeZoneID {
+              Image(systemName: "checkmark")
+            }
+          }
+        }
+      }
+    } label: {
+      HStack(spacing: 3) {
+        Image(systemName: "globe")
+          .font(.system(size: 9))
+        Text(currentClockTimeZone?.title ?? TimeZoneCatalog.shortTitle(for: model.settings.overviewTimeZoneID))
+          .font(.system(size: 10, weight: .medium))
+        Image(systemName: "chevron.down")
+          .font(.system(size: 7, weight: .bold))
+      }
+      .foregroundStyle(Color.secondary)
+      .padding(.horizontal, 6)
+      .padding(.vertical, 2)
+      .background(Color.secondary.opacity(0.10))
+      .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+    }
+    .menuStyle(.borderlessButton)
+    .fixedSize()
+  }
+
+  private var currentClockTimeZone: ClockTimeZone? {
+    model.settings.clockTimeZones.first { $0.timeZone.identifier == model.settings.overviewTimeZoneID }
+  }
+
+  private var timeZoneSubtitle: String {
+    let flag = currentClockTimeZone?.flag ?? TimeZoneCatalog.flag(for: model.settings.overviewTimeZoneID)
+    let display = currentClockTimeZone?.subtitle ?? TimeZoneCatalog.displayName(for: model.settings.overviewTimeZoneID)
+    return "\(flag) \(display)"
+  }
+
+  private func currentTimeText(date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.timeZone = model.settings.overviewTimeZone
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.dateFormat = "HH:mm:ss"
+    return formatter.string(from: date)
+  }
+
+  private func todayDateText(date: Date) -> String {
     let formatter = DateFormatter()
     formatter.timeZone = model.settings.overviewTimeZone
     formatter.locale = Locale.autoupdatingCurrent
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
-    return formatter.string(from: Date())
+    return formatter.string(from: date)
   }
 
-  private var todayLunarText: String? {
+  private func todayLunarText(date: Date) -> String? {
     guard model.settings.showsLunarCalendar else { return nil }
-    let info = LunarDateProvider(timeZone: model.settings.overviewTimeZone, locale: L10n.appLocale).info(for: Date())
+    let info = LunarDateProvider(timeZone: model.settings.overviewTimeZone, locale: L10n.appLocale).info(for: date)
     return info?.compactText ?? info?.fullText
   }
 
-  private var upcomingEvent: CalendarEventInfo? {
-    let now = Date()
-    return model.events.first { event in
-      event.endDate > now
+  private func upcomingEvent(date: Date) -> CalendarEventInfo? {
+    model.events.first { event in
+      event.endDate > date
     }
   }
 
-  private func eventTimeText(_ event: CalendarEventInfo) -> String {
+  private func eventTimeText(_ event: CalendarEventInfo, date: Date) -> String {
     if event.isAllDay { return L10n.string("All day") }
     let formatter = DateFormatter()
     formatter.timeZone = model.settings.overviewTimeZone
