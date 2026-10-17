@@ -78,6 +78,9 @@ struct StatusPopoverView: View {
   /// transition below is already pointing the right way when SwiftUI evaluates it.
   @State private var navigationDirection = 1
   @FocusState private var isPopoverFocused: Bool
+  @State private var isCommandPressed: Bool = false
+  @State private var keyMonitor: Any?
+  @AppStorage("hasSeenQuickSwitchTip.v1") private var hasSeenQuickSwitchTip: Bool = false
 
   init(
     model: AppModel,
@@ -102,7 +105,7 @@ struct StatusPopoverView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      PopoverTabBar(tabs: tabs, selection: tabSelection)
+      PopoverTabBar(tabs: tabs, selection: tabSelection, isCommandPressed: isCommandPressed)
         .padding(.horizontal, PopoverMetrics.contentPadding)
         .padding(.top, 10)
         .padding(.bottom, 8)
@@ -110,6 +113,25 @@ struct StatusPopoverView: View {
       Divider()
         .opacity(0.5)
 
+      if !hasSeenQuickSwitchTip {
+        HStack(spacing: 8) {
+          Image(systemName: "command")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Color.accentColor)
+          Text(L10n.string("Press 1-4 to switch tabs quickly, or hold ⌘ for shortcuts."))
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+          Spacer()
+          Button(L10n.string("Got it")) {
+            withAnimation { hasSeenQuickSwitchTip = true }
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.mini)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(Color.accentColor.opacity(0.08))
+      }
       tabContent
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The outgoing and incoming tabs overlap while sliding; without this they
@@ -134,6 +156,31 @@ struct StatusPopoverView: View {
     .menuCueFocusEffectDisabled()
     .onAppear {
       isPopoverFocused = true
+      if keyMonitor == nil {
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown]) { event in
+          if event.type == .flagsChanged {
+            let cmd = event.modifierFlags.contains(.command)
+            if cmd != isCommandPressed {
+              withAnimation(.easeInOut(duration: 0.12)) {
+                isCommandPressed = cmd
+              }
+            }
+          } else if event.type == .keyDown {
+            if let chars = event.charactersIgnoringModifiers, let num = Int(chars), num >= 1, num <= tabs.count {
+              select(tabs[num - 1], direction: num - 1 >= (tabs.firstIndex(of: selectedTab) ?? 0) ? 1 : -1)
+              return nil
+            }
+          }
+          return event
+        }
+      }
+    }
+    .onDisappear {
+      if let keyMonitor {
+        NSEvent.removeMonitor(keyMonitor)
+        self.keyMonitor = nil
+      }
+      isCommandPressed = false
     }
     .menuCueHorizontalArrowNavigation { offset in
       select(selectedTab.moving(by: offset, in: tabs), direction: offset)

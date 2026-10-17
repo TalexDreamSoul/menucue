@@ -38,6 +38,8 @@
 "Overview" = "概览";
 "Popover Dimensions" = "弹窗尺寸";
 "Popover Height" = "弹窗高度";
+"Press 1-4 to switch tabs quickly, or hold ⌘ for shortcuts." = "按数字键 1~4 快速切换标签，按住 ⌘ 显式快捷键。";
+"Got it" = "我知道了";
 "Adjust the popover height to fit more content comfortably." = "调整菜单栏弹窗高度，舒适容纳更多信息。";
 "Compact (560 pt)" = "紧凑 (560 pt)";
 "Standard (620 pt)" = "标准 (620 pt)";

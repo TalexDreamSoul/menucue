@@ -25,7 +25,7 @@ final class PopoverTabOrderTests: XCTestCase {
   }
 
   func testMissingPreferenceUsesProductDefaultOrder() {
-    XCTAssertEqual(store.load().popoverTabOrder, [.status, .calendar, .power, .actions])
+    XCTAssertEqual(store.load().popoverTabOrder, [.overview, .status, .calendar, .power, .actions])
   }
 
   func testStoredOrderKeepsKnownTabsOnceAndAppendsMissingTabs() {
@@ -34,7 +34,7 @@ final class PopoverTabOrderTests: XCTestCase {
       forKey: "popoverTabOrder.v1"
     )
 
-    XCTAssertEqual(store.load().popoverTabOrder, [.calendar, .status, .power, .actions])
+    XCTAssertEqual(store.load().popoverTabOrder, [.calendar, .status, .overview, .power, .actions])
   }
 
   func testEmptyStoredOrderCannotHideBuiltInTabs() {
@@ -45,21 +45,21 @@ final class PopoverTabOrderTests: XCTestCase {
 
   func testReorderedTabsRoundTrip() {
     var settings = store.load()
-    settings.movePopoverTabs(fromOffsets: IndexSet(integer: 0), toOffset: 4)
+    settings.movePopoverTabs(fromOffsets: IndexSet(integer: 0), toOffset: 5)
 
     store.save(settings)
 
     XCTAssertEqual(
       SettingsStore(defaults: defaults).load().popoverTabOrder,
-      [.calendar, .power, .actions, .status]
+      [.status, .calendar, .power, .actions, .overview]
     )
   }
 
   func testNavigationUsesConfiguredOrderAndWraps() {
-    let order: [PopoverTab] = [.calendar, .actions, .status, .power]
+    let order: [PopoverTab] = [.overview, .calendar, .actions, .status, .power]
 
     XCTAssertEqual(PopoverTab.calendar.moving(by: 1, in: order), .actions)
-    XCTAssertEqual(PopoverTab.power.moving(by: 1, in: order), .calendar)
-    XCTAssertEqual(PopoverTab.calendar.moving(by: -1, in: order), .power)
+    XCTAssertEqual(PopoverTab.power.moving(by: 1, in: order), .overview)
+    XCTAssertEqual(PopoverTab.overview.moving(by: -1, in: order), .power)
   }
 }

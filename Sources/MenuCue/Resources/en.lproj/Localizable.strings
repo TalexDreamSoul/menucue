@@ -38,6 +38,8 @@
 "Overview" = "Overview";
 "Popover Dimensions" = "Popover Dimensions";
 "Popover Height" = "Popover Height";
+"Press 1-4 to switch tabs quickly, or hold ⌘ for shortcuts." = "Press 1-4 to switch tabs quickly, or hold ⌘ for shortcuts.";
+"Got it" = "Got it";
 "Adjust the popover height to fit more content comfortably." = "Adjust the popover height to fit more content comfortably.";
 "Compact (560 pt)" = "Compact (560 pt)";
 "Standard (620 pt)" = "Standard (620 pt)";

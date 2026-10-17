@@ -369,7 +369,7 @@ struct TrackpadSettingsView: View {
           ) {
             Button(L10n.string("Preview Feedback")) {
               TrackpadFeedbackHUD.shared.show(
-                L10n.string("Volume 50%"),
+                L10n.format("Volume %d%%", 50),
                 isFailure: false,
                 level: 0.5,
                 symbolName: "speaker.wave.2.fill"

@@ -174,6 +174,7 @@ struct PopoverTabBar: View {
   @Environment(\.menuCueMotion) private var motion
   let tabs: [PopoverTab]
   @Binding var selection: PopoverTab
+  var isCommandPressed: Bool = false
   @Namespace private var highlight
   @State private var hoveredTab: PopoverTab?
 
@@ -191,6 +192,16 @@ struct PopoverTabBar: View {
               .menuCueSymbolBounce(value: selection == tab)
             Text(tab.title)
               .font(.system(size: 12, weight: .semibold))
+            if isCommandPressed, let index = tabs.firstIndex(of: tab) {
+              Text("⌘\(index + 1)")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Color.accentColor.opacity(0.18))
+                .foregroundStyle(Color.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                .transition(.scale.combined(with: .opacity))
+            }
           }
           .frame(maxWidth: .infinity)
           .padding(.vertical, 6)

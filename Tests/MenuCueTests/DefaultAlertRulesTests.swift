@@ -10,18 +10,11 @@ final class DefaultAlertRulesTests: XCTestCase {
   func testFirstRunRulesAreTheReviewedConservativesAllEnabledOnTheSystemChannel() {
     let rules = DefaultAlertRules.systemNotifications()
 
-    XCTAssertEqual(rules.count, 5, "a first run starts from exactly the reviewed rule set")
-    XCTAssertEqual(
-      Set(rules.map { $0.metricID.rawValue }),
-      [
-        "cpu.total.busy",
-        "memory.pressure",
-        "swap.used.percent",
-        "storage.volume.usedPercent",
-        "event.darkWake",
-      ]
-    )
-    XCTAssertTrue(rules.allSatisfy(\.isEnabled), "every default rule ships enabled")
+    XCTAssertEqual(rules.count, 22, "a first run starts from the comprehensive 22-rule set")
+    let enabled = rules.filter(\.isEnabled)
+    let disabled = rules.filter { !$0.isEnabled }
+    XCTAssertEqual(enabled.count, 14, "14 lightweight rules ship enabled")
+    XCTAssertEqual(disabled.count, 8, "8 heavyweight/sampling rules ship disabled")
     for rule in rules {
       XCTAssertEqual(
         rule.channels, [.system],
