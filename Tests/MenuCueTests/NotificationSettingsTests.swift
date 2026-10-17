@@ -174,7 +174,7 @@ final class NotificationConfigurationServiceTests: XCTestCase {
     XCTAssertTrue(NotificationSettings.default.channel(.system).isEnabled)
     XCTAssertEqual(Set(NotificationSettings.default.channels.keys), [.system])
     XCTAssertEqual(NotificationSettings.default.rules.count, 22)
-    XCTAssertEqual(NotificationSettings.default.enabledRuleCount, 14)
+    XCTAssertEqual(NotificationSettings.default.enabledRuleCount, 17)
 
     try service.removeSecret(NotificationSecretField.barkDeviceKey)
     XCTAssertFalse(service.hasSavedSecret(NotificationSecretField.barkDeviceKey))
@@ -270,6 +270,15 @@ final class NotificationConfigurationServiceTests: XCTestCase {
       XCTAssertTrue((1...5).contains(level.rawValue))
       XCTAssertFalse(level.title.isEmpty)
       XCTAssertFalse(level.description.isEmpty)
+    }
+  }
+  func testLevel1And2AlertRulesAreAllEnabledByDefault() {
+    let rules = DefaultAlertRules.systemNotifications()
+    for rule in rules {
+      let level = AlertEnergyLevel.level(for: rule.metricID)
+      if level <= .level2 {
+        XCTAssertTrue(rule.isEnabled, "Level 1 and 2 rule '\(rule.name)' must be enabled by default")
+      }
     }
   }
 

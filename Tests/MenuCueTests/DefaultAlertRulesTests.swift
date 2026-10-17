@@ -13,8 +13,8 @@ final class DefaultAlertRulesTests: XCTestCase {
     XCTAssertEqual(rules.count, 22, "a first run starts from the comprehensive 22-rule set")
     let enabled = rules.filter(\.isEnabled)
     let disabled = rules.filter { !$0.isEnabled }
-    XCTAssertEqual(enabled.count, 14, "14 lightweight rules ship enabled")
-    XCTAssertEqual(disabled.count, 8, "8 heavyweight/sampling rules ship disabled")
+    XCTAssertEqual(enabled.count, 17, "17 level-1 and level-2 rules ship enabled")
+    XCTAssertEqual(disabled.count, 5, "5 higher-tier sampling rules ship disabled")
     for rule in rules {
       XCTAssertEqual(
         rule.channels, [.system],

@@ -232,10 +232,10 @@ enum AlertEnergyLevel: Int, CaseIterable, Comparable, Sendable {
     if raw.contains("disk") || raw.contains("io.") {
       return .level4
     }
-    if raw.contains("gpu") || raw.contains("network") || raw.contains("thermal") || raw.contains("fan") {
+    if raw.contains("gpu") || raw.contains("network") || raw.contains("thermal") || raw.contains("fan") || raw.contains("temperature") {
       return .level3
     }
-    if raw.contains("power.darkwake") || raw.contains("battery") {
+    if raw.contains("darkwake") || raw.contains("battery") {
       return .level1
     }
     return .level2

@@ -34,7 +34,7 @@ enum DefaultAlertRules {
       AlertRule(
         id: UUID(uuidString: "C3F26D8B-A43B-5C7B-A265-9C8D6B253E12")!,
         name: L10n.string("CPU System Load"),
-        isEnabled: false,
+        isEnabled: true,
         metricID: "cpu.total.system",
         condition: .numeric(operator: .above, threshold: 0.50),
         alertDuration: 60,
@@ -46,7 +46,7 @@ enum DefaultAlertRules {
       AlertRule(
         id: UUID(uuidString: "D4A37E9C-B54C-6D8C-B376-AD9E7C364F23")!,
         name: L10n.string("CPU Load (1m)"),
-        isEnabled: false,
+        isEnabled: true,
         metricID: "cpu.load.1m",
         condition: .numeric(operator: .above, threshold: 12.0),
         alertDuration: 60,
@@ -103,7 +103,7 @@ enum DefaultAlertRules {
       AlertRule(
         id: UUID(uuidString: "18E7B230-F980-A1C2-F7BA-E1D2B07A8367")!,
         name: L10n.string("App Memory Usage"),
-        isEnabled: false,
+        isEnabled: true,
         metricID: "memory.app",
         condition: .numeric(operator: .above, threshold: 21_474_836_480),
         alertDuration: 60,
