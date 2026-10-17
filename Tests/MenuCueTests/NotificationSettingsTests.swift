@@ -159,7 +159,8 @@ final class NotificationConfigurationServiceTests: XCTestCase {
     // stays the only enabled one and its shipped rules stay enabled.
     XCTAssertTrue(NotificationSettings.default.channel(.system).isEnabled)
     XCTAssertEqual(Set(NotificationSettings.default.channels.keys), [.system])
-    XCTAssertEqual(NotificationSettings.default.enabledRuleCount, 5)
+    XCTAssertEqual(NotificationSettings.default.rules.count, 22)
+    XCTAssertEqual(NotificationSettings.default.enabledRuleCount, 14)
 
     try service.removeSecret(NotificationSecretField.barkDeviceKey)
     XCTAssertFalse(service.hasSavedSecret(NotificationSecretField.barkDeviceKey))

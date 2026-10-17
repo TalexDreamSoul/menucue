@@ -132,6 +132,15 @@ struct AlertRule: Codable, Equatable, Identifiable, Sendable {
     copy.channels.formIntersection(enabledChannels)
     return copy
   }
+  var isHeavyweight: Bool {
+    switch metricID.rawValue {
+    case "cpu.total.system", "cpu.load.1m", "gpu.memory.inUse", "memory.app",
+         "disk.write.rate", "disk.read.rate", "network.download.rate", "network.upload.rate":
+      return true
+    default:
+      return false
+    }
+  }
 }
 
 struct AlertPhaseTimer: Codable, Equatable, Sendable {

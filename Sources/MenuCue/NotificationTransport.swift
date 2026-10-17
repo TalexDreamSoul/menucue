@@ -149,7 +149,11 @@ protocol NotificationHTTPTransport: Sendable {
 final class RedirectRejectingSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable
 {
   static func redirectedRequest(from original: URLRequest, to proposed: URLRequest) -> URLRequest? {
-    nil
+    guard let origHost = original.url?.host, let propHost = proposed.url?.host,
+          origHost.caseInsensitiveCompare(propHost) == .orderedSame else {
+      return nil
+    }
+    return proposed
   }
 
   func urlSession(
@@ -171,7 +175,7 @@ final class URLSessionNotificationHTTPTransport: NotificationHTTPTransport, @unc
   private let maximumResponseBytes: Int
 
   init(
-    timeout: TimeInterval = 15,
+    timeout: TimeInterval = 30,
     maximumResponseBytes: Int = defaultMaximumResponseBytes,
     configuration: URLSessionConfiguration = .ephemeral
   ) {
@@ -186,23 +190,13 @@ final class URLSessionNotificationHTTPTransport: NotificationHTTPTransport, @unc
   }
 
   func data(for request: URLRequest) async throws -> NotificationHTTPResponse {
-    let (bytes, response) = try await session.bytes(for: request)
+    let (data, response) = try await session.data(for: request)
     guard let response = response as? HTTPURLResponse else {
       throw NotificationDeliveryError.invalidResponse
     }
-    if response.expectedContentLength > Int64(maximumResponseBytes) {
+    if data.count > maximumResponseBytes {
       throw NotificationDeliveryError.responseTooLarge
     }
-
-    var data = Data()
-    data.reserveCapacity(min(maximumResponseBytes, max(0, Int(response.expectedContentLength))))
-    for try await byte in bytes {
-      guard data.count < maximumResponseBytes else {
-        throw NotificationDeliveryError.responseTooLarge
-      }
-      data.append(byte)
-    }
-
     let headerPairs: [(String, String)] = response.allHeaderFields.compactMap { key, value in
       guard let key = key as? String else { return nil }
       return (key, String(describing: value))
@@ -478,7 +472,11 @@ struct BarkNotificationChannel: NotificationChannel {
       throw NotificationDeliveryError.invalidConfiguration
     }
     self.configuration = configuration
-    self.endpoint = configuration.serverBaseURL.appendingPathComponent("push")
+    var url = configuration.serverBaseURL
+    if !url.path.hasSuffix("/push") {
+      url = url.appendingPathComponent("push")
+    }
+    self.endpoint = url
     self.transport = transport
   }
 

@@ -4,6 +4,7 @@ struct NotificationSettingsView: View {
   @ObservedObject var model: AppModel
   @ObservedObject private var configuration: NotificationConfigurationService
   @State private var selectedRuleID: UUID?
+  @State private var editingRule: AlertRule?
 
   init(model: AppModel) {
     self.model = model
@@ -18,11 +19,10 @@ struct NotificationSettingsView: View {
       runtimeCard
       channelCard
       rulesCard
-      if let rule = selectedRule {
-        AlertRuleEditor(model: model, rule: rule)
-          .id(rule.id)
-      }
       identityCard
+    }
+    .sheet(item: $editingRule) { rule in
+      AlertRuleEditorModal(model: model, rule: rule, onDismiss: { editingRule = nil })
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .onAppear {
@@ -144,19 +144,13 @@ struct NotificationSettingsView: View {
           ForEach(rules) { rule in
             Button {
               selectedRuleID = rule.id
+              editingRule = rule
             } label: {
               ruleTableRow(rule)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(rule.name)
           }
-        }
-        if selectedRule == nil {
-          SettingsEmptyState(
-            L10n.string("Select a rule"),
-            desc: L10n.string("Choose a rule in the table to edit it."),
-            systemImage: "hand.point.up.left"
-          )
         }
       }
     }
@@ -329,6 +323,7 @@ struct NotificationSettingsView: View {
     )
     model.updateNotificationSettings { $0.rules.append(rule) }
     selectedRuleID = rule.id
+    editingRule = rule
   }
 
   private func deleteSelectedRule() {
@@ -621,9 +616,12 @@ private struct AlertRuleEditor: View {
   @State private var rule: AlertRule
   @State private var templateMode = NotificationEventState.alert
 
-  init(model: AppModel, rule: AlertRule) {
+  var onDismiss: (() -> Void)? = nil
+
+  init(model: AppModel, rule: AlertRule, onDismiss: (() -> Void)? = nil) {
     self.model = model
     self._rule = State(initialValue: rule)
+    self.onDismiss = onDismiss
   }
 
   private var definition: AlertMetricDefinition? {
@@ -637,6 +635,11 @@ private struct AlertRuleEditor: View {
         "Changes are saved only when you click Save Rule; the editor does not show unsaved state."),
       action: {
         HStack(spacing: 10) {
+          if let onDismiss {
+            Button(L10n.string("Cancel"), action: onDismiss)
+              .buttonStyle(.bordered)
+              .controlSize(.small)
+          }
           Toggle(L10n.string("Enabled"), isOn: binding(\.isEnabled))
             .toggleStyle(.switch)
             .controlSize(.small)
@@ -647,6 +650,13 @@ private struct AlertRuleEditor: View {
         }
       }
     ) {
+      if rule.isHeavyweight {
+        SettingsBanner(
+          L10n.string("This rule samples high-frequency metrics and may increase system energy consumption."),
+          systemImage: "bolt.trianglebadge.exclamationmark.fill",
+          tint: .orange
+        )
+      }
       SettingsRows {
         SettingsRowField(
           L10n.string("Rule name"),
@@ -1114,10 +1124,26 @@ private struct AlertRuleEditor: View {
       settings.rules[index] = sanitized
     }
     rule = sanitized
+    onDismiss?()
   }
 
   private func update(_ mutation: (inout AlertRule) -> Void) {
     mutation(&rule)
+  }
+}
+private struct AlertRuleEditorModal: View {
+  @ObservedObject var model: AppModel
+  let rule: AlertRule
+  let onDismiss: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      ScrollView {
+        AlertRuleEditor(model: model, rule: rule, onDismiss: onDismiss)
+          .padding(20)
+      }
+    }
+    .frame(minWidth: 620, maxWidth: 720, minHeight: 520, maxHeight: 680)
   }
 }
 
