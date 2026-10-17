@@ -351,25 +351,38 @@ enum PowerDiagnosticsParser {
     return profiles
   }
 
+  /// Captures the single-line inline dictionary of a **top-level** property.
+  static func inlineDictionary(_ key: String, in text: String) -> String? {
+    let escaped = NSRegularExpression.escapedPattern(for: key)
+    let pattern = "^[\\s|+\\-]*\\\"\(escaped)\\\" = \\{(.*)$"
+    guard
+      let expression = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]),
+      let match = expression.firstMatch(
+        in: text, range: NSRange(text.startIndex..<text.endIndex, in: text)),
+      let payloadRange = Range(match.range(at: 1), in: text)
+    else { return nil }
+    return String(text[payloadRange])
+  }
+
+  /// Reads one `"Key"=value` entry inside a captured payload.
+  static func dictionarySigned(_ key: String, in payload: String) -> Int64? {
+    let escaped = NSRegularExpression.escapedPattern(for: key)
+    let pattern = "\\\"\(escaped)\\\"=(-?\\d+)"
+    guard
+      let expression = try? NSRegularExpression(pattern: pattern),
+      let match = expression.firstMatch(
+        in: payload, range: NSRange(payload.startIndex..<payload.endIndex, in: payload)),
+      let valueRange = Range(match.range(at: 1), in: payload)
+    else { return nil }
+    let literal = String(payload[valueRange])
+    if let value = Int64(literal) { return value }
+    if let unsigned = UInt64(literal) { return Int64(bitPattern: unsigned) }
+    return nil
+  }
+
   static func parseBatteryRegistry(_ text: String) throws -> BatteryFlow {
-    /// Reads a **top-level** `ioreg` property.
-    ///
-    /// Two things this has to get right, both of which it used to get wrong:
-    ///
-    /// * Anchoring. `ioreg` prints nested dictionaries inline, so `BatteryData` is one
-    ///   enormous line carrying `"Voltage"=12345` among hundreds of other keys. A
-    ///   whole-text `firstMatch` found that one, tens of lines before the real
-    ///   top-level `"Voltage" = 12345`. Top-level properties sit alone on a line with
-    ///   spaces around the `=`; nested ones never do.
-    /// * Sign. The pattern accepted digits only, so a negative literal would have had
-    ///   its minus dropped — reporting charging while discharging. Values can also
-    ///   arrive as unsigned two's complement, which the `bitPattern` conversion covers.
     func signed(_ key: String) throws -> Int64 {
       let escaped = NSRegularExpression.escapedPattern(for: key)
-      // The prefix allows `ioreg`'s tree drawing (`| |   `) as well as plain
-      // indentation. What actually discriminates is the tail: a top-level property
-      // ends the line, while a key inside an inline dictionary is always followed by
-      // a comma or a brace.
       let pattern = "^[\\s|+\\-]*\\\"\(escaped)\\\" = (-?\\d+)\\s*$"
       let expression = try NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
       let range = NSRange(text.startIndex..<text.endIndex, in: text)
@@ -379,7 +392,6 @@ enum PowerDiagnosticsParser {
 
       let literal = String(text[valueRange])
       if let value = Int64(literal) { return value }
-      // Beyond Int64 means an unsigned two's-complement negative.
       guard let unsigned = UInt64(literal) else {
         throw PowerDiagnosticsParseError.malformed(key)
       }
@@ -388,7 +400,15 @@ enum PowerDiagnosticsParser {
 
     let amperage = try signed("InstantAmperage")
     let voltage = try signed("Voltage")
-    let capacity = try signed("AppleRawMaxCapacity")
+    let capacity: Int64
+    if let rawCapacity = try? signed("AppleRawMaxCapacity") {
+      capacity = rawCapacity
+    } else if let dict = inlineDictionary("BatteryData", in: text),
+              let nominal = dictionarySigned("NominalChargeCapacity", in: dict) ?? dictionarySigned("DesignCapacity", in: dict) {
+      capacity = nominal
+    } else {
+      throw PowerDiagnosticsParseError.missingField("AppleRawMaxCapacity")
+    }
     guard capacity > 0 else { throw PowerDiagnosticsParseError.malformed("battery capacity") }
     return BatteryFlow(
       watts: Double(voltage) / 1_000 * Double(amperage) / 1_000,
@@ -400,27 +420,6 @@ enum PowerDiagnosticsParser {
   /// output `parseBatteryRegistry` consumes. Returns nil only when nothing useful was
   /// found; individual fields stay optional because availability differs by hardware.
   static func parsePowerTelemetry(_ text: String) -> PowerTelemetry? {
-    /// Captures the single-line inline dictionary of a **top-level** property.
-    ///
-    /// The same anchoring problem `signed` documents applies here in dictionary form:
-    /// `AppleRawAdapterDetails` is a different top-level line that also carries
-    /// `"Watts"=`, so the property name must match exactly at the start of the line.
-    /// Requiring ` = {` additionally excludes it, since arrays print as ` = (`.
-    func inlineDictionary(_ key: String) -> String? {
-      let escaped = NSRegularExpression.escapedPattern(for: key)
-      let pattern = "^[\\s|+\\-]*\\\"\(escaped)\\\" = \\{(.*)$"
-      guard
-        let expression = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]),
-        let match = expression.firstMatch(
-          in: text, range: NSRange(text.startIndex..<text.endIndex, in: text)),
-        let payloadRange = Range(match.range(at: 1), in: text)
-      else { return nil }
-      return String(text[payloadRange])
-    }
-
-    /// Reads one `"Key"=value` entry inside a captured payload. The quotes are the
-    /// anchors: `"SystemPowerIn"=` cannot match inside `"SystemPowerInAccumulatorCount"=`
-    /// (no closing quote there) or `"AccumulatedSystemLoad"=` (no opening quote).
     func field(_ payload: String, _ key: String) -> Int64? {
       let escaped = NSRegularExpression.escapedPattern(for: key)
       let pattern = "\\\"\(escaped)\\\"=(\\d+)"
@@ -430,19 +429,16 @@ enum PowerDiagnosticsParser {
           in: payload, range: NSRange(payload.startIndex..<payload.endIndex, in: payload)),
         let valueRange = Range(match.range(at: 1), in: payload)
       else { return nil }
-      // Values beyond Int64 are unsigned two's-complement noise for these keys; treat
-      // the field as absent rather than reporting an absurd wattage.
       return Int64(payload[valueRange])
     }
 
     var telemetry = PowerTelemetry()
-    // Unplugged Macs print `"AdapterDetails" = {}` or a dictionary with `Watts=0`.
-    if let adapter = inlineDictionary("AdapterDetails"),
+    if let adapter = inlineDictionary("AdapterDetails", in: text),
       let watts = field(adapter, "Watts"), watts > 0
     {
       telemetry.adapterRatedWatts = Int(watts)
     }
-    if let payload = inlineDictionary("PowerTelemetryData") {
+    if let payload = inlineDictionary("PowerTelemetryData", in: text) {
       if let milliwatts = field(payload, "SystemPowerIn") {
         telemetry.systemInWatts = Double(milliwatts) / 1_000
       }

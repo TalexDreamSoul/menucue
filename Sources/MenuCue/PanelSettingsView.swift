@@ -18,6 +18,7 @@ struct PanelSettingsView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
       popoverTabsCard
+      overviewWidgetsCard
       popoverDimensionCard
       samplingCard
     }
@@ -58,6 +59,97 @@ struct PanelSettingsView: View {
           tabRow(tab, isFirst: index == 0)
         }
       }
+    }
+  }
+  // MARK: - Overview widgets
+
+  private var overviewWidgetsCard: some View {
+    SettingsCard(
+      L10n.string("Overview Widgets"),
+      desc: L10n.string("Customize which widgets appear in the Overview tab and in what order."),
+      action: {
+        HStack(spacing: 8) {
+          Button(L10n.string("Reset Widgets")) {
+            model.updateSettings { $0.resetOverviewWidgets() }
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+
+          let enabledCount = model.settings.overviewWidgets.filter(\.isEnabled).count
+          SettingsChip(L10n.format("%d of %d enabled", enabledCount, model.settings.overviewWidgets.count))
+        }
+      }
+    ) {
+      SettingsTable(columns: [
+        SettingsTableColumn(L10n.string("Widget"), weight: 170),
+        SettingsTableColumn(L10n.string("Description"), weight: 300),
+        SettingsTableColumn(L10n.string("Status"), weight: 70),
+        SettingsTableColumn(L10n.string("Order"), weight: 78, alignment: .trailing),
+      ]) {
+        ForEach(Array(model.settings.overviewWidgets.enumerated()), id: \.element.id) { index, widget in
+          widgetRow(widget, index: index)
+        }
+      }
+    }
+  }
+
+  private func widgetRow(_ widget: OverviewWidgetConfig, index: Int) -> some View {
+    SettingsTableRow {
+      HStack(spacing: 8) {
+        Image(systemName: widget.kind.systemImage)
+          .font(.system(size: 13))
+          .foregroundStyle(widget.kind.accentTint)
+          .frame(width: 18)
+        Text(widget.kind.title)
+          .font(.system(size: 13, weight: .medium))
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(widget.kind.subtitle)
+        .font(.system(size: 11))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Toggle("", isOn: Binding(
+        get: { widget.isEnabled },
+        set: { _ in
+          model.updateSettings { $0.toggleOverviewWidget(widget.kind) }
+        }
+      ))
+      .labelsHidden()
+      .toggleStyle(.switch)
+      .controlSize(.mini)
+      .frame(maxWidth: .infinity, alignment: .leading)
+
+      HStack(spacing: 6) {
+        Button {
+          guard index > 0 else { return }
+          model.updateSettings {
+            $0.moveOverviewWidgets(fromOffsets: IndexSet(integer: index), toOffset: index - 1)
+          }
+        } label: {
+          Image(systemName: "chevron.up")
+            .font(.system(size: 10, weight: .semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.mini)
+        .disabled(index == 0)
+
+        Button {
+          guard index < model.settings.overviewWidgets.count - 1 else { return }
+          model.updateSettings {
+            $0.moveOverviewWidgets(fromOffsets: IndexSet(integer: index), toOffset: index + 2)
+          }
+        } label: {
+          Image(systemName: "chevron.down")
+            .font(.system(size: 10, weight: .semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.mini)
+        .disabled(index == model.settings.overviewWidgets.count - 1)
+      }
+      .frame(maxWidth: .infinity, alignment: .trailing)
     }
   }
   private var popoverDimensionCard: some View {

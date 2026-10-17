@@ -456,6 +456,17 @@ final class BatteryRegistryParsingTests: XCTestCase {
     // 12.0 V × 1.0 A, not 8.0 V × 1.0 A.
     XCTAssertEqual(flow.watts, 12.0, accuracy: 0.0001)
   }
+  func testAppleSiliconBatteryDataCapacityFallback() throws {
+    let text = """
+        "BatteryData" = {"FullChargeCapacity"=7132,"NominalChargeCapacity"=7376,"DesignCapacity"=8579}
+        "InstantAmperage" = -1500
+        "Voltage" = 11143
+      """
+    let flow = try PowerDiagnosticsParser.parseBatteryRegistry(text)
+    XCTAssertLessThan(flow.watts, 0)
+    XCTAssertEqual(flow.watts, 11.143 * -1.5, accuracy: 0.001)
+    XCTAssertEqual(flow.percentPerHour, -1500.0 / 7376.0 * 100, accuracy: 0.001)
+  }
 
   func testANestedKeyAloneIsNotEnough() {
     // Only the inline blob, no top-level property: better to report the field missing

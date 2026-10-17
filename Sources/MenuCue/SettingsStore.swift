@@ -19,6 +19,7 @@ final class SettingsStore {
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let pinnedQuickActions = "pinnedQuickActions"
         static let popoverTabOrder = "popoverTabOrder.v1"
+        static let overviewWidgets = "overviewWidgets.v1"
         static let metricsSampling = "metricsSampling.v1"
         static let animationQuality = "animationQuality.v1"
         static let trackpadGestureSettings = "trackpadGestureSettings.v1"
@@ -101,6 +102,7 @@ final class SettingsStore {
             selectedCalendarIDs: Set(defaults.stringArray(forKey: Key.selectedCalendarIDs) ?? []),
             pinnedQuickActions: loadPinnedQuickActions(),
             popoverTabOrder: loadPopoverTabOrder(),
+            overviewWidgets: loadOverviewWidgets(),
             metricsSampling: loadMetricsSampling(),
             animationQuality: loadAnimationQuality(),
             trackpadGestureSettings: loadTrackpadGestureSettings(),
@@ -142,6 +144,9 @@ final class SettingsStore {
         defaults.set(settings.pinnedQuickActions.map(\.storageValue), forKey: Key.pinnedQuickActions)
         defaults.set(Double(settings.popoverHeight), forKey: Key.popoverHeight)
         defaults.set(settings.popoverTabOrder.map(\.rawValue), forKey: Key.popoverTabOrder)
+        if let data = try? encoder.encode(settings.overviewWidgets) {
+            defaults.set(data, forKey: Key.overviewWidgets)
+        }
         defaults.set(settings.powerMonitoringEnabled, forKey: Key.powerMonitoringEnabled)
         if let data = try? encoder.encode(settings.notificationSettings) {
             defaults.set(data, forKey: Key.notificationSettings)
@@ -342,6 +347,14 @@ final class SettingsStore {
         return PopoverTab.normalizedOrder(
             rawValues: defaults.stringArray(forKey: Key.popoverTabOrder) ?? []
         )
+    }
+    private func loadOverviewWidgets() -> [OverviewWidgetConfig] {
+        guard let data = defaults.data(forKey: Key.overviewWidgets),
+              let configs = try? decoder.decode([OverviewWidgetConfig].self, from: data)
+        else {
+            return OverviewWidgetConfig.default
+        }
+        return OverviewWidgetConfig.normalized(from: configs)
     }
 
     private func loadPinnedQuickActions() -> [QuickActionReference] {

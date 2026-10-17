@@ -222,6 +222,7 @@ struct AppSettings: Equatable {
     var selectedCalendarIDs: Set<String>
     var pinnedQuickActions: [QuickActionReference]
     private(set) var popoverTabOrder: [PopoverTab]
+    var overviewWidgets: [OverviewWidgetConfig]
     /// Machine-local: battery behaviour differs per Mac, so this is not synced.
     var metricsSampling: MetricsSamplingSettings
     /// Machine-local: motion cost and accessibility preferences differ per Mac.
@@ -264,6 +265,7 @@ struct AppSettings: Equatable {
         selectedCalendarIDs: Set<String>,
         pinnedQuickActions: [QuickActionReference],
         popoverTabOrder: [PopoverTab] = PopoverTab.allCases,
+        overviewWidgets: [OverviewWidgetConfig] = OverviewWidgetConfig.default,
         metricsSampling: MetricsSamplingSettings = .default,
         animationQuality: AnimationQuality = .elegant,
         trackpadGestureSettings: TrackpadGestureSettings = .default,
@@ -304,6 +306,7 @@ struct AppSettings: Equatable {
         self.popoverTabOrder = PopoverTab.normalizedOrder(
             rawValues: popoverTabOrder.map(\.rawValue)
         )
+        self.overviewWidgets = OverviewWidgetConfig.normalized(from: overviewWidgets)
         self.preferenceSyncEnabled = preferenceSyncEnabled
         self.preferenceSyncOnboardingCompleted = preferenceSyncOnboardingCompleted
         self.portableModificationDates = portableModificationDates
@@ -406,6 +409,30 @@ struct AppSettings: Equatable {
     }
     mutating func resetPopoverTabs() {
         popoverTabOrder = PopoverTab.allCases
+    }
+    mutating func moveOverviewWidgets(fromOffsets source: IndexSet, toOffset destination: Int) {
+        guard !source.isEmpty else { return }
+        let moving = source.sorted().map { overviewWidgets[$0] }
+        var remaining = overviewWidgets.enumerated()
+            .filter { !source.contains($0.offset) }
+            .map(\.element)
+        let removedBeforeDestination = source.filter { $0 < destination }.count
+        let insertionIndex = min(
+            remaining.count,
+            max(0, destination - removedBeforeDestination)
+        )
+        remaining.insert(contentsOf: moving, at: insertionIndex)
+        overviewWidgets = OverviewWidgetConfig.normalized(from: remaining)
+    }
+
+    mutating func toggleOverviewWidget(_ kind: OverviewWidgetKind) {
+        if let index = overviewWidgets.firstIndex(where: { $0.kind == kind }) {
+            overviewWidgets[index].isEnabled.toggle()
+        }
+    }
+
+    mutating func resetOverviewWidgets() {
+        overviewWidgets = OverviewWidgetConfig.default
     }
 
     @discardableResult

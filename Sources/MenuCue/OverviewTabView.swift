@@ -10,6 +10,7 @@ struct OverviewTabView: View {
   @StateObject private var detail = SystemDetailService()
   @StateObject private var samplingController = VisibilityGate()
   @State private var detailPanelHeight: CGFloat = 0
+  @State private var isEditing = false
 
   private static let detailPanelWidth: CGFloat = 260
   private static let detailPanelGap: CGFloat = 6
@@ -17,17 +18,15 @@ struct OverviewTabView: View {
   var body: some View {
     PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
-        todayOverviewCard
+        headerControlRow
 
-        SystemMetricsCards(metrics: metrics, detail: detail)
+        if isEditing {
+          editingPanel
+        }
 
-        PopoverCard(title: L10n.string("Quick Actions"), systemImage: "bolt.fill", tint: .yellow) {
-          Button(L10n.string("All")) { router.openPopover(tab: .actions) }
-            .buttonStyle(.plain)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
-        } content: {
-          PinnedQuickActionGrid(model: model)
+        let widgets = model.settings.overviewWidgets.filter(\.isEnabled)
+        ForEach(widgets) { widget in
+          widgetView(for: widget.kind)
         }
       }
     }
@@ -239,6 +238,230 @@ struct OverviewTabView: View {
       return "\(offsetStr) 昨天"
     }
     return offsetStr
+  }
+  // MARK: - Header Controls & Editing Mode
+
+  private var headerControlRow: some View {
+    HStack {
+      Spacer()
+      Button {
+        withAnimation(motion.stateAnimation) {
+          isEditing.toggle()
+        }
+      } label: {
+        HStack(spacing: 4) {
+          Image(systemName: isEditing ? "checkmark.circle.fill" : "slider.horizontal.3")
+            .font(.system(size: 11))
+          Text(isEditing ? L10n.string("Done") : L10n.string("Customize"))
+            .font(.system(size: 11, weight: .medium))
+        }
+        .foregroundStyle(isEditing ? Color.accentColor : Color.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.secondary.opacity(isEditing ? 0.15 : 0.08))
+        .clipShape(Capsule())
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(.horizontal, 4)
+  }
+
+  private var editingPanel: some View {
+    PopoverCard(title: L10n.string("Edit Overview"), systemImage: "square.grid.2x2", tint: .blue) {
+      Button(L10n.string("Manage Widgets in Settings")) {
+        router.openSettings(pane: .panel)
+      }
+      .buttonStyle(.plain)
+      .font(.system(size: 10, weight: .semibold))
+      .foregroundStyle(Color.accentColor)
+    } content: {
+      VStack(spacing: 8) {
+        ForEach(Array(model.settings.overviewWidgets.enumerated()), id: \.element.id) { index, widget in
+          HStack(spacing: 8) {
+            Image(systemName: widget.kind.systemImage)
+              .font(.system(size: 12))
+              .foregroundStyle(widget.kind.accentTint)
+              .frame(width: 16)
+
+            Text(widget.kind.title)
+              .font(.system(size: 12, weight: .medium))
+
+            Spacer()
+
+            Toggle("", isOn: Binding(
+              get: { widget.isEnabled },
+              set: { _ in
+                model.updateSettings { $0.toggleOverviewWidget(widget.kind) }
+              }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+
+            HStack(spacing: 4) {
+              Button {
+                guard index > 0 else { return }
+                model.updateSettings {
+                  $0.moveOverviewWidgets(fromOffsets: IndexSet(integer: index), toOffset: index - 1)
+                }
+              } label: {
+                Image(systemName: "chevron.up")
+                  .font(.system(size: 9, weight: .semibold))
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.mini)
+              .disabled(index == 0)
+
+              Button {
+                guard index < model.settings.overviewWidgets.count - 1 else { return }
+                model.updateSettings {
+                  $0.moveOverviewWidgets(fromOffsets: IndexSet(integer: index), toOffset: index + 2)
+                }
+              } label: {
+                Image(systemName: "chevron.down")
+                  .font(.system(size: 9, weight: .semibold))
+              }
+              .buttonStyle(.bordered)
+              .controlSize(.mini)
+              .disabled(index == model.settings.overviewWidgets.count - 1)
+            }
+          }
+          .padding(.vertical, 2)
+          if index < model.settings.overviewWidgets.count - 1 {
+            Divider().opacity(0.5)
+          }
+        }
+      }
+      .padding(.vertical, 2)
+    }
+  }
+
+  // MARK: - Widget Views
+
+  @ViewBuilder
+  private func widgetView(for kind: OverviewWidgetKind) -> some View {
+    switch kind {
+    case .today:
+      todayOverviewCard
+    case .systemMetrics:
+      SystemMetricsCards(metrics: metrics, detail: detail)
+    case .quickActions:
+      quickActionsCard
+    case .batteryFlow:
+      batteryFlowWidgetCard
+    case .processEnergy:
+      processEnergyWidgetCard
+    case .upcomingEvents:
+      upcomingEventsWidgetCard
+    }
+  }
+
+  private var quickActionsCard: some View {
+    PopoverCard(title: L10n.string("Quick Actions"), systemImage: "bolt.fill", tint: .yellow) {
+      Button(L10n.string("All")) { router.openPopover(tab: .actions) }
+        .buttonStyle(.plain)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+    } content: {
+      PinnedQuickActionGrid(model: model)
+    }
+  }
+
+  private var batteryFlowWidgetCard: some View {
+    PopoverCard(title: L10n.string("Battery Flow"), systemImage: "battery.100percent", tint: .green) {
+      Button(L10n.string("Power")) { router.openPopover(tab: .power) }
+        .buttonStyle(.plain)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+    } content: {
+      if let battery = model.powerDiagnosticsService.battery {
+        HStack(alignment: .firstTextBaseline) {
+          Text("\(battery.percentage)%")
+            .font(.system(size: 24, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+          Spacer()
+          VStack(alignment: .trailing, spacing: 2) {
+            Text(battery.isOnAC == true ? L10n.string("AC Power") : L10n.string("Battery Power"))
+              .font(.system(size: 10.5, weight: .semibold))
+            if let flow = battery.flow {
+              Text(String(format: "%+.1f W", flow.watts))
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(flow.watts < 0 ? .orange : .green)
+            }
+          }
+        }
+        if let flowState = PowerFlowState.make(battery: battery) {
+          PowerFlowView(state: flowState)
+        } else {
+          MetricBar(fraction: Double(battery.percentage) / 100, tint: .green)
+        }
+      } else {
+        CardPlaceholder(message: L10n.string("No internal battery"))
+      }
+    }
+  }
+
+  private var processEnergyWidgetCard: some View {
+    PopoverCard(title: L10n.string("Process Energy"), systemImage: "flame.fill", tint: .orange) {
+      Button(L10n.string("All")) { router.openPopover(tab: .power) }
+        .buttonStyle(.plain)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+    } content: {
+      let entries = model.processEnergyService.entries.prefix(4)
+      if entries.isEmpty {
+        CardPlaceholder(message: L10n.string("No process energy sample"))
+      } else {
+        VStack(spacing: 5) {
+          ForEach(Array(entries)) { entry in
+            HStack(spacing: 6) {
+              Text(entry.name)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+              Spacer(minLength: 6)
+              Text(String(format: "%.1f", entry.energyImpact))
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(Color.accentColor)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private var upcomingEventsWidgetCard: some View {
+    PopoverCard(title: L10n.string("Upcoming Events"), systemImage: "clock.badge.checkmark", tint: .purple) {
+      Button(L10n.string("Calendar")) { router.openPopover(tab: .calendar) }
+        .buttonStyle(.plain)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+    } content: {
+      let events = Array(model.events.filter { $0.endDate > Date() }.prefix(3))
+      if events.isEmpty {
+        CardPlaceholder(message: L10n.string("No upcoming events"))
+      } else {
+        VStack(alignment: .leading, spacing: 6) {
+          ForEach(events) { event in
+            HStack(alignment: .firstTextBaseline) {
+              VStack(alignment: .leading, spacing: 2) {
+                Text(event.title)
+                  .font(.system(size: 11.5, weight: .medium))
+                  .lineLimit(1)
+                Text(eventTimeText(event, date: Date()))
+                  .font(.system(size: 9.5))
+                  .foregroundStyle(.secondary)
+              }
+              Spacer()
+              if event.isAllDay {
+                SettingsChip(L10n.string("All day"), prominent: false)
+              }
+            }
+          }
+        }
+      }
+    }
   }
   private var currentClockTimeZone: ClockTimeZone? {
     model.settings.clockTimeZones.first { $0.timeZone.identifier == model.settings.overviewTimeZoneID }
