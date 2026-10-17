@@ -441,6 +441,7 @@ extension TrackpadWindowAction {
     case .center: return L10n.string("Center")
     case .restore: return L10n.string("Restore")
     case .nextDisplay: return L10n.string("Move to Next Display")
+    case .toggleFullScreen: return L10n.string("Toggle Full Screen")
     }
   }
 }

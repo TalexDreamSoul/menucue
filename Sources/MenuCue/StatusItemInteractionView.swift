@@ -7,10 +7,13 @@ final class StatusItemInteractionView: NSView {
 
     override var acceptsFirstResponder: Bool { true }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        bounds.contains(point) ? self : nil
+    }
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         true
     }
-
     override func mouseDown(with event: NSEvent) {
         (superview as? NSStatusBarButton)?.highlight(true)
     }

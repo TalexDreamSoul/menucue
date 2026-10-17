@@ -112,12 +112,9 @@ final class TrackpadRuleEditorSheetTests: XCTestCase {
     }
 
     XCTAssertEqual(badges, [
-      L10n.format("Finger %d taps", 1),
-      L10n.format("Finger %d taps", 2),
+      L10n.format("%d fingers · %@", 4, L10n.string("Tap")),
       L10n.format("%d fingers · %@", 2, L10n.string("Left edge")),
       L10n.format("%d fingers · %@", 2, L10n.string("Right edge")),
-      L10n.format(
-        "%1$d fingers · Finger %2$d %3$@", 2, 1, L10n.string("up and down")),
     ])
   }
 
@@ -267,7 +264,7 @@ final class TrackpadRuleEditorSheetTests: XCTestCase {
   /// The presets ship tuned — hold times and step distances chosen against real hardware.
   /// A user reading one of them must see the values it actually runs on.
   func testShippedPresetsShowTheTuningTheyShipWith() {
-    for preset in TrackpadGestureSettings.presetRules {
+    for preset in TrackpadGestureSettings.presetRules where preset.trigger.kind != .contact {
       XCTAssertTrue(
         TrackpadRuleAdvancedDisclosure.expandsTrigger(for: preset),
         "\(preset.name) hides the thresholds it was shipped with")

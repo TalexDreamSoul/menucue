@@ -84,9 +84,9 @@ final class TrackpadFeedbackLevelBar: NSView {
 /// a gesture can fire while another app is frontmost and a readout that moves is one the
 /// eye has to hunt for.
 final class TrackpadFeedbackHUD {
+  static let shared = TrackpadFeedbackHUD()
   private static let visibleDuration: TimeInterval = 1.6
   private static let fadeDuration: TimeInterval = 0.18
-
   private var panel: NSPanel?
   private var label: NSTextField?
   private var levelBar: TrackpadFeedbackLevelBar?

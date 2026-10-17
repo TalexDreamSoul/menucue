@@ -796,10 +796,18 @@ final class TrackpadGestureEngineTests: XCTestCase {
   /// moves the anchor opposite the nominated finger — the posture the guard exists to reject.
   /// The same slider travel with a still anchor is a step, and the pinching copy is nothing.
   func testSpreadPinchDoesNotLetTheShippedAnchoredSlideEmitVolume() throws {
-    let preset = try XCTUnwrap(
-      TrackpadGestureSettings.presetRules.first { $0.trigger.kind == .anchoredSlide }
+    let preset = TrackpadGestureRule(
+      name: "Two-finger hold · Left slide · Volume",
+      trigger: TrackpadGestureTrigger(
+        kind: .anchoredSlide,
+        fingerCount: 2,
+        selectedFingerIndex: 0,
+        slideAxis: .vertical,
+        movementTolerance: 0.025,
+        minimumDistance: 0.05
+      ),
+      action: .system(.continuousVolume)
     )
-
     let pinching = makeEngine(rules: [preset])
     let pinchMatches = consume(pinching, [
       frame(1, 0, [contact(1, .touch, 0.45, 0.50), contact(2, .touch, 0.55, 0.50)]),
@@ -2515,13 +2523,10 @@ final class TrackpadGestureSettingsPersistenceTests: XCTestCase {
   func testPresetCatalogCoversTheRequestedTipTapAndEdgeActions() throws {
     let presets = TrackpadGestureSettings.presetRules
 
-    XCTAssertEqual(presets.count, 5)
+    XCTAssertEqual(presets.count, 3)
 
-    let leftTipTap = try XCTUnwrap(presets.first {
-      $0.trigger.kind == .tipTap && $0.trigger.selectedFingerIndex == 0
-    })
-    let rightTipTap = try XCTUnwrap(presets.first {
-      $0.trigger.kind == .tipTap && $0.trigger.selectedFingerIndex == 1
+    let fullScreen = try XCTUnwrap(presets.first {
+      $0.trigger.kind == .contact && $0.trigger.fingerCount == 4
     })
     let leftEdge = try XCTUnwrap(presets.first {
       $0.trigger.kind == .edgeContinuous && $0.trigger.edge == .left
@@ -2530,8 +2535,7 @@ final class TrackpadGestureSettingsPersistenceTests: XCTestCase {
       $0.trigger.kind == .edgeContinuous && $0.trigger.edge == .right
     })
 
-    XCTAssertEqual(leftTipTap.action.systemControl, .volumeUp)
-    XCTAssertEqual(rightTipTap.action.systemControl, .volumeDown)
+    XCTAssertEqual(fullScreen.action.windowAction, .toggleFullScreen)
     XCTAssertEqual(leftEdge.action.systemControl, .continuousVolume)
     XCTAssertEqual(rightEdge.action.systemControl, .continuousBrightness)
     XCTAssertEqual(leftEdge.trigger.fingerCount, 2, "the default left continuous-edge rule must require a deliberate two-finger gesture")
@@ -2542,8 +2546,17 @@ final class TrackpadGestureSettingsPersistenceTests: XCTestCase {
   /// have to be the pair that tells the gesture from an ordinary two-finger scroll: fingers
   /// travelling together reach the anchor tolerance well before either earns a step.
   func testTheShippedAnchoredSlidePresetKeepsItsStepAheadOfItsAnchorTolerance() throws {
-    let preset = try XCTUnwrap(
-      TrackpadGestureSettings.presetRules.first { $0.trigger.kind == .anchoredSlide }
+    let preset = TrackpadGestureRule(
+      name: "Two-finger hold · Left slide · Volume",
+      trigger: TrackpadGestureTrigger(
+        kind: .anchoredSlide,
+        fingerCount: 2,
+        selectedFingerIndex: 0,
+        slideAxis: .vertical,
+        movementTolerance: 0.025,
+        minimumDistance: 0.05
+      ),
+      action: .system(.continuousVolume)
     )
 
     XCTAssertEqual(preset.action.systemControl, .continuousVolume)

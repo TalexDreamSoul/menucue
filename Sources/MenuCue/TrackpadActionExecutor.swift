@@ -181,7 +181,7 @@ final class TrackpadActionExecutor {
   private let quickActionService: QuickActionService
   private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   private let brightnessController = DisplayBrightnessController()
-  private let feedbackHUD = TrackpadFeedbackHUD()
+  private let feedbackHUD = TrackpadFeedbackHUD.shared
   private var lastHapticTime: TimeInterval = 0
   private var restoredWindowFrames: [AXWindowIdentity: AXWindowFrame] = [:]
 
@@ -420,6 +420,7 @@ final class TrackpadActionExecutor {
     case .center: return placeFocusedWindow(.center)
     case .restore: return placeFocusedWindow(.restore)
     case .nextDisplay: return moveFocusedWindowToNextDisplay()
+    case .toggleFullScreen: return toggleFocusedWindowFullScreen()
     }
   }
 
@@ -621,6 +622,30 @@ final class TrackpadActionExecutor {
       restoredWindowFrames.removeValue(forKey: identity)
     }
     return result
+  }
+  private func toggleFocusedWindowFullScreen() -> TrackpadActionExecutionResult {
+    if let denial = accessibilityDenial(for: .window) { return denial }
+    guard let focused = focusedWindow() else {
+      return .failure(key: "macOS could not find a focused window to place.")
+    }
+    var fullScreenButtonValue: CFTypeRef?
+    if AXUIElementCopyAttributeValue(focused.window, "AXFullScreenButton" as CFString, &fullScreenButtonValue) == .success,
+       let fullScreenButtonValue,
+       CFGetTypeID(fullScreenButtonValue) == AXUIElementGetTypeID() {
+      let button = unsafeBitCast(fullScreenButtonValue, to: AXUIElement.self)
+      if AXUIElementPerformAction(button, kAXPressAction as CFString) == .success {
+        return .success("Toggled full screen.")
+      }
+    }
+    var fullScreenValue: CFTypeRef?
+    if AXUIElementCopyAttributeValue(focused.window, "AXFullScreen" as CFString, &fullScreenValue) == .success,
+       let isFS = fullScreenValue as? Bool {
+      let target = !isFS
+      if AXUIElementSetAttributeValue(focused.window, "AXFullScreen" as CFString, target as CFTypeRef) == .success {
+        return .success("Toggled full screen.")
+      }
+    }
+    return performKeyboardShortcut(keyCode: 3, modifiers: [.maskControl, .maskCommand])
   }
 
   /// Which display comes next is decided by where the window is, not by where the pointer

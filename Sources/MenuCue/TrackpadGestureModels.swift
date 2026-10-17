@@ -379,7 +379,7 @@ enum TrackpadWindowAction: String, CaseIterable, Codable, Identifiable {
   case center
   case restore
   case nextDisplay
-
+  case toggleFullScreen
   var id: String { rawValue }
 }
 
@@ -441,6 +441,10 @@ struct TrackpadGestureAction: Codable, Equatable {
 
   static func system(_ control: TrackpadSystemControl) -> TrackpadGestureAction {
     TrackpadGestureAction(kind: .systemControl, systemControl: control)
+  }
+
+  static func window(_ action: TrackpadWindowAction) -> TrackpadGestureAction {
+    TrackpadGestureAction(kind: .window, windowAction: action)
   }
 }
 
@@ -534,30 +538,13 @@ struct TrackpadGestureSettings: Codable, Equatable {
 
   static let presetRules: [TrackpadGestureRule] = [
     TrackpadGestureRule(
-      name: "Left finger tap · Volume Up",
+      name: "Four-finger tap · Toggle Full Screen",
       trigger: TrackpadGestureTrigger(
-        kind: .tipTap,
-        fingerCount: 2,
-        selectedFingerIndex: 0,
-        tapSpacing: .normal,
-        holdDuration: 0.18,
-        maximumDuration: 0.65,
-        movementTolerance: 0.035
+        kind: .contact,
+        fingerCount: 4,
+        contactGesture: .tap
       ),
-      action: .system(.volumeUp)
-    ),
-    TrackpadGestureRule(
-      name: "Right finger tap · Volume Down",
-      trigger: TrackpadGestureTrigger(
-        kind: .tipTap,
-        fingerCount: 2,
-        selectedFingerIndex: 1,
-        tapSpacing: .normal,
-        holdDuration: 0.18,
-        maximumDuration: 0.65,
-        movementTolerance: 0.035
-      ),
-      action: .system(.volumeDown)
+      action: .window(.toggleFullScreen)
     ),
     TrackpadGestureRule(
       name: "Left edge · Volume",
@@ -578,20 +565,6 @@ struct TrackpadGestureSettings: Codable, Equatable {
         minimumDistance: 0.018
       ),
       action: .system(.continuousBrightness)
-    ),
-    // A step deliberately coarser than the anchor tolerance: two fingers scrolling together
-    // reach the tolerance and cancel the rule long before either covers a whole step.
-    TrackpadGestureRule(
-      name: "Two-finger hold · Left slide · Volume",
-      trigger: TrackpadGestureTrigger(
-        kind: .anchoredSlide,
-        fingerCount: 2,
-        selectedFingerIndex: 0,
-        slideAxis: .vertical,
-        movementTolerance: 0.025,
-        minimumDistance: 0.05
-      ),
-      action: .system(.continuousVolume)
     ),
   ]
 

@@ -367,7 +367,16 @@ struct TrackpadSettingsView: View {
               "Shown near the bottom of the screen for 1.6 seconds, then faded out over 0.18 seconds. Duration and position are not configurable."
             )
           ) {
-            SettingsChip(L10n.string("Not Configurable"))
+            Button(L10n.string("Preview Feedback")) {
+              TrackpadFeedbackHUD.shared.show(
+                L10n.string("Volume 50%"),
+                isFailure: false,
+                level: 0.5,
+                symbolName: "speaker.wave.2.fill"
+              )
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
           }
         }
       }

@@ -985,6 +985,10 @@
 "Running Apps" = "运行中 App";
 "Gesture Rule %d" = "手势规则 %d";
 "%@ Copy" = "%@ 副本";
+"Four-finger tap · Toggle Full Screen" = "四指轻点 · 切换全屏";
+"Toggle Full Screen" = "切换全屏";
+"Toggled full screen." = "已切换全屏。";
+"Preview Feedback" = "预览反馈图层";
 "Left finger tap · Volume Up" = "左指轻点 · 调高音量";
 "Right finger tap · Volume Down" = "右指轻点 · 调低音量";
 "Left edge · Volume" = "左边缘 · 音量";

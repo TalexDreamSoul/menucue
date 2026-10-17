@@ -606,7 +606,12 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
 
 
   private func handleStatusItemScroll(_ event: NSEvent) {
-    guard model.settings.clockTimeZones.count > 1 else { return }
+    if model.settings.clockTimeZones.count <= 1 {
+      if event.phase.contains(.began) {
+        MenuCueHaptics.performAlignment()
+      }
+      return
+    }
 
     if event.phase.contains(.began) {
       accumulatedScrollDelta = 0
@@ -619,19 +624,17 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     }
     guard event.momentumPhase.isEmpty else { return }
     let eventDate = Date()
-    if event.hasPreciseScrollingDeltas, event.phase.isEmpty,
-       eventDate.timeIntervalSince(lastWheelSwitchDate) >= preciseGestureResetInterval
-    {
-      accumulatedScrollDelta = 0
-      didSwitchDuringGesture = false
+    if event.hasPreciseScrollingDeltas {
+      if eventDate.timeIntervalSince(lastWheelSwitchDate) >= 0.22 {
+        didSwitchDuringGesture = false
+      }
     }
-    guard !event.hasPreciseScrollingDeltas || !didSwitchDuringGesture else { return }
-
+    guard !didSwitchDuringGesture else { return }
     let delta = event.scrollingDeltaY
     guard delta != 0 else { return }
     accumulatedScrollDelta += delta
 
-    let threshold = event.hasPreciseScrollingDeltas ? preciseScrollThreshold : 1
+    let threshold: CGFloat = event.hasPreciseScrollingDeltas ? 6 : 1
     guard abs(accumulatedScrollDelta) >= threshold else { return }
     if !event.hasPreciseScrollingDeltas,
        eventDate.timeIntervalSince(lastWheelSwitchDate) < Self.wheelSwitchCooldown

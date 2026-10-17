@@ -985,6 +985,10 @@
 "Running Apps" = "Running Apps";
 "Gesture Rule %d" = "Gesture Rule %d";
 "%@ Copy" = "%@ Copy";
+"Four-finger tap · Toggle Full Screen" = "Four-finger tap · Toggle Full Screen";
+"Toggle Full Screen" = "Toggle Full Screen";
+"Toggled full screen." = "Toggled full screen.";
+"Preview Feedback" = "Preview Feedback";
 "Left finger tap · Volume Up" = "Left finger tap · Volume Up";
 "Right finger tap · Volume Down" = "Right finger tap · Volume Down";
 "Left edge · Volume" = "Left edge · Volume";
