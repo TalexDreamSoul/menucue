@@ -117,6 +117,12 @@ struct NotificationSettingsView: View {
       ),
       action: {
         HStack(spacing: 8) {
+          Button(L10n.string("Reset Rules")) {
+            resetRulesToDefaults()
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+
           Button(L10n.string("Delete Rule")) {
             deleteSelectedRule()
           }
@@ -138,7 +144,19 @@ struct NotificationSettingsView: View {
           L10n.string("No Alert Rules"),
           desc: L10n.string("Add a rule to monitor system metrics or dark wakes."),
           systemImage: "bell.slash"
-        )
+        ) {
+          Button {
+            resetRulesToDefaults()
+          } label: {
+            HStack(spacing: 4) {
+              Image(systemName: "arrow.counterclockwise")
+              Text(L10n.string("Restore Default Rules"))
+            }
+          }
+          .buttonStyle(.borderedProminent)
+          .controlSize(.small)
+          .padding(.top, 4)
+        }
       } else {
         SettingsTable(columns: rulesColumns) {
           ForEach(rules) { rule in
@@ -332,6 +350,10 @@ struct NotificationSettingsView: View {
       settings.rules.removeAll { $0.id == selectedRuleID }
     }
     self.selectedRuleID = model.settings.notificationSettings.rules.first?.id
+  }
+  private func resetRulesToDefaults() {
+    model.updateNotificationSettings { $0.rules = DefaultAlertRules.systemNotifications() }
+    selectedRuleID = model.settings.notificationSettings.rules.first?.id
   }
 }
 

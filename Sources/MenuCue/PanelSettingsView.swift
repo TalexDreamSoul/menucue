@@ -38,7 +38,15 @@ struct PanelSettingsView: View {
         "Drag to set the tab order. The first tab opens after launch; horizontal swipes follow this order."
       ),
       action: {
-        SettingsChip(L10n.format("%d tabs · all shown", model.settings.popoverTabOrder.count))
+        HStack(spacing: 8) {
+          Button(L10n.string("Reset Tab Order")) {
+            model.updateSettings { $0.resetPopoverTabs() }
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
+
+          SettingsChip(L10n.format("%d tabs · all shown", model.settings.popoverTabOrder.count))
+        }
       }
     ) {
       SettingsTable(columns: [

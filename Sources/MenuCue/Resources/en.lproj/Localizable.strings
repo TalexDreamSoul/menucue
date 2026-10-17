@@ -1325,6 +1325,9 @@
 "0.5–30 seconds; never shorter than the fastest interval." = "0.5–30 seconds; never shorter than the fastest interval.";
 "Edge width runs 3%–20%, in steps of 1%. Every edge-entry and continuous rule shares this value." = "Edge width runs 3%–20%, in steps of 1%. Every edge-entry and continuous rule shares this value.";
 "5%–95%; must stay above the low-battery threshold." = "5%–95%; must stay above the low-battery threshold.";
+"Reset Rules" = "Reset Rules";
+"Restore Default Rules" = "Restore Default Rules";
+"Reset Tab Order" = "Reset Tab Order";
 "5%–95%; must stay below the full-speed threshold." = "5%–95%; must stay below the full-speed threshold.";
 "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility." = "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility.";
 "A shortcut only defines how to trigger an action; the action itself comes from the action library." = "A shortcut only defines how to trigger an action; the action itself comes from the action library.";

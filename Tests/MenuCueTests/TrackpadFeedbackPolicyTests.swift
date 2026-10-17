@@ -10,6 +10,14 @@ final class TrackpadFeedbackPolicyTests: XCTestCase {
     XCTAssertTrue(TrackpadFeedbackPolicy.shouldShowHUD(isEnabled: true))
     XCTAssertFalse(TrackpadFeedbackPolicy.shouldShowHUD(isEnabled: false))
   }
+  func testWindowOperationsSuppressHUD() {
+    let windowResult = TrackpadActionExecutionResult.success("Placed focused window.", showsHUD: false)
+    XCTAssertFalse(TrackpadFeedbackPolicy.shouldShowHUD(for: windowResult, isEnabled: true))
+
+    let volumeResult = TrackpadActionExecutionResult.success("Volume 50%", level: 0.5, symbolName: "speaker.wave.2.fill")
+    XCTAssertTrue(TrackpadFeedbackPolicy.shouldShowHUD(for: volumeResult, isEnabled: true))
+    XCTAssertFalse(TrackpadFeedbackPolicy.shouldShowHUD(for: volumeResult, isEnabled: false))
+  }
 
   /// The bug this replaces: the output was muted, every gesture raised the level without
   /// clearing the mute, and so the adjustment stayed silent and the readout stayed on

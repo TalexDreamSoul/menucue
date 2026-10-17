@@ -404,6 +404,9 @@ struct AppSettings: Equatable {
         remaining.insert(contentsOf: moving, at: insertionIndex)
         popoverTabOrder = PopoverTab.normalizedOrder(rawValues: remaining.map(\.rawValue))
     }
+    mutating func resetPopoverTabs() {
+        popoverTabOrder = PopoverTab.allCases
+    }
 
     @discardableResult
     mutating func updateClockLabel(id: String, label: String?) -> Bool {

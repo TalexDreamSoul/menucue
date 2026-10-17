@@ -1326,6 +1326,9 @@
 "0.5–30 seconds; never shorter than the fastest interval." = "0.5–30 秒；不得小于最快间隔。";
 "Edge width runs 3%–20%, in steps of 1%. Every edge-entry and continuous rule shares this value." = "边缘宽度为 3%–20%，步进 1%。每条边缘进入与连续规则共用该值。";
 "5%–95%; must stay above the low-battery threshold." = "5%–95%；必须高于低电量阈值。";
+"Reset Rules" = "重置规则";
+"Restore Default Rules" = "恢复默认规则";
+"Reset Tab Order" = "恢复默认顺序";
 "5%–95%; must stay below the full-speed threshold." = "5%–95%；必须低于全速阈值。";
 "A recognized multi-finger tap can suppress the left click so it cannot misfire; that suppression needs Accessibility." = "多指轻点后可抑制左键以避免误触；该抑制需要辅助功能权限。";
 "A shortcut only defines how to trigger an action; the action itself comes from the action library." = "动作来自统一动作库，快捷键只定义触发方式。";

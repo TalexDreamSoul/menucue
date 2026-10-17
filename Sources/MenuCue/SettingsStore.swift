@@ -176,9 +176,12 @@ final class SettingsStore {
 
     private func loadNotificationSettings() -> NotificationSettings {
         guard let data = defaults.data(forKey: Key.notificationSettings),
-              let settings = try? decoder.decode(NotificationSettings.self, from: data)
+              var settings = try? decoder.decode(NotificationSettings.self, from: data)
         else {
             return .default
+        }
+        if settings.rules.isEmpty {
+            settings.rules = DefaultAlertRules.systemNotifications()
         }
         return settings
     }

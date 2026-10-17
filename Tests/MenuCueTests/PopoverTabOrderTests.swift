@@ -36,6 +36,23 @@ final class PopoverTabOrderTests: XCTestCase {
 
     XCTAssertEqual(store.load().popoverTabOrder, [.calendar, .status, .overview, .power, .actions])
   }
+  func testLegacyOrderWithOverviewAtEndMigratesToCenter() {
+    defaults.set(
+      ["status", "calendar", "power", "actions", "overview"],
+      forKey: "popoverTabOrder.v1"
+    )
+
+    XCTAssertEqual(store.load().popoverTabOrder, [.status, .calendar, .overview, .power, .actions])
+  }
+
+  func testLegacyFourTabOrderInsertsOverviewInCenter() {
+    defaults.set(
+      ["status", "calendar", "power", "actions"],
+      forKey: "popoverTabOrder.v1"
+    )
+
+    XCTAssertEqual(store.load().popoverTabOrder, [.status, .calendar, .overview, .power, .actions])
+  }
 
   func testEmptyStoredOrderCannotHideBuiltInTabs() {
     defaults.set([], forKey: "popoverTabOrder.v1")

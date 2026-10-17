@@ -16,48 +16,62 @@ struct TrackpadActionExecutionResult: Equatable {
   /// The SF Symbol that names the control being adjusted, so the readout says which one it
   /// is without spending a line of text on it.
   let symbolName: String?
+  let showsHUD: Bool
 
-  static func success(_ message: String, level: Double? = nil, symbolName: String? = nil) -> Self {
+  static func success(
+    _ message: String,
+    level: Double? = nil,
+    symbolName: String? = nil,
+    showsHUD: Bool = true
+  ) -> Self {
     Self(
       message: L10n.string(message),
       isFailure: false,
       settingsURL: nil,
       level: level,
-      symbolName: symbolName
+      symbolName: symbolName,
+      showsHUD: showsHUD
     )
   }
 
   /// A failure this file words itself: the literal is a catalog key and is translated on
   /// the way out.
-  static func failure(key: String, settingsURL: URL? = nil) -> Self {
+  static func failure(key: String, settingsURL: URL? = nil, showsHUD: Bool = true) -> Self {
     Self(
       message: L10n.string(key),
       isFailure: true,
       settingsURL: settingsURL,
       level: nil,
-      symbolName: nil
+      symbolName: nil,
+      showsHUD: showsHUD
     )
   }
 
   /// A failure another layer already worded — AppleScript's error, the workspace opener's
   /// message. It is passed through untranslated, because it is a sentence, not a key.
-  static func failure(message: String, settingsURL: URL? = nil) -> Self {
+  static func failure(message: String, settingsURL: URL? = nil, showsHUD: Bool = true) -> Self {
     Self(
       message: message,
       isFailure: true,
       settingsURL: settingsURL,
       level: nil,
-      symbolName: nil
+      symbolName: nil,
+      showsHUD: showsHUD
     )
   }
 
-  static func unavailable(_ availability: ActionAvailability, fallbackReason: String) -> Self {
+  static func unavailable(
+    _ availability: ActionAvailability,
+    fallbackReason: String,
+    showsHUD: Bool = true
+  ) -> Self {
     Self(
       message: availability.reason ?? L10n.string(fallbackReason),
       isFailure: true,
       settingsURL: availability.settingsURL,
       level: nil,
-      symbolName: nil
+      symbolName: nil,
+      showsHUD: showsHUD
     )
   }
 }
@@ -80,6 +94,10 @@ enum TrackpadFeedbackPolicy {
   /// now the only thing that decides.
   static func shouldShowHUD(isEnabled: Bool) -> Bool {
     isEnabled
+  }
+
+  static func shouldShowHUD(for result: TrackpadActionExecutionResult, isEnabled: Bool) -> Bool {
+    isEnabled && result.showsHUD
   }
 }
 
@@ -454,7 +472,7 @@ final class TrackpadActionExecutor {
     keyUp.flags = modifiers
     keyDown.post(tap: .cghidEventTap)
     keyUp.post(tap: .cghidEventTap)
-    return .success("Sent keyboard shortcut.")
+    return .success("Sent keyboard shortcut.", showsHUD: false)
   }
 
   private func performTabNavigation(_ action: TrackpadTabAction) -> TrackpadActionExecutionResult {
@@ -486,7 +504,7 @@ final class TrackpadActionExecutor {
     }
     mouseDown.post(tap: .cghidEventTap)
     mouseUp.post(tap: .cghidEventTap)
-    return .success("Sent mouse click.")
+    return .success("Sent mouse click.", showsHUD: false)
   }
 
   func performScroll(deltaX: Int32, deltaY: Int32) -> TrackpadActionExecutionResult {
@@ -596,16 +614,16 @@ final class TrackpadActionExecutor {
   private func placeFocusedWindow(_ placement: TrackpadWindowPlacementCommand) -> TrackpadActionExecutionResult {
     if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow() else {
-      return .failure(key: "macOS could not find a focused window to place.")
+      return .failure(key: "macOS could not find a focused window to place.", showsHUD: false)
     }
     guard let currentFrame = focused.frame else {
-      return .failure(key: "macOS could not read the focused window frame.")
+      return .failure(key: "macOS could not read the focused window frame.", showsHUD: false)
     }
     let identity = AXWindowIdentity(pid: focused.pid, window: focused.window)
 
     if placement == .restore {
       guard let restored = restoredWindowFrames[identity] else {
-        return .failure(key: "No previous window placement is available to restore.")
+        return .failure(key: "No previous window placement is available to restore.", showsHUD: false)
       }
       let result = setWindowFrame(restored, for: focused.window)
       restoredWindowFrames.removeValue(forKey: identity)
@@ -613,7 +631,7 @@ final class TrackpadActionExecutor {
     }
 
     guard let screen = screenUnderPointer() else {
-      return .failure(key: "No supported display is under the pointer.")
+      return .failure(key: "No supported display is under the pointer.", showsHUD: false)
     }
     restoredWindowFrames[identity] = currentFrame
     let target = targetFrame(for: placement, visibleFrame: screen.visibleFrame, current: currentFrame)
@@ -626,7 +644,7 @@ final class TrackpadActionExecutor {
   private func toggleFocusedWindowFullScreen() -> TrackpadActionExecutionResult {
     if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow() else {
-      return .failure(key: "macOS could not find a focused window to place.")
+      return .failure(key: "macOS could not find a focused window to place.", showsHUD: false)
     }
     var fullScreenButtonValue: CFTypeRef?
     if AXUIElementCopyAttributeValue(focused.window, "AXFullScreenButton" as CFString, &fullScreenButtonValue) == .success,
@@ -634,7 +652,7 @@ final class TrackpadActionExecutor {
        CFGetTypeID(fullScreenButtonValue) == AXUIElementGetTypeID() {
       let button = unsafeBitCast(fullScreenButtonValue, to: AXUIElement.self)
       if AXUIElementPerformAction(button, kAXPressAction as CFString) == .success {
-        return .success("Toggled full screen.")
+        return .success("Toggled full screen.", showsHUD: false)
       }
     }
     var fullScreenValue: CFTypeRef?
@@ -642,7 +660,7 @@ final class TrackpadActionExecutor {
        let isFS = fullScreenValue as? Bool {
       let target = !isFS
       if AXUIElementSetAttributeValue(focused.window, "AXFullScreen" as CFString, target as CFTypeRef) == .success {
-        return .success("Toggled full screen.")
+        return .success("Toggled full screen.", showsHUD: false)
       }
     }
     return performKeyboardShortcut(keyCode: 3, modifiers: [.maskControl, .maskCommand])
@@ -654,7 +672,7 @@ final class TrackpadActionExecutor {
   private func moveFocusedWindowToNextDisplay() -> TrackpadActionExecutionResult {
     if let denial = accessibilityDenial(for: .window) { return denial }
     guard let focused = focusedWindow(), let currentFrame = focused.frame else {
-      return .failure(key: "macOS could not read the focused window frame.")
+      return .failure(key: "macOS could not read the focused window frame.", showsHUD: false)
     }
     let visibleFrames = NSScreen.screens
       .sorted { lhs, rhs in
@@ -674,7 +692,7 @@ final class TrackpadActionExecutor {
         count: visibleFrames.count
       )
     else {
-      return .failure(key: "No second display is connected.")
+      return .failure(key: "No second display is connected.", showsHUD: false)
     }
 
     let identity = AXWindowIdentity(pid: focused.pid, window: focused.window)
@@ -697,7 +715,7 @@ final class TrackpadActionExecutor {
     hapticFeedbackEnabled: Bool,
     continuous: Bool
   ) {
-    if TrackpadFeedbackPolicy.shouldShowHUD(isEnabled: feedbackHUDEnabled) {
+    if TrackpadFeedbackPolicy.shouldShowHUD(for: result, isEnabled: feedbackHUDEnabled) {
       feedbackHUD.show(
         result.message,
         isFailure: result.isFailure,
@@ -792,14 +810,14 @@ final class TrackpadActionExecutor {
       let positionValue = AXValueCreate(.cgPoint, &position),
       let sizeValue = AXValueCreate(.cgSize, &size)
     else {
-      return .failure(key: "macOS did not apply the requested window placement.")
+      return .failure(key: "macOS did not apply the requested window placement.", showsHUD: false)
     }
     let posSuccess = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) == .success
     let sizeSuccess = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) == .success
     guard posSuccess || sizeSuccess else {
-      return .failure(key: "macOS did not apply the requested window placement.")
+      return .failure(key: "macOS did not apply the requested window placement.", showsHUD: false)
     }
-    return .success("Placed focused window.")
+    return .success("Placed focused window.", showsHUD: false)
   }
 
   private func targetFrame(

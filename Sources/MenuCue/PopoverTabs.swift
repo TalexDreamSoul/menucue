@@ -14,7 +14,21 @@ enum PopoverTab: String, CaseIterable, Codable, Identifiable {
     var tabs = rawValues.compactMap(PopoverTab.init(rawValue:)).filter {
       seen.insert($0).inserted
     }
-    tabs.append(contentsOf: allCases.filter { seen.insert($0).inserted })
+    if tabs == [.status, .calendar, .power, .actions, .overview] {
+      return allCases
+    }
+    for tab in allCases where !seen.contains(tab) {
+      if let index = allCases.firstIndex(of: tab) {
+        let insertIndex = min(index, tabs.count)
+        tabs.insert(tab, at: insertIndex)
+      } else {
+        tabs.append(tab)
+      }
+      seen.insert(tab)
+    }
+    if tabs == [.status, .calendar, .power, .actions, .overview] {
+      return allCases
+    }
     return tabs
   }
 

@@ -41,6 +41,20 @@ final class NotificationSettingsPersistenceTests: XCTestCase {
       .default
     )
   }
+  func testStoredEmptyRulesSeedsDefaultAlertRules() throws {
+    let suite = "NotificationSettingsEmptyRulesTests-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+
+    var emptyRulesSettings = NotificationSettings()
+    emptyRulesSettings.rules = []
+    let data = try JSONEncoder().encode(emptyRulesSettings)
+    defaults.set(data, forKey: "notificationSettings.v1")
+
+    let loaded = SettingsStore(defaults: defaults).load().notificationSettings
+    XCTAssertEqual(loaded.rules.count, DefaultAlertRules.systemNotifications().count)
+    XCTAssertEqual(loaded.rules.map(\.id), DefaultAlertRules.systemNotifications().map(\.id))
+  }
 
   func testRuleSaveSanitizationCannotReenableDisabledChannel() {
     let rule = AlertRule(
