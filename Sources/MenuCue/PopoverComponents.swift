@@ -249,7 +249,10 @@ struct PopoverTabBar: View {
 struct PopoverFooter: View {
   @EnvironmentObject private var router: AppRouter
   let bootDate: Date?
+  var isOverviewEditing: Bool = false
+  var onToggleCustomize: () -> Void = {}
   let newEvent: () -> Void
+  var checkForUpdates: @MainActor () -> Void = {}
   let quitApp: () -> Void
 
   var body: some View {
@@ -271,12 +274,23 @@ struct PopoverFooter: View {
       }
 
       Spacer(minLength: 8)
+      Button(action: onToggleCustomize) {
+        Image(systemName: isOverviewEditing ? "checkmark.circle.fill" : "slider.horizontal.3")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(isOverviewEditing ? Color.accentColor : .secondary)
+          .frame(width: 28, height: 24)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .help(isOverviewEditing ? L10n.string("Done") : L10n.string("Customize"))
+      .accessibilityLabel(isOverviewEditing ? L10n.string("Done") : L10n.string("Customize"))
 
       Menu {
         Button("New Event…", action: newEvent)
         Button("Manage Actions…") { router.openSettings(pane: .actionCenter) }
         Divider()
         Button("Settings…") { router.openSettings() }
+        Button("Check for Updates…", action: checkForUpdates)
         Divider()
         Button("Quit MenuCue", action: quitApp)
       } label: {

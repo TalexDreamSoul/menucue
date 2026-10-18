@@ -210,6 +210,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     let hostingController = SwipeForwardingController(
       rootView: StatusPopoverView(
         model: model,
+        checkForUpdates: { @MainActor [weak self] in
+          self?.updateService.checkForUpdates()
+        },
         quitApp: {
           NSApp.terminate(nil)
         },

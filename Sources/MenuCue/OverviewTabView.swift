@@ -10,7 +10,17 @@ struct OverviewTabView: View {
   @StateObject private var detail = SystemDetailService()
   @StateObject private var samplingController = VisibilityGate()
   @State private var detailPanelHeight: CGFloat = 0
-  @State private var isEditing = false
+  @Binding var isEditing: Bool
+
+  init(
+    model: AppModel,
+    metrics: SystemMetricsService,
+    isEditing: Binding<Bool> = .constant(false)
+  ) {
+    self.model = model
+    self.metrics = metrics
+    self._isEditing = isEditing
+  }
 
   private static let detailPanelWidth: CGFloat = 260
   private static let detailPanelGap: CGFloat = 6
@@ -18,8 +28,6 @@ struct OverviewTabView: View {
   var body: some View {
     PopoverHapticScrollView {
       VStack(spacing: PopoverMetrics.cardSpacing) {
-        headerControlRow
-
         if isEditing {
           editingPanel
         }
@@ -239,41 +247,26 @@ struct OverviewTabView: View {
     }
     return offsetStr
   }
-  // MARK: - Header Controls & Editing Mode
-
-  private var headerControlRow: some View {
-    HStack {
-      Spacer()
-      Button {
-        withAnimation(motion.stateAnimation) {
-          isEditing.toggle()
-        }
-      } label: {
-        HStack(spacing: 4) {
-          Image(systemName: isEditing ? "checkmark.circle.fill" : "slider.horizontal.3")
-            .font(.system(size: 11))
-          Text(isEditing ? L10n.string("Done") : L10n.string("Customize"))
-            .font(.system(size: 11, weight: .medium))
-        }
-        .foregroundStyle(isEditing ? Color.accentColor : Color.secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Color.secondary.opacity(isEditing ? 0.15 : 0.08))
-        .clipShape(Capsule())
-      }
-      .buttonStyle(.plain)
-    }
-    .padding(.horizontal, 4)
-  }
+  // MARK: - Editing Mode
 
   private var editingPanel: some View {
     PopoverCard(title: L10n.string("Edit Overview"), systemImage: "square.grid.2x2", tint: .blue) {
-      Button(L10n.string("Manage Widgets in Settings")) {
-        router.openSettings(pane: .panel)
+      HStack(spacing: 8) {
+        Button(L10n.string("Manage Widgets in Settings")) {
+          router.openSettings(pane: .panel)
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+
+        Button(L10n.string("Done")) {
+          withAnimation(motion.stateAnimation) {
+            isEditing = false
+          }
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.mini)
       }
-      .buttonStyle(.plain)
-      .font(.system(size: 10, weight: .semibold))
-      .foregroundStyle(Color.accentColor)
     } content: {
       VStack(spacing: 8) {
         ForEach(Array(model.settings.overviewWidgets.enumerated()), id: \.element.id) { index, widget in

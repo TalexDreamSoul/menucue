@@ -61,6 +61,7 @@ extension PopoverTab {
 struct StatusPopoverView: View {
   @EnvironmentObject private var router: AppRouter
   @ObservedObject var model: AppModel
+  let checkForUpdates: @MainActor () -> Void
   let quitApp: () -> Void
   /// Publishes sideways flicks recognized by the AppKit container that hosts this view.
   @ObservedObject var swipeRelay: SwipeRelay
@@ -81,13 +82,16 @@ struct StatusPopoverView: View {
   @State private var isCommandPressed: Bool = false
   @State private var keyMonitor: Any?
   @AppStorage("hasSeenQuickSwitchTip.v1") private var hasSeenQuickSwitchTip: Bool = false
+  @State private var isOverviewEditing: Bool = false
 
   init(
     model: AppModel,
+    checkForUpdates: @escaping @MainActor () -> Void = {},
     quitApp: @escaping () -> Void,
     swipeRelay: SwipeRelay
   ) {
     self.model = model
+    self.checkForUpdates = checkForUpdates
     self.quitApp = quitApp
     self.swipeRelay = swipeRelay
     // Nothing has asked for a tab yet, so the popover opens on the first one in the
@@ -143,7 +147,10 @@ struct StatusPopoverView: View {
 
       PopoverFooter(
         bootDate: metrics.bootDate,
+        isOverviewEditing: isOverviewEditing,
+        onToggleCustomize: toggleOverviewCustomize,
         newEvent: openQuickEventEditor,
+        checkForUpdates: checkForUpdates,
         quitApp: quitApp
       )
       .padding(.horizontal, PopoverMetrics.contentPadding)
@@ -232,11 +239,27 @@ struct StatusPopoverView: View {
 
   private func select(_ tab: PopoverTab, direction: Int) {
     guard tab != selectedTab else { return }
+    if tab != .overview {
+      isOverviewEditing = false
+    }
     navigationDirection = direction
     withAnimation(motion.navigationAnimation) {
       selectedTab = tab
     }
     MenuCueHaptics.performAlignment()
+  }
+
+  private func toggleOverviewCustomize() {
+    if selectedTab == .overview {
+      withAnimation(motion.stateAnimation) {
+        isOverviewEditing.toggle()
+      }
+    } else {
+      select(.overview, direction: navigationDirection(to: .overview))
+      withAnimation(motion.stateAnimation) {
+        isOverviewEditing = true
+      }
+    }
   }
 
   /// Tabs slide in from the side they came from, so the motion matches the gesture
@@ -249,7 +272,7 @@ struct StatusPopoverView: View {
   private var tabContent: some View {
     switch selectedTab {
     case .overview:
-      OverviewTabView(model: model, metrics: metrics)
+      OverviewTabView(model: model, metrics: metrics, isEditing: $isOverviewEditing)
         .transition(tabTransition)
     case .status:
       StatusTabView(model: model, metrics: metrics)
