@@ -1525,3 +1525,6 @@
 "Shortcuts, gestures, and the panel all reference the same action definitions." = "Shortcuts, gestures, and the panel all reference the same action definitions.";
 "System Claims" = "System Claims";
 "System power settings and the system time zone cannot be written again until the Helper is reinstalled; nothing else about MenuCue changes." = "System power settings and the system time zone cannot be written again until the Helper is reinstalled; nothing else about MenuCue changes.";
+"Exits automatically in %@" = "Exits automatically in %@";
+"Wiping detected; countdown paused." = "Wiping detected; countdown paused.";
+"Hold Esc or press and hold the screen for 3 seconds to exit." = "Hold Esc or press and hold the screen for 3 seconds to exit.";

@@ -752,13 +752,13 @@ private struct QuickActionSystemSnapshot {
 }
 
 enum CleaningModePolicy {
-  static let durationSeconds = 5 * 60
+  static let durationSeconds = 10 * 60
 }
 
 private final class CleaningModeController: ObservableObject {
   @Published private(set) var isActive = false
   @Published private(set) var secondsRemaining = 0
-
+  @Published private(set) var isCountdownPaused = false
   var onStateChange: (() -> Void)?
   private let accessibilityPermissionRequester: AccessibilityPermissionRequesting
   private let keyboardEventBlockerFactory: () -> any KeyboardEventBlocking
@@ -790,7 +790,8 @@ private final class CleaningModeController: ObservableObject {
   )
   private var countdownTimer: Timer?
   private var keyboardBlocker: (any KeyboardEventBlocking)?
-
+  private var activityMonitor: Any?
+  private var lastActivityAt: Date?
   @discardableResult
   func start() -> KeyboardEventBlockerStartResult {
     stop()
@@ -805,6 +806,13 @@ private final class CleaningModeController: ObservableObject {
 
     isActive = true
     secondsRemaining = CleaningModePolicy.durationSeconds
+    isCountdownPaused = false
+    lastActivityAt = Date()
+    activityMonitor = NSEvent.addGlobalMonitorForEvents(
+      matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .scrollWheel]
+    ) { [weak self] _ in
+      self?.noteActivity()
+    }
     displayOverlays.start()
     NSApp.activate(ignoringOtherApps: true)
 
@@ -813,6 +821,9 @@ private final class CleaningModeController: ObservableObject {
         timer.invalidate()
         return
       }
+      let isRecentlyActive = lastActivityAt.map { Date().timeIntervalSince($0) < 3 } ?? false
+      isCountdownPaused = isRecentlyActive
+      guard !isRecentlyActive else { return }
       secondsRemaining -= 1
       if secondsRemaining <= 0 {
         stop()
@@ -825,14 +836,25 @@ private final class CleaningModeController: ObservableObject {
     return .started
   }
 
+  private func noteActivity() {
+    guard isActive else { return }
+    lastActivityAt = Date()
+  }
+
   func stop() {
     countdownTimer?.invalidate()
     countdownTimer = nil
+    if let activityMonitor {
+      NSEvent.removeMonitor(activityMonitor)
+    }
+    activityMonitor = nil
+    lastActivityAt = nil
     keyboardBlocker?.stop()
     keyboardBlocker = nil
     displayOverlays.stop()
     let wasActive = isActive
     isActive = false
+    isCountdownPaused = false
     secondsRemaining = 0
     if wasActive {
       onStateChange?()
@@ -860,19 +882,31 @@ private struct CleaningOverlayView: View {
           .font(.system(size: 44, weight: .medium))
         Text(L10n.string("Cleaning Mode"))
           .font(.title2.weight(.semibold))
-        Text(L10n.format("Exits automatically in %ds", controller.secondsRemaining))
-          .foregroundStyle(.secondary)
-        Button("Exit Cleaning Mode") {
+        Text(
+          controller.isCountdownPaused
+            ? L10n.string("Wiping detected; countdown paused.")
+            : L10n.format("Exits automatically in %@", countdownText)
+        )
+        .foregroundStyle(.secondary)
+        Button(L10n.string("Exit Cleaning Mode")) {
           controller.stop()
         }
         .keyboardShortcut(.cancelAction)
-        Text("You can also hold Esc for 3 seconds.")
+        Text(L10n.string("Hold Esc or press and hold the screen for 3 seconds to exit."))
           .font(.caption)
           .foregroundStyle(.tertiary)
       }
       .foregroundStyle(.white)
       .padding(28)
     }
+    .simultaneousGesture(
+      LongPressGesture(minimumDuration: 3)
+        .onEnded { _ in controller.stop() }
+    )
+  }
+
+  private var countdownText: String {
+    String(format: "%02d:%02d", controller.secondsRemaining / 60, controller.secondsRemaining % 60)
   }
 }
 
@@ -951,10 +985,13 @@ private final class KeyboardEventBlocker: KeyboardEventBlocking {
     if keyCode == 53 {
       if type == .keyDown && event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
         escapeHoldTimer?.invalidate()
-        escapeHoldTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) {
-          [weak self] _ in
+        // Event tracking (a finger on the glass during wiping) leaves the default
+        // run-loop mode, where this timer would never fire and Esc could not exit.
+        let holdTimer = Timer(timeInterval: 3, repeats: false) { [weak self] _ in
           self?.onEscapeHeld?()
         }
+        escapeHoldTimer = holdTimer
+        RunLoop.main.add(holdTimer, forMode: .common)
       } else if type == .keyUp {
         escapeHoldTimer?.invalidate()
         escapeHoldTimer = nil

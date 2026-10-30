@@ -1526,3 +1526,6 @@
 "Shortcuts, gestures, and the panel all reference the same action definitions." = "快捷键、手势与面板引用同一套动作定义。";
 "System Claims" = "系统占用提示";
 "System power settings and the system time zone cannot be written again until the Helper is reinstalled; nothing else about MenuCue changes." = "在重新安装 Helper 之前，系统电源设置与系统时区都无法再写入；MenuCue 其他功能不受影响。";
+"Exits automatically in %@" = "%@ 后自动退出";
+"Wiping detected; countdown paused." = "检测到擦拭，倒计时已暂停。";
+"Hold Esc or press and hold the screen for 3 seconds to exit." = "长按 Esc，或长按屏幕 3 秒退出。";
