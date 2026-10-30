@@ -104,6 +104,7 @@ final class AppModel: ObservableObject {
     let notificationConfigurationService: NotificationConfigurationService
     let notificationRuntimeStore: NotificationRuntimeStore
     let notificationDeliveryDispatcher: NotificationDeliveryDispatcher
+    let reminderScheduler: ReminderScheduler
     let alertMonitoringService: AlertMonitoringService
     let notificationRuntimeErrorMessage: String?
     private let settingsStore: SettingsStore
@@ -138,9 +139,14 @@ final class AppModel: ObservableObject {
             store: runtimeStore,
             configuration: configurationService
         )
+        let reminderScheduler = ReminderScheduler(
+            store: runtimeStore,
+            dispatcher: deliveryDispatcher
+        )
         self.notificationRuntimeStore = runtimeStore
         self.notificationConfigurationService = configurationService
         self.notificationDeliveryDispatcher = deliveryDispatcher
+        self.reminderScheduler = reminderScheduler
         self.notificationRuntimeErrorMessage = notificationRuntimeErrorMessage
         self.alertMonitoringService = AlertMonitoringService(
             store: runtimeStore,
@@ -158,8 +164,15 @@ final class AppModel: ObservableObject {
         self.hotkeyService = hotkeyService ?? HotkeyService()
         self.preferenceSyncService = preferenceSyncService ?? PreferenceSyncService()
         self.launchAtLoginState = launchAtLoginService.state
-        self.settings = settingsStore.load()
+        let loadedSettings = settingsStore.load()
+        self.settings = loadedSettings
         self.authorizationState = calendarService.authorizationState
+        self.reminderScheduler.start(
+            settings: loadedSettings.notificationSettings,
+            deviceName: loadedSettings.notificationSettings.resolvedDeviceName(
+                systemName: Host.current().localizedName
+            )
+        )
         appearanceService.apply(settings: settings)
         self.trackpadGestureService.apply(settings: settings.trackpadGestureSettings)
         self.hotkeyService.configure { [weak self] binding in
@@ -192,11 +205,13 @@ final class AppModel: ObservableObject {
 
     func stop() {
         appearanceService.stop()
+        reminderScheduler.stop()
         trackpadGestureService.stop()
         hotkeyService.stop()
     }
 
     deinit {
+        reminderScheduler.stop()
         trackpadGestureService.stop()
         hotkeyService.stop()
     }
@@ -618,6 +633,12 @@ final class AppModel: ObservableObject {
     private func configureNotificationServices(_ notificationSettings: NotificationSettings) {
         let monitor = alertMonitoringService
         let dispatcher = notificationDeliveryDispatcher
+        reminderScheduler.update(
+            settings: notificationSettings,
+            deviceName: notificationSettings.resolvedDeviceName(
+                systemName: Host.current().localizedName
+            )
+        )
         Task { @MainActor [weak self, weak monitor, weak dispatcher] in
             guard let self, let monitor, let dispatcher else { return }
             await dispatcher.update(settings: notificationSettings)

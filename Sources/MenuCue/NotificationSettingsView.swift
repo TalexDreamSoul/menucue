@@ -18,6 +18,7 @@ struct NotificationSettingsView: View {
       }
       runtimeCard
       channelCard
+      ReminderSettingsView(model: model)
       rulesCard
       identityCard
     }

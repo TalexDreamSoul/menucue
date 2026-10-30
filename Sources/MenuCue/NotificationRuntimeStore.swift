@@ -208,6 +208,27 @@ actor NotificationRuntimeStore: NotificationOutboxClaiming {
     storage = next
   }
 
+  func enqueue(message: NotificationMessage, channels: Set<NotificationChannelKind>) throws {
+    try message.validate()
+    guard !channels.isEmpty, !storage.events.contains(where: { $0.message.eventID == message.eventID })
+    else { return }
+
+    var next = storage
+    let deliveries = Dictionary(
+      uniqueKeysWithValues: channels.map { ($0, NotificationRuntimeDelivery()) })
+    let event = NotificationRuntimeEvent(
+      message: message,
+      createdAt: message.occurredAt,
+      deliveries: deliveries
+    )
+    next.events.append(event)
+    if next.events.count > maximumRetainedEvents {
+      next.events.removeFirst(next.events.count - maximumRetainedEvents)
+    }
+    try persist(next)
+    storage = next
+  }
+
   func commit(_ transaction: AlertRuntimeCommit) throws {
     var next = storage
     next.runtimes[transaction.ruleID.uuidString] = transaction.runtime

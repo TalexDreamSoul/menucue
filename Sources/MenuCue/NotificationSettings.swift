@@ -41,17 +41,20 @@ struct NotificationSettings: Codable, Equatable, Sendable {
   var deviceNameOverride: String?
   var channels: [NotificationChannelKind: NotificationChannelSettings]
   var rules: [AlertRule]
+  var reminders: [ReminderRule]
 
   init(
     isGloballyEnabled: Bool = true,
     deviceNameOverride: String? = nil,
     channels: [NotificationChannelKind: NotificationChannelSettings] = [:],
-    rules: [AlertRule] = []
+    rules: [AlertRule] = [],
+    reminders: [ReminderRule] = DefaultReminderRules.all()
   ) {
     self.isGloballyEnabled = isGloballyEnabled
     self.deviceNameOverride = Self.normalizedName(deviceNameOverride)
     self.channels = channels
     self.rules = rules
+    self.reminders = reminders
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -59,6 +62,7 @@ struct NotificationSettings: Codable, Equatable, Sendable {
     case deviceNameOverride
     case channels
     case rules
+    case reminders
   }
 
   /// Additive fields must decode leniently: `SettingsStore` keeps the stored value only when
@@ -73,7 +77,11 @@ struct NotificationSettings: Codable, Equatable, Sendable {
       try container.decodeIfPresent(
         [NotificationChannelKind: NotificationChannelSettings].self, forKey: .channels) ?? [:]
     rules = try container.decodeIfPresent([AlertRule].self, forKey: .rules) ?? []
+    reminders =
+      try container.decodeIfPresent([ReminderRule].self, forKey: .reminders)
+      ?? DefaultReminderRules.all()
   }
+
 
   static let `default` = NotificationSettings(
     channels: [.system: NotificationChannelSettings(isEnabled: true)],
