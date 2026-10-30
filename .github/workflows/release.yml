@@ -192,9 +192,9 @@ jobs:
           cat > "$NOTES" <<EOF
           ## Changes
 
-          - The system appearance is now read from the same global preference AppKit reads, instead of asking System Events for it. The Dark Mode quick action reports the real state even when the Automation grant is missing, and no longer pays an Apple Event to answer a question the app already had.
-          - When macOS refuses the scheduled appearance write, the row that owns the switch says so: it shows what macOS answered, opens the Automation pane, and offers a retry. The refusal is no longer discarded behind a switch that looks on while nothing happens.
-          - The write path is covered by tests that pin the edge-triggered contract: the schedule writes when the target flips, and the ticks in between leave the setting alone.
+          - System appearance ownership now disables macOS's competing automatic Light/Dark schedule while MenuCue sync is enabled, restores it when disabled, and corrects sustained drift against the selected time zone.
+          - Added configurable local reminders: seven-day screen cleaning, water breaks, 11:00 lunch, 17:00 finish-work, and 17:30 or lid-close clock-out reminders with optional Bark delivery.
+          - Cleaning Mode now lasts 10 minutes by default, pauses its countdown during input activity, shows an mm:ss countdown, supports a three-second screen hold to exit, and reliably exits on a held Esc during event tracking.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF
