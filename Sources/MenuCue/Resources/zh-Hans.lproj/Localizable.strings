@@ -598,6 +598,8 @@
 "Went to sleep — %@" = "已进入睡眠 — %@";
 "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@)." = "启用后，系统外观跟随上面的设置：「按时区自动切换」按参考时区 %@ 的 07:00–19:00 使用浅色。";
 "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time." = "启用后，macOS 系统外观会被设为上面选定的浅色或深色：仅在启动和改动设置时写入，其余时间不会干预。";
+"When enabled, MenuCue keeps macOS on the appearance chosen above. Manual system changes are corrected after a short grace period." = "启用后，MenuCue 会让 macOS 保持上面选定的外观；手动切换在短暂宽限期后会被校正。";
+"MenuCue turns off macOS's own automatic appearance schedule while this is enabled and restores it when disabled." = "启用期间，MenuCue 会关闭 macOS 自己的自动外观排程，关闭后恢复原设置。";
 "Wired" = "联动内存";
 "Woken by %@" = "由 %@ 唤醒";
 "World Clocks" = "世界时钟";

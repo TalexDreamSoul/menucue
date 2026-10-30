@@ -336,7 +336,7 @@ struct GeneralSettingsView: View {
       )
     case .light, .dark:
       return L10n.string(
-        "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time."
+        "When enabled, MenuCue keeps macOS on the appearance chosen above. Manual system changes are corrected after a short grace period."
       )
     case .automaticByTimeZone:
       var sentences = [
@@ -349,11 +349,10 @@ struct GeneralSettingsView: View {
         sentences.append(localWindow)
       }
       sentences.append(
-        L10n.string("MenuCue writes only at those two edges; a manual switch stays yours.")
+        L10n.string(
+          "MenuCue turns off macOS's own automatic appearance schedule while this is enabled and restores it when disabled."
+        )
       )
-      // Joined without a separator: each translated clause carries its own leading space
-      // when its language wants one. A hardcoded space here would land between 。 and the
-      // next Chinese sentence.
       return sentences.joined()
     }
   }

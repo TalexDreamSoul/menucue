@@ -236,6 +236,45 @@ final class SystemAppearanceScheduleTests: XCTestCase {
       "the morning edge asserts the schedule again")
   }
 
+  func testTakingOwnershipDisablesAutoAndCorrectsDriftThenRestoresAuto() {
+    let appearance = SystemAppearanceWriteRecorder()
+    var autoEnabled = true
+    var currentDark = false
+    var autoWrites: [Bool] = []
+    let service = AppearanceService(
+      writeSystemAppearance: { value in
+        currentDark = value
+        return appearance.write(value)
+      },
+      writeAutoSchedule: { value in
+        autoWrites.append(value)
+        autoEnabled = value
+        return .success(())
+      },
+      readAutoSchedule: { autoEnabled },
+      readCurrentSystemDarkMode: { currentDark },
+      ownsSystemSchedule: true
+    )
+    let settings = makeSettings(mode: .automaticByTimeZone)
+    let start = instant(hour: 12)
+
+    service.apply(settings: settings, date: start)
+    XCTAssertEqual(autoWrites, [false])
+    XCTAssertEqual(appearance.writtenValues, [false])
+
+    currentDark = true
+    service.apply(settings: settings, date: start.addingTimeInterval(1))
+    XCTAssertEqual(appearance.writtenValues, [false])
+    service.apply(settings: settings, date: start.addingTimeInterval(6))
+    XCTAssertEqual(appearance.writtenValues, [false, false])
+
+    service.apply(
+      settings: makeSettings(mode: .automaticByTimeZone, appliesSystemAppearance: false),
+      date: start.addingTimeInterval(6)
+    )
+    XCTAssertEqual(autoWrites, [false, true])
+  }
+
   // MARK: - Fixtures
 
   private func makeSettings(

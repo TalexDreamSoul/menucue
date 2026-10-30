@@ -106,7 +106,6 @@ final class AppModel: ObservableObject {
     let notificationDeliveryDispatcher: NotificationDeliveryDispatcher
     let alertMonitoringService: AlertMonitoringService
     let notificationRuntimeErrorMessage: String?
-
     private let settingsStore: SettingsStore
     private let calendarService: CalendarService
     private let appearanceService: AppearanceService
@@ -189,6 +188,12 @@ final class AppModel: ObservableObject {
         // The service writes, the pane reads: mirroring the refusal is what makes a write
         // that macOS rejected show up in the row that asked for it.
         appearanceService.$systemWriteFailure.assign(to: &$systemAppearanceFailure)
+    }
+
+    func stop() {
+        appearanceService.stop()
+        trackpadGestureService.stop()
+        hotkeyService.stop()
     }
 
     deinit {
