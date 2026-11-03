@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">MenuCue concept mark v9</title>
+  <desc id="desc">A restrained open cue-loop mark inside a warm ivory rounded square.</desc>
+  <rect width="1024" height="1024" fill="#EEF0F2"/>
+  <rect x="128" y="128" width="768" height="768" rx="184" fill="#F8F5EE"/>
+  <rect x="128" y="128" width="768" height="768" rx="184" fill="none" stroke="#E4E1DA" stroke-width="3"/>
+  <!-- A single rounded loop with a deliberate opening: the cue is the space, not a badge. -->
+  <path d="M684 316H414c-86 0-154 68-154 154v92c0 86 68 154 154 154h270" fill="none" stroke="#252525" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Optical terminals turn slightly inward to make the opening distinctive while remaining non-directional. -->
+  <path d="M684 316l-86 52M684 716l-86-52" fill="none" stroke="#252525" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

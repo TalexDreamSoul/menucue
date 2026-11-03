@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" role="img" aria-labelledby="title desc">
+  <title id="title">MenuCue logo</title>
+  <desc id="desc">A dark navy rounded-square mark with an ivory cue ring, cyan gesture arc, and cyan touchpoint, followed by the MenuCue wordmark.</desc>
+
+  <!-- App mark -->
+  <rect x="32" y="32" width="256" height="256" rx="64" fill="#0B1B3A"/>
+  <!-- The ivory ring is the enduring time / awareness surface. -->
+  <path d="M160 80 A80 80 0 1 0 232.91 193.00"
+        fill="none" stroke="#F3F7F8" stroke-width="28" stroke-linecap="round"/>
+  <!-- The cyan arc turns the open ring into a cue: intent entering the system. -->
+  <path d="M223.00 212.91 A80 80 0 0 0 240.00 160"
+        fill="none" stroke="#20C6D9" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="224" cy="96" r="16" fill="#20C6D9"/>
+
+  <!-- Wordmark: system fonts keep this reference asset portable; production typography can be outlined later. -->
+  <text x="352" y="190"
+        fill="#F3F7F8"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="128"
+        font-weight="650"
+        letter-spacing="-5">MenuCue</text>
+</svg>

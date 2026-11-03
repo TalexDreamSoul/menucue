@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" role="img" aria-labelledby="title desc">
+  <title id="title">MenuCue logo — Cue Stack</title>
+  <desc id="desc">Three uneven menu rows and one warm cue point: a quiet signal that identifies the next system action.</desc>
+
+  <!-- App mark: menu hierarchy plus a single, intentional cue. -->
+  <rect x="32" y="32" width="256" height="256" rx="64" fill="#242321"/>
+  <g fill="#F3F0E9">
+    <rect x="88" y="94" width="104" height="20" rx="10"/>
+    <rect x="88" y="150" width="128" height="20" rx="10"/>
+    <rect x="88" y="206" width="88" height="20" rx="10"/>
+  </g>
+  <!-- The cue is detached, never an alert badge or a selected-row fill. -->
+  <circle cx="240" cy="160" r="18" fill="#A9674C"/>
+
+  <text x="352" y="190"
+        fill="#F3F0E9"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="128"
+        font-weight="650"
+        letter-spacing="-5">MenuCue</text>
+</svg>
