@@ -92,6 +92,8 @@ struct DashboardView: View {
       .clipped()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .environment(\.timeZone, model.settings.anchorTimeZone)
+    .environment(\.calendar, model.settings.anchorCalendar)
     .focusable()
     .focused($isFocused)
     .menuCueFocusEffectDisabled()

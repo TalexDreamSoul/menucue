@@ -90,7 +90,7 @@ struct ReminderSettingsView: View {
       }
     }
     .sheet(item: $editingReminder) { reminder in
-      ReminderEditorSheet(reminder: reminder) { updated in
+      ReminderEditorSheet(reminder: reminder, timeZone: model.settings.anchorTimeZone) { updated in
         save(updated)
         editingReminder = nil
       } onCancel: {
@@ -149,6 +149,8 @@ private struct ReminderEditorSheet: View {
     }
   }
 
+  let timeZone: TimeZone
+  private let calendar: Calendar
   let onSave: (ReminderRule) -> Void
   let onCancel: () -> Void
   @State private var draft: ReminderRule
@@ -161,7 +163,11 @@ private struct ReminderEditorSheet: View {
   @State private var lidCloseEnabled: Bool
   @State private var lidCloseAfterHour: Int
 
-  init(reminder: ReminderRule, onSave: @escaping (ReminderRule) -> Void, onCancel: @escaping () -> Void) {
+  init(reminder: ReminderRule, timeZone: TimeZone, onSave: @escaping (ReminderRule) -> Void, onCancel: @escaping () -> Void) {
+    self.timeZone = timeZone
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = timeZone
+    self.calendar = calendar
     self.onSave = onSave
     self.onCancel = onCancel
     _draft = State(initialValue: reminder)
@@ -172,21 +178,21 @@ private struct ReminderEditorSheet: View {
       _hours = State(initialValue: 2)
       _startHour = State(initialValue: 9)
       _endHour = State(initialValue: 18)
-      _time = State(initialValue: Self.date(hour: hour, minute: minute))
+      _time = State(initialValue: Self.date(hour: hour, minute: minute, calendar: calendar))
     case let .everyDays(days):
       _kind = State(initialValue: .everyDays)
       _interval = State(initialValue: max(1, days))
       _hours = State(initialValue: 2)
       _startHour = State(initialValue: 9)
       _endHour = State(initialValue: 18)
-      _time = State(initialValue: Self.date(hour: 9, minute: 0))
+      _time = State(initialValue: Self.date(hour: 9, minute: 0, calendar: calendar))
     case let .everyHours(hours, startHour, endHour):
       _kind = State(initialValue: .everyHours)
       _interval = State(initialValue: 7)
       _hours = State(initialValue: max(1, hours))
       _startHour = State(initialValue: startHour)
       _endHour = State(initialValue: endHour)
-      _time = State(initialValue: Self.date(hour: startHour, minute: 0))
+      _time = State(initialValue: Self.date(hour: startHour, minute: 0, calendar: calendar))
     }
     _lidCloseEnabled = State(initialValue: reminder.lidCloseAfterHour != nil)
     _lidCloseAfterHour = State(initialValue: reminder.lidCloseAfterHour ?? 17)
@@ -247,10 +253,12 @@ private struct ReminderEditorSheet: View {
     }
     .padding(24)
     .frame(width: 520, height: 560)
+    .environment(\.timeZone, timeZone)
+    .environment(\.calendar, calendar)
   }
 
   private func save() {
-    let components = Calendar.current.dateComponents([.hour, .minute], from: time)
+    let components = calendar.dateComponents([.hour, .minute], from: time)
     switch kind {
     case .daily:
       draft.schedule = .daily(hour: components.hour ?? 9, minute: components.minute ?? 0)
@@ -273,8 +281,8 @@ private struct ReminderEditorSheet: View {
     )
   }
 
-  private static func date(hour: Int, minute: Int) -> Date {
-    Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+  private static func date(hour: Int, minute: Int, calendar: Calendar) -> Date {
+    calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
   }
 }
 

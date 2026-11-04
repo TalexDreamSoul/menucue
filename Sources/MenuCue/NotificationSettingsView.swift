@@ -1059,7 +1059,8 @@ private struct AlertRuleEditor: View {
       observation: previewObservation,
       deviceName: model.settings.notificationSettings.resolvedDeviceName(
         systemName: Host.current().localizedName),
-      state: templateMode
+      state: templateMode,
+      timeZone: model.settings.anchorTimeZone
     )
   }
 

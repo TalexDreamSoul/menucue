@@ -110,7 +110,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     case .power:
       return L10n.string("Power Helper, system power settings, and wake history.")
     case .timeZone:
-      return L10n.string("MenuCue's display time zone, the macOS system time zone, and system language and region.")
+      return L10n.string("MenuCue's anchor time zone, the macOS system time zone, and system language and region.")
     case .general:
       return L10n.string("Startup, updates, appearance, language, and iCloud sync.")
     case .about:
@@ -179,6 +179,8 @@ struct SettingsWindowView: View {
       minHeight: 540, idealHeight: 680, maxHeight: .infinity
     )
     .environment(\.menuCueMotion, motion)
+    .environment(\.timeZone, model.settings.anchorTimeZone)
+    .environment(\.calendar, model.settings.anchorCalendar)
   }
 
   private var motion: MotionProfile {

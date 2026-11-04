@@ -16,7 +16,8 @@ enum AlertTemplateContextBuilder {
     rule: AlertRule,
     observation: AlertMetricObservation,
     deviceName: String,
-    state: NotificationEventState
+    state: NotificationEventState,
+    timeZone: TimeZone
   ) -> [String: String] {
     let definition = AlertMetricCatalog.definition(for: rule.metricID)
     var values = observation.context
@@ -25,7 +26,9 @@ enum AlertTemplateContextBuilder {
     values["metric.id"] = rule.metricID.rawValue
     values["metric.name"] = L10n.string(rule.metricID.rawValue)
     values["target.name"] = values["target.name"] ?? rule.targetID ?? ""
-    values["event.time"] = ISO8601DateFormatter().string(from: observation.sampledAt)
+    let timeFormatter = ISO8601DateFormatter()
+    timeFormatter.timeZone = timeZone
+    values["event.time"] = timeFormatter.string(from: observation.sampledAt)
     values["alert.state"] = state.rawValue
 
     if let metricValue = observation.value {

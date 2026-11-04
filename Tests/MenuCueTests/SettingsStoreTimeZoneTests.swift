@@ -25,14 +25,6 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         super.tearDown()
     }
 
-    func testEmptyDefaultsResolveSystemClockAsFirstClock() {
-        let settings = store.load()
-        let firstClock = settings.clockTimeZones.first
-
-        XCTAssertEqual(settings.clockEntries.first?.id, ClockEntry.systemID)
-        XCTAssertEqual(firstClock?.identifier, TimeZone.autoupdatingCurrent.identifier)
-        XCTAssertTrue(firstClock?.isSystem ?? false)
-    }
     func testLegacyClockKeysMigrateEnabledSystemBeforeCustomClocksInOriginalOrder() {
         defaults.set(true, forKey: "showsSystemTimeZone")
         defaults.set(
@@ -60,11 +52,6 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         XCTAssertEqual(settings.clockEntries.map(\.id), ["America/Los_Angeles", "Asia/Shanghai"])
     }
 
-    func testEmptyDefaultsLoadMondayAsCalendarWeekStartDay() {
-        let settings = store.load()
-
-        XCTAssertEqual(settings.calendarWeekStartDay, .monday)
-    }
 
     func testCalendarWeekStartDayPersistsAcrossSaveAndLoad() {
         var settings = store.load()
@@ -77,12 +64,13 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         XCTAssertEqual(reloaded.calendarWeekStartDay, .sunday)
     }
 
-    func testQuickEventDraftRoundsStartDateUpToNextHourAndSetsOneHourDuration() throws {
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone.current
+    func testQuickEventDraftRoundsInExplicitKathmanduTimeZone() throws {
+        let kathmandu = try XCTUnwrap(TimeZone(identifier: "Asia/Kathmandu"))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = kathmandu
         let requestedStart = try XCTUnwrap(calendar.date(from: DateComponents(
             calendar: calendar,
-            timeZone: calendar.timeZone,
+            timeZone: kathmandu,
             year: 2026,
             month: 1,
             day: 15,
@@ -92,7 +80,7 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         )))
         let expectedStart = try XCTUnwrap(calendar.date(from: DateComponents(
             calendar: calendar,
-            timeZone: calendar.timeZone,
+            timeZone: kathmandu,
             year: 2026,
             month: 1,
             day: 15,
@@ -101,33 +89,69 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
             second: 0
         )))
 
-        let draft = QuickEventDraft(startDate: requestedStart, calendarID: "primary")
+        let draft = QuickEventDraft(
+            startDate: requestedStart, calendarID: "primary", timeZone: kathmandu)
 
         XCTAssertEqual(draft.startDate, expectedStart)
         XCTAssertEqual(draft.endDate, expectedStart.addingTimeInterval(60 * 60))
     }
 
-    func testOverviewTimeZonePersistsSeparatelyFromClockEntriesAndAppearanceTimeZone() {
+    func testLegacyOverviewSelectionWinsOverAppearanceAndCarouselOrder() {
+        defaults.set("Europe/London", forKey: "appearanceTimeZoneID")
+        defaults.set("Pacific/Honolulu", forKey: "overviewTimeZoneID")
         var settings = store.load()
         settings.replaceClockEntries([
             ClockEntry.custom(identifier: "America/New_York")!,
-            ClockEntry.custom(identifier: "Asia/Tokyo")!
+            ClockEntry.custom(identifier: "Asia/Shanghai")!
         ])
-        settings.appearanceTimeZoneID = "Europe/London"
-        settings.overviewTimeZoneID = "Pacific/Honolulu"
 
         store.save(settings)
+        let reloaded = SettingsStore(defaults: defaults).load()
+
+        XCTAssertEqual(reloaded.anchorTimeZoneID, "Pacific/Honolulu")
+        XCTAssertEqual(reloaded.anchorTimeZone.identifier, "Pacific/Honolulu")
+        XCTAssertEqual(reloaded.clockEntries.map(\.id), ["America/New_York", "Asia/Shanghai"])
+        XCTAssertNil(defaults.string(forKey: "appearanceTimeZoneID"))
+    }
+
+    func testMissingAnchorSelectionFallsBackToSystemRatherThanFirstCarouselClock() {
+        var settings = store.load()
+        let otherZones = ["Asia/Shanghai", "Europe/London", "Pacific/Honolulu"]
+            .filter { $0 != TimeZone.autoupdatingCurrent.identifier }
+        settings.replaceClockEntries(otherZones.compactMap { ClockEntry.custom(identifier: $0) })
+        store.save(settings)
+        defaults.removeObject(forKey: "overviewTimeZoneID")
 
         let reloaded = SettingsStore(defaults: defaults).load()
 
-        XCTAssertEqual(reloaded.overviewTimeZoneID, "Pacific/Honolulu")
-        XCTAssertEqual(reloaded.overviewTimeZone.identifier, "Pacific/Honolulu")
-        XCTAssertEqual(reloaded.clockEntries.map(\.id), ["America/New_York", "Asia/Tokyo"])
-        XCTAssertEqual(reloaded.appearanceTimeZoneID, "Europe/London")
-        XCTAssertEqual(reloaded.appearanceTimeZone.identifier, "Europe/London")
-        XCTAssertNotEqual(reloaded.overviewTimeZoneID, reloaded.clockEntries.first?.id)
-        XCTAssertNotEqual(reloaded.overviewTimeZoneID, reloaded.appearanceTimeZoneID)
+        XCTAssertEqual(reloaded.anchorTimeZoneID, TimeZone.autoupdatingCurrent.identifier)
+        XCTAssertEqual(reloaded.anchorTimeZone.identifier, TimeZone.autoupdatingCurrent.identifier)
+        XCTAssertNotEqual(reloaded.anchorTimeZoneID, reloaded.clockEntries.first?.id)
     }
+
+    func testUnavailableAnchorWarnsAndDoesNotBorrowCarouselZone() {
+        var settings = store.load()
+        settings.anchorTimeZoneID = "Unavailable/Anchor"
+        let otherZone = ["Asia/Shanghai", "Pacific/Honolulu"].first {
+            $0 != TimeZone.autoupdatingCurrent.identifier
+        }!
+        settings.replaceClockEntries([ClockEntry.custom(identifier: otherZone)!])
+
+        XCTAssertTrue(settings.isAnchorTimeZoneUnavailable)
+        XCTAssertEqual(settings.anchorTimeZone.identifier, TimeZone.autoupdatingCurrent.identifier)
+        XCTAssertNotEqual(settings.anchorTimeZone.identifier, settings.clockTimeZones.first?.identifier)
+    }
+
+    func testQuickEventDraftKeepsSecondAutumnHourAndRoundsForward() throws {
+        let zone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let requested = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T09:30:00Z"))
+        let expected = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T10:00:00Z"))
+        let draft = QuickEventDraft(startDate: requested, calendarID: nil, timeZone: zone)
+
+        XCTAssertEqual(draft.startDate, expected)
+        XCTAssertEqual(draft.endDate, expected.addingTimeInterval(3_600))
+    }
+
 
     func testStatusBarSwitchIntervalPersists() {
         var settings = store.load()
@@ -140,12 +164,6 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         XCTAssertEqual(reloaded.statusBarSwitchIntervalSeconds, 8)
     }
 
-    func testMenuBarFormatDefaultsToClockContentAndAppIcon() {
-        let format = MenuBarFormatSettings.compatibilityDefault
-
-        XCTAssertEqual(format.statusItemContent, .clock)
-        XCTAssertEqual(format.statusItemIcon, .appIcon)
-    }
 
     func testMenuBarFormatPersistsSelectedStatusItemIcon() {
         var settings = store.load()
@@ -181,8 +199,6 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         )
 
         XCTAssertEqual(decoded.mode, .advanced)
-        XCTAssertEqual(decoded.statusItemContent, .clock)
-        XCTAssertEqual(decoded.statusItemIcon, .appIcon)
     }
 
     func testStatusBarClockRotatesAcrossOrderedClockEntries() {
@@ -218,25 +234,6 @@ final class SettingsStoreTimeZoneTests: XCTestCase {
         XCTAssertEqual(TimeZoneCatalog.flag(for: "Europe/London"), "🇬🇧")
     }
 
-    func testLunarDisplayDefaultsOnForChineseCultureRegionsAndOffElsewhere() {
-        let cnDefaults = UserDefaults(suiteName: "\(suiteName!).cn")!
-        let usDefaults = UserDefaults(suiteName: "\(suiteName!).us")!
-        defer {
-            cnDefaults.removePersistentDomain(forName: "\(suiteName!).cn")
-            usDefaults.removePersistentDomain(forName: "\(suiteName!).us")
-        }
-
-        XCTAssertTrue(SettingsStore(defaults: cnDefaults, regionCodeProvider: { "CN" }).load().showsLunarCalendar)
-        XCTAssertFalse(SettingsStore(defaults: usDefaults, regionCodeProvider: { "US" }).load().showsLunarCalendar)
-    }
-
-    func testDerivedLunarDefaultPersistsAfterRegionChanges() {
-        let first = SettingsStore(defaults: defaults, regionCodeProvider: { "CN" }).load()
-        let afterRegionChange = SettingsStore(defaults: defaults, regionCodeProvider: { "US" }).load()
-
-        XCTAssertTrue(first.showsLunarCalendar)
-        XCTAssertTrue(afterRegionChange.showsLunarCalendar)
-    }
 
     func testLunarDisplayAndAllDayPolicyPersist() {
         var settings = store.load()

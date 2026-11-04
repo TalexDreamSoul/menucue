@@ -4,11 +4,9 @@ import MenuCueHelperProtocol
 
 final class PowerHelperTimeZoneTests: XCTestCase {
     func testCurrentExecutableLocationIgnoresRelativeArgvZero() throws {
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
+        let helperURL = Bundle(for: Self.self).bundleURL
             .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let helperURL = repositoryRoot.appendingPathComponent(".build/debug/MenuCueHelper")
+            .appendingPathComponent("MenuCueHelper")
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: helperURL.path))
 
         let output = Pipe()

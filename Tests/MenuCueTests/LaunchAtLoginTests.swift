@@ -100,8 +100,12 @@ final class LaunchAtLoginTests: XCTestCase {
     }
 
     private func makeModel(launchAtLoginService: LaunchAtLoginManaging) -> AppModel {
-        AppModel(
-            settingsStore: SettingsStore(defaults: defaults),
+        let store = SettingsStore(defaults: defaults)
+        var settings = store.load()
+        settings.notificationSettings.isGloballyEnabled = false
+        store.save(settings)
+        return AppModel(
+            settingsStore: store,
             calendarService: CalendarService(),
             appearanceService: AppearanceService(),
             launchAtLoginService: launchAtLoginService

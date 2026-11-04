@@ -84,7 +84,7 @@ struct DashboardPowerSection: View {
           Text(
             L10n.format(
               "Your Mac last woke at %@",
-              latest.event.timestamp.formatted(date: .omitted, time: .shortened))
+              model.settings.formatDate(latest.event.timestamp, date: .omitted, time: .shortened))
           )
           .font(.title3.weight(.semibold))
           Text(latest.cause.sentence)
@@ -262,7 +262,7 @@ struct DashboardPowerSection: View {
       // said so. They are now only hidden, and this says so where they would be —
       // undoing it is in Settings ▸ Power, with the button that hid them.
       if let clearedAt = diagnostics.clearedAt, diagnostics.hiddenEventCount > 0 {
-        ClearedHistoryNote(clearedAt: clearedAt, hiddenCount: diagnostics.hiddenEventCount)
+        ClearedHistoryNote(clearedAt: clearedAt, hiddenCount: diagnostics.hiddenEventCount, settings: model.settings)
       }
 
       if diagnostics.migrationDroppedRecords > 0 {
@@ -282,7 +282,7 @@ struct DashboardPowerSection: View {
             let sentence = PowerAttributionParser.sentence(
               for: event, scheduled: snapshot.scheduledWakes)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-              Text(event.timestamp.formatted(date: .abbreviated, time: .shortened))
+              Text(model.settings.formatDate(event.timestamp, date: .abbreviated, time: .shortened))
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
@@ -334,6 +334,7 @@ struct DashboardPowerSection: View {
 struct ClearedHistoryNote: View {
   let clearedAt: Date
   let hiddenCount: Int
+  let settings: AppSettings
   var restore: (() -> Void)?
 
   var body: some View {
@@ -342,7 +343,7 @@ struct ClearedHistoryNote: View {
         L10n.format(
           "%d earlier wakes are hidden since you cleared history on %@",
           hiddenCount,
-          clearedAt.formatted(date: .abbreviated, time: .omitted))
+          settings.formatDate(clearedAt, date: .abbreviated, time: .omitted))
       )
       .font(.caption)
       .foregroundStyle(.tertiary)

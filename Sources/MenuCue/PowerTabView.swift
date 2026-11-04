@@ -222,7 +222,7 @@ struct PowerTabView: View {
           Text(
             L10n.format(
               "Last woke at %@",
-              latest.event.timestamp.formatted(date: .omitted, time: .shortened))
+              model.settings.formatDate(latest.event.timestamp, date: .omitted, time: .shortened))
           )
           .font(.system(size: 12, weight: .semibold))
           Text(latest.cause.sentence)
@@ -256,7 +256,7 @@ struct PowerTabView: View {
             .font(.system(size: 9, weight: .medium))
             .foregroundStyle(.secondary)
           Spacer()
-          if let today = diagnostics.snapshot.darkWakeCount(on: Date()) {
+          if let today = diagnostics.snapshot.darkWakeCount(on: Date(), calendar: model.settings.anchorCalendar) {
             Text(L10n.format("%d dark wakes today", today))
               .font(.system(size: 9, weight: .semibold))
               .foregroundStyle(.orange)

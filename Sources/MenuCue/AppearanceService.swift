@@ -222,7 +222,7 @@ final class AppearanceService: ObservableObject {
         case .dark:
             return true
         case .automaticByTimeZone:
-            let hour = Calendar(identifier: .gregorian).dateComponents(in: settings.appearanceTimeZone, from: date).hour ?? 12
+            let hour = settings.anchorCalendar.component(.hour, from: date)
             return !(7..<19).contains(hour)
         }
     }

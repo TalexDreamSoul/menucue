@@ -81,11 +81,8 @@ final class SettingsStore {
             appearanceMode: AppearanceMode(
                 rawValue: defaults.string(forKey: Key.appearanceMode) ?? ""
             ) ?? .system,
-            appearanceTimeZoneID: defaults.string(forKey: Key.appearanceTimeZoneID)
-                ?? systemTimeZoneID,
             appliesSystemAppearance: defaults.bool(forKey: Key.appliesSystemAppearance),
-            overviewTimeZoneID: defaults.string(forKey: Key.overviewTimeZoneID)
-                ?? systemTimeZoneID,
+            anchorTimeZoneID: defaults.string(forKey: Key.overviewTimeZoneID) ?? systemTimeZoneID,
             calendarWeekStartDay: loadCalendarWeekStartDay(defaultValue: .monday),
             showsLunarCalendar: loadShowsLunarCalendar(),
             allDayEventDatePolicy: loadAllDayEventDatePolicy(),
@@ -130,9 +127,9 @@ final class SettingsStore {
         }
         defaults.set(settings.statusBarSwitchIntervalSeconds, forKey: Key.statusBarSwitchIntervalSeconds)
         defaults.set(settings.appearanceMode.rawValue, forKey: Key.appearanceMode)
-        defaults.set(settings.appearanceTimeZoneID, forKey: Key.appearanceTimeZoneID)
         defaults.set(settings.appliesSystemAppearance, forKey: Key.appliesSystemAppearance)
-        defaults.set(settings.overviewTimeZoneID, forKey: Key.overviewTimeZoneID)
+        defaults.set(settings.anchorTimeZoneID, forKey: Key.overviewTimeZoneID)
+        defaults.removeObject(forKey: Key.appearanceTimeZoneID)
         defaults.set(settings.calendarWeekStartDay.rawValue, forKey: Key.calendarWeekStartDay)
         defaults.set(settings.showsLunarCalendar, forKey: Key.showsLunarCalendar)
         defaults.set(settings.allDayEventDatePolicy.rawValue, forKey: Key.allDayEventDatePolicy)

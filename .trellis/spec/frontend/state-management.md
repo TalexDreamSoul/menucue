@@ -318,7 +318,7 @@ Use this pattern when portable `AppSettings` fields synchronize through `NSUbiqu
 - `SettingsStore` remains authoritative local persistence on every build.
 - The service never reads or writes `UserDefaults`; it receives typed envelopes from `AppModel`.
 - Each portable field uses a separate versioned iCloud key and timestamped envelope. Never upload one monolithic `AppSettings` blob.
-- Portable fields are menu-bar format, ordered clocks/labels, rotation interval, overview time zone, week start, and in-app appearance.
+- Portable fields are menu-bar format, ordered clocks/labels, rotation interval, anchor time zone (legacy wire field `overviewTimeZone`), week start, and in-app appearance.
 - Calendar authorization/selection, system appearance mutation, Quick Actions, onboarding choices, account identity, and runtime state remain device-local.
 - Local mutations save first, record timestamps for changed portable fields only, then publish to iCloud when enabled.
 - Cloud imports save locally without being re-stamped or echoed as new local edits.
@@ -509,3 +509,65 @@ if status != 0 || id == 0 { id = UInt64(UInt(bitPattern: device)) }
 
 - Settings tests cover default values, icon round-trip, and decoding a pre-icon format payload.
 - Action tests cover legacy cleaning-reference normalization and the distinct Accessibility versus event-tap failure states.
+
+## Scenario: One anchor time zone for internal civil time
+
+### 1. Scope / Trigger
+
+Apply when adding a schedule, date editor, internal timestamp display, or current-day aggregation. World clocks, system settings, and source-data interpretation are separate boundaries.
+
+### 2. Signatures
+
+- State: `AppSettings.anchorTimeZoneID`, `anchorTimeZone`, `anchorCalendar`, `isAnchorTimeZoneUnavailable`.
+- Text: `AppSettings.formatDate(_:date:time:)` and `PreferenceSyncStatus.message(timeZone:)`.
+- Recurrence: `ReminderScheduler.start(settings:deviceName:timeZone:)`, `update(settings:deviceName:timeZone:)`.
+- Editing: `QuickEventDraft(startDate:calendarID:timeZone:)`, `CalendarService.createEvent(from:timeZone:)`.
+- Notification text: `AlertTemplateContextBuilder.values(rule:observation:deviceName:state:timeZone:)`.
+- Current-day projection: `PowerDiagnosticsSnapshot.darkWakeCount(on:calendar:)`.
+
+### 3. Contracts
+
+- Only `anchorTimeZoneID` owns internal civil time. Resolve its IANA identifier directly, falling back to `.autoupdatingCurrent` with a visible warning; never use carousel order as fallback.
+- Keep local key `overviewTimeZoneID` and iCloud `overviewTimeZone` DTO cases encoding-compatible. They are wire names, not extra runtime settings. Ignore the obsolete appearance-zone choice and remove its local key on save.
+- Local edits and cloud imports converge on `AppModel.applySettings`; pass the anchor to the scheduler before its next tick and to alert monitoring before sampling starts. Invalidate automatic appearance when the anchor changes.
+- Reminder editor initialization, DatePicker environment, and saved components share a Gregorian anchor calendar. Draft rounding uses the actual hour interval so the second repeated DST hour cannot round into the past.
+- Daily occurrence identity is civil date. Persist the optional runtime-v1 `lastFiredDay` high-water map and retain absolute `lastFired`; in-flight enqueues reserve their captured day before asynchronous delivery. A backward date-line change must not replay an earlier civil date. Failed enqueues release their reservation without marking fired.
+- Missing daily wall times use `.nextTime`; repeated daily wall times use `.first`. Hourly intervals remain elapsed hours within the anchor window and cannot cross the same civil day's end. Every-N-day recurrence uses calendar day addition, not `N * 86400`.
+- Preserve absolute `Date` values, retry durations, UTC machine-readable payloads, recorded log offsets and history buckets. Project current-day counts from raw event timestamps using `anchorCalendar`; absent records remain `nil`, not a fabricated zero.
+- New EventKit events use the anchor zone. Existing all-day events derive source civil dates from `event.timeZone ?? .autoupdatingCurrent`; never reinterpret all external source dates as the current anchor. Keep the legacy all-day-policy raw value decodable.
+- Viewing a world clock does not change the anchor. Overview actions that do assign it must say “Set as Anchor Time”. Changing the anchor never invokes the system-time-zone Helper.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| System Los Angeles, anchor Shanghai, daily 11:00 | Queue at Shanghai 11:00; no second event at Los Angeles 11:00 |
+| Anchor changes during an enqueue | Retain original event identity and suppress backward replay |
+| Invalid stored zone / reordered world clocks | System-only fallback with visible warning; keep independent clock order |
+| Spring gap / autumn repeated daily time | Advance to the next valid time / fire only the first occurrence |
+| Hourly window ends at 23:00 | Stop at the current anchor day's end, including DST days |
+| Old preferences/cloud payload | Preserve the existing overview selection as the anchor |
+| Anchor day contains wake records but no dark wakes | Return zero; return nil when that day has no records |
+
+### 5. Good / Base / Bad Cases
+
+- Good: every internal consumer receives the same explicit anchor while raw source metadata stays intact.
+- Base: existing selected display zone survives upgrade; there is no second appearance-zone picker.
+- Bad: deriving reminders from `Calendar.current`, replacing UTC wire timestamps with localized text, or rebucketing recorded history on save.
+
+### 6. Tests Required
+
+- Scheduler outbox behavior for mismatched system/anchor zones, live/date-line changes, enqueue overlap, DST gaps/repeats, hourly window limits and calendar-day intervals.
+- Settings migration and cloud compatibility with conflicting obsolete appearance preferences; carousel-independent fallback.
+- Draft rounding in a fractional-offset zone and repeated DST hour; raw-event current-day counts without rewriting source buckets.
+- Native smoke: open the actual reminder editor under a mismatched process zone, save and reopen 11:00 without drift; keep real delivery disabled.
+- Unrelated `AppModel` tests must save `notificationSettings.isGloballyEnabled = false` in their isolated `SettingsStore` before constructing the model. Startup immediately evaluates reminders; bare XCTest processes cannot initialize the real system notification center. Notification tests use a paused dispatcher and isolated outbox instead of suppressing production errors.
+
+### 7. Wrong vs Correct
+
+```swift
+// Wrong: implicit machine zone and an unrelated carousel fallback.
+let hour = Calendar.current.component(.hour, from: date)
+// Correct: one canonical civil-time projection.
+let hour = settings.anchorCalendar.component(.hour, from: date)
+```

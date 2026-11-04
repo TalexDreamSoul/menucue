@@ -9,6 +9,9 @@ final class ReminderScheduler: @unchecked Sendable {
   private struct Runtime: Codable {
     var lastFired: [String: Date] = [:]
     var anchors: [String: Date] = [:]
+    // Optional keeps runtime.v1 readable; a civil-day high-water mark prevents replay
+    // when changing the anchor zone moves the clock back across the date line.
+    var lastFiredDay: [String: String]?
   }
 
   private let store: NotificationRuntimeStore
@@ -16,13 +19,15 @@ final class ReminderScheduler: @unchecked Sendable {
   private let defaults: UserDefaults
   private let now: () -> Date
   private let isClamshellClosed: () -> Bool
-  private let calendar: Calendar
+  private var calendar: Calendar
   private var settings = NotificationSettings.default
   private var deviceName = "Mac"
   private var runtime: Runtime
   private var timer: Timer?
   private var observers: [NSObjectProtocol] = []
-  private var pendingEnqueues: [UUID: Task<Void, Never>] = [:]
+  private var pendingEnqueues: [UUID: (
+    task: Task<Void, Never>, ruleID: UUID, occurrence: Date, day: String
+  )] = [:]
   private var distributedObservers: [NSObjectProtocol] = []
 
   init(
@@ -37,15 +42,14 @@ final class ReminderScheduler: @unchecked Sendable {
     self.defaults = defaults
     self.now = now
     self.isClamshellClosed = isClamshellClosed
-    var localCalendar = Calendar(identifier: .gregorian)
-    localCalendar.timeZone = .autoupdatingCurrent
-    self.calendar = localCalendar
+    self.calendar = Calendar(identifier: .gregorian)
     self.runtime = Self.loadRuntime(from: defaults)
   }
 
-  func start(settings: NotificationSettings, deviceName: String) {
+  func start(settings: NotificationSettings, deviceName: String, timeZone: TimeZone) {
     self.settings = settings
     self.deviceName = deviceName
+    self.calendar.timeZone = timeZone
     installObserversIfNeeded()
     if timer == nil {
       let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
@@ -57,9 +61,10 @@ final class ReminderScheduler: @unchecked Sendable {
     tick()
   }
 
-  func update(settings: NotificationSettings, deviceName: String) {
+  func update(settings: NotificationSettings, deviceName: String, timeZone: TimeZone) {
     self.settings = settings
     self.deviceName = deviceName
+    self.calendar.timeZone = timeZone
     tick()
   }
 
@@ -134,7 +139,9 @@ final class ReminderScheduler: @unchecked Sendable {
         bySettingHour: hour,
         minute: minute,
         second: 0,
-        of: date
+        of: date,
+        matchingPolicy: .nextTime,
+        repeatedTimePolicy: .first
       )
       guard let occurrence, date >= occurrence,
         date.timeIntervalSince(occurrence) <= Self.catchUpWindow
@@ -157,11 +164,15 @@ final class ReminderScheduler: @unchecked Sendable {
       return next
 
     case let .everyHours(hours, startHour, endHour):
-      guard hours > 0, startHour <= endHour else { return nil }
+      guard hours > 0, startHour <= endHour,
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))
+      else { return nil }
       let start = calendar.date(bySettingHour: startHour, minute: 0, second: 0, of: date)
       guard let start, date >= start else { return nil }
       var latest = start
       while let next = calendar.date(byAdding: .hour, value: hours, to: latest),
+        next > latest,
+        next < dayEnd,
         calendar.component(.hour, from: next) <= endHour,
         next <= date
       {
@@ -175,6 +186,7 @@ final class ReminderScheduler: @unchecked Sendable {
 
   private func enqueue(rule: ReminderRule, occurrence: Date, at date: Date) {
     let eventID = eventID(for: rule, occurrence: occurrence)
+    let occurrenceDay = dayKey(for: occurrence)
     let message = NotificationMessage(
       eventID: eventID,
       deviceName: deviceName,
@@ -188,22 +200,26 @@ final class ReminderScheduler: @unchecked Sendable {
     let channels = rule.channels.filter { settings.channel($0).isEnabled }
     guard !channels.isEmpty else { return }
     let taskID = UUID()
-    pendingEnqueues[taskID] = Task { [weak self, store, dispatcher] in
+    let task = Task { [weak self, store, dispatcher] in
       do {
         try await store.enqueue(message: message, channels: channels)
         await dispatcher.kick()
-        await self?.finishEnqueue(taskID: taskID, firing: (rule, occurrence))
+        await self?.finishEnqueue(taskID: taskID, firing: (rule, occurrence, occurrenceDay))
       } catch {
         // A failed enqueue leaves the occurrence due so the next scheduler tick can retry it.
         await self?.finishEnqueue(taskID: taskID, firing: nil)
       }
     }
+    pendingEnqueues[taskID] = (task, rule.id, occurrence, occurrenceDay)
   }
 
   @MainActor
-  private func finishEnqueue(taskID: UUID, firing: (rule: ReminderRule, occurrence: Date)?) {
+  private func finishEnqueue(
+    taskID: UUID,
+    firing: (rule: ReminderRule, occurrence: Date, day: String)?
+  ) {
     if let firing {
-      markFired(rule: firing.rule, occurrence: firing.occurrence)
+      markFired(rule: firing.rule, occurrence: firing.occurrence, day: firing.day)
       saveRuntime()
     }
     pendingEnqueues[taskID] = nil
@@ -212,8 +228,8 @@ final class ReminderScheduler: @unchecked Sendable {
   /// Resolves once every enqueue started so far has reached the outbox and, on success,
   /// recorded its occurrence as fired. Call from the main actor.
   func settle() async {
-    for task in Array(pendingEnqueues.values) {
-      await task.value
+    for pending in Array(pendingEnqueues.values) {
+      await pending.task.value
     }
   }
 
@@ -221,16 +237,31 @@ final class ReminderScheduler: @unchecked Sendable {
     !rule.channels.filter { settings.channel($0).isEnabled }.isEmpty
   }
 
-  private func markFired(rule: ReminderRule, occurrence: Date) {
-    runtime.lastFired[rule.id.uuidString] = occurrence
+  private func markFired(rule: ReminderRule, occurrence: Date, day: String) {
+    let key = rule.id.uuidString
+    runtime.lastFired[key] = max(runtime.lastFired[key] ?? .distantPast, occurrence)
+    if runtime.lastFiredDay == nil { runtime.lastFiredDay = [:] }
+    let previousDay = runtime.lastFiredDay?[key] ?? ""
+    runtime.lastFiredDay?[key] = max(previousDay, day)
   }
 
   private func wasFiredToday(_ rule: ReminderRule, at date: Date) -> Bool {
+    let day = dayKey(for: date)
+    if pendingEnqueues.values.contains(where: {
+      $0.ruleID == rule.id
+        && ($0.day >= day || calendar.isDate($0.occurrence, inSameDayAs: date))
+    }) { return true }
+    if let firedDay = runtime.lastFiredDay?[rule.id.uuidString], firedDay >= day {
+      return true
+    }
     guard let last = runtime.lastFired[rule.id.uuidString] else { return false }
     return calendar.isDate(last, inSameDayAs: date)
   }
 
   private func wasFired(_ rule: ReminderRule, at occurrence: Date) -> Bool {
+    if pendingEnqueues.values.contains(where: {
+      $0.ruleID == rule.id && $0.occurrence >= occurrence
+    }) { return true }
     guard let last = runtime.lastFired[rule.id.uuidString] else { return false }
     return last >= occurrence
   }

@@ -560,24 +560,40 @@ final class ProcessEnergyModelTests: XCTestCase {
     let today = Date(timeIntervalSince1970: 4_000_000)
     let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
     var snapshot = PowerDiagnosticsSnapshot()
-    snapshot.dailySummaries = [
-      WakeDailySummary(
-        day: calendar.startOfDay(for: yesterday), sleepCount: 0, darkWakeCount: 7,
-        userWakeCount: 0)
+    snapshot.events = [
+      WakeEvent(timestamp: yesterday, kind: .darkWake, reason: "RTC", occurrence: 0)
     ]
 
-    // `nil`, not `0`. This test's intent — never borrow another day's figure — is
-    // unchanged. What changed is that "no record for today" and "today had none" are
-    // now distinguishable; they both used to render "0 dark wakes today", and while
-    // the log was blowing the size cap every user saw the first dressed as the second.
     XCTAssertNil(snapshot.darkWakeCount(on: today, calendar: calendar))
 
-    var withToday = snapshot
-    withToday.dailySummaries.append(
-      WakeDailySummary(
-        day: calendar.startOfDay(for: today), sleepCount: 0, darkWakeCount: 0,
-        userWakeCount: 0))
-    XCTAssertEqual(withToday.darkWakeCount(on: today, calendar: calendar), 0)
+    snapshot.events.append(
+      WakeEvent(timestamp: today, kind: .sleep, reason: "Clamshell", occurrence: 0))
+    XCTAssertEqual(snapshot.darkWakeCount(on: today, calendar: calendar), 0)
+  }
+
+  func testDarkWakeCountProjectsAbsoluteEventsWithoutRebucketingRecordedHistory() throws {
+    let instant = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-05T02:00:00Z"))
+    var shanghai = Calendar(identifier: .gregorian)
+    shanghai.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Shanghai"))
+    var honolulu = Calendar(identifier: .gregorian)
+    honolulu.timeZone = try XCTUnwrap(TimeZone(identifier: "Pacific/Honolulu"))
+    var snapshot = PowerDiagnosticsSnapshot()
+    snapshot.events = [
+      WakeEvent(
+        timestamp: instant, kind: .darkWake, reason: "RTC", occurrence: 0,
+        utcOffsetSeconds: -10 * 3_600),
+      WakeEvent(
+        timestamp: instant.addingTimeInterval(-12 * 3_600), kind: .darkWake,
+        reason: "RTC", occurrence: 0, utcOffsetSeconds: -10 * 3_600),
+    ]
+    let recorded = [WakeDailySummary(
+      day: honolulu.startOfDay(for: instant), sleepCount: 0, darkWakeCount: 2,
+      userWakeCount: 0)]
+    snapshot.dailySummaries = recorded
+
+    XCTAssertEqual(snapshot.darkWakeCount(on: instant, calendar: shanghai), 1)
+    XCTAssertEqual(snapshot.darkWakeCount(on: instant, calendar: honolulu), 2)
+    XCTAssertEqual(snapshot.dailySummaries, recorded)
   }
 
   func testTopParserUsesPIDAndEnergyButDoesNotTrustTruncatedNameAsIdentity() throws {

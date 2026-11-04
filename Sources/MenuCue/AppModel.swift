@@ -130,6 +130,7 @@ final class AppModel: ObservableObject {
         notificationSecretStore: any NotificationSecretStoring = InMemoryNotificationSecretStore(),
         notificationHTTPTransport: any NotificationHTTPTransport = URLSessionNotificationHTTPTransport()
     ) {
+        let loadedSettings = settingsStore.load()
         let runtimeStore = notificationRuntimeStore ?? Self.temporaryNotificationRuntimeStore()
         let configurationService = NotificationConfigurationService(
             secrets: notificationSecretStore,
@@ -150,7 +151,8 @@ final class AppModel: ObservableObject {
         self.notificationRuntimeErrorMessage = notificationRuntimeErrorMessage
         self.alertMonitoringService = AlertMonitoringService(
             store: runtimeStore,
-            providers: AlertMonitoringService.liveProviders()
+            providers: AlertMonitoringService.liveProviders(),
+            timeZone: loadedSettings.anchorTimeZone
         )
         self.settingsStore = settingsStore
         self.calendarService = calendarService
@@ -164,14 +166,14 @@ final class AppModel: ObservableObject {
         self.hotkeyService = hotkeyService ?? HotkeyService()
         self.preferenceSyncService = preferenceSyncService ?? PreferenceSyncService()
         self.launchAtLoginState = launchAtLoginService.state
-        let loadedSettings = settingsStore.load()
         self.settings = loadedSettings
         self.authorizationState = calendarService.authorizationState
         self.reminderScheduler.start(
             settings: loadedSettings.notificationSettings,
             deviceName: loadedSettings.notificationSettings.resolvedDeviceName(
                 systemName: Host.current().localizedName
-            )
+            ),
+            timeZone: loadedSettings.anchorTimeZone
         )
         appearanceService.apply(settings: settings)
         self.trackpadGestureService.apply(settings: settings.trackpadGestureSettings)
@@ -509,12 +511,16 @@ final class AppModel: ObservableObject {
     }
 
     func quickEventDraft(startDate: Date = Date()) -> QuickEventDraft {
-        QuickEventDraft(startDate: startDate, calendarID: calendarService.defaultNewEventCalendarID)
+        QuickEventDraft(
+            startDate: startDate,
+            calendarID: calendarService.defaultNewEventCalendarID,
+            timeZone: settings.anchorTimeZone
+        )
     }
 
     func createEvent(from draft: QuickEventDraft) {
         do {
-            try calendarService.createEvent(from: draft)
+            try calendarService.createEvent(from: draft, timeZone: settings.anchorTimeZone)
             errorMessage = nil
             refreshCalendarData()
         } catch {
@@ -559,7 +565,7 @@ final class AppModel: ObservableObject {
     }
 
     func setVisibleCalendarMonth(_ date: Date) {
-        let timeZone = settings.overviewTimeZone
+        let timeZone = settings.anchorTimeZone
         let previous = CivilDateKey(date: visibleCalendarMonthDate, timeZone: timeZone)
         let next = CivilDateKey(date: date, timeZone: timeZone)
         guard previous.year != next.year || previous.month != next.month else { return }
@@ -612,7 +618,7 @@ final class AppModel: ObservableObject {
     private func applySettings(_ nextSettings: AppSettings) {
         let previousTrackpadSettings = settings.trackpadGestureSettings
         let previousHotkeyBindings = settings.registeredHotkeyBindings
-        let timeZoneChanged = settings.appearanceTimeZoneID != nextSettings.appearanceTimeZoneID
+        let timeZoneChanged = settings.anchorTimeZoneID != nextSettings.anchorTimeZoneID
         settings = nextSettings
         settingsStore.save(nextSettings)
         if timeZoneChanged {
@@ -637,11 +643,13 @@ final class AppModel: ObservableObject {
             settings: notificationSettings,
             deviceName: notificationSettings.resolvedDeviceName(
                 systemName: Host.current().localizedName
-            )
+            ),
+            timeZone: settings.anchorTimeZone
         )
         Task { @MainActor [weak self, weak monitor, weak dispatcher] in
             guard let self, let monitor, let dispatcher else { return }
             await dispatcher.update(settings: notificationSettings)
+            await monitor.setTimeZone(self.settings.anchorTimeZone)
             await monitor.setGloballyEnabled(notificationSettings.isGloballyEnabled)
             await monitor.setDeviceName(
                 notificationSettings.resolvedDeviceName(systemName: Host.current().localizedName)

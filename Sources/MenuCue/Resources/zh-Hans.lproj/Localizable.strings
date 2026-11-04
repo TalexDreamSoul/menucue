@@ -136,7 +136,7 @@
 "Auto Rotate" = "自动轮换";
 "Auto by Time Zone" = "按时区自动切换";
 "Auto reference" = "自动切换参考时区";
-"Auto uses light from 07:00-19:00 in the selected time zone." = "自动模式在所选时区的 07:00-19:00 使用浅色外观。";
+"Auto uses light from 07:00–19:00 in Anchor Time. Change the anchor in Time & Region." = "自动模式在锚定时间的 07:00–19:00 使用浅色外观。请前往「时间与区域」更改锚定时区。";
 "Auto-hide Dock" = "自动隐藏程序坞";
 "Auto-hide Menu Bar" = "自动隐藏菜单栏";
 "Automatic updates are off. Manual checks remain available." = "自动更新已关闭，仍可手动检查。";
@@ -319,7 +319,7 @@
 "Memory by app" = "按应用查看内存";
 "Menu Bar" = "菜单栏";
 "Menu Bar Format" = "菜单栏格式";
-"Menu-bar format, clock order and labels, rotation interval, overview time zone, week start, and app appearance." = "菜单栏格式、时钟顺序与标签、轮换间隔、概览时区、每周起始日和应用外观。";
+"Menu-bar format, clock order and labels, rotation interval, Anchor Time, week start, and app appearance." = "菜单栏格式、时钟顺序与标签、轮换间隔、锚定时间、每周起始日和应用外观。";
 "MenuCue" = "MenuCue";
 "MenuCue Language" = "MenuCue 语言";
 "MenuCue Settings" = "MenuCue 设置";
@@ -596,7 +596,7 @@
 "Went to sleep after being idle" = "闲置后进入睡眠";
 "Went to sleep to save power" = "为节省电量进入睡眠";
 "Went to sleep — %@" = "已进入睡眠 — %@";
-"When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@)." = "启用后，系统外观跟随上面的设置：「按时区自动切换」按参考时区 %@ 的 07:00–19:00 使用浅色。";
+"When enabled, macOS follows the appearance above — 07:00–19:00 light in Anchor Time (%@)." = "启用后，系统外观跟随上面的设置，按锚定时区（%@）的 07:00–19:00 使用浅色。";
 "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time." = "启用后，macOS 系统外观会被设为上面选定的浅色或深色：仅在启动和改动设置时写入，其余时间不会干预。";
 "When enabled, MenuCue keeps macOS on the appearance chosen above. Manual system changes are corrected after a short grace period." = "启用后，MenuCue 会让 macOS 保持上面选定的外观；手动切换在短暂宽限期后会被校正。";
 "MenuCue turns off macOS's own automatic appearance schedule while this is enabled and restores it when disabled." = "启用期间，MenuCue 会关闭 macOS 自己的自动外观排程，关闭后恢复原设置。";
@@ -798,8 +798,8 @@
 "Spring Equinox" = "春分";
 "Spring Festival" = "春节";
 "Summer Solstice" = "夏至";
-"Use overview time zone" = "使用概览时区";
-"Keep their original civil date, or regroup them using the overview time zone." = "保留全天日程的原日期，或按概览时区重新归日。";
+"Use Anchor Time" = "使用锚定时间";
+"Keep their original civil date, or regroup them using Anchor Time." = "保留全天日程的原日期，或按锚定时间重新归日。";
 "White Dew" = "白露";
 "Winter Clothes Day" = "寒衣节";
 "Winter Solstice" = "冬至";
@@ -1296,12 +1296,11 @@
 "Time & Region" = "时间与区域";
 "Status-bar clock, its format, and the clock carousel." = "状态栏时钟、格式与轮播；时间与时区归入「时间与区域」。";
 "Every action MenuCue can run, where it appears, and what references it." = "展示 MenuCue 能运行的全部动作、它们出现的位置，以及引用了它们的规则。";
-"MenuCue's display time zone, the macOS system time zone, and system language and region." = "MenuCue 的显示时区、macOS 系统时区，以及系统语言与地区。";
-"These settings change this Mac" = "这些设置会改变整台 Mac";
+"MenuCue's anchor time zone, the macOS system time zone, and system language and region." = "MenuCue 的锚定时区、macOS 系统时区，以及系统语言与地区。";
+"This setting changes macOS" = "此设置会更改 macOS";
 "The system time zone is written through Power Helper and affects every app and system service." = "系统时区由 Power Helper 写入，影响所有应用与系统服务。";
-"MenuCue Display Time Zone" = "MenuCue 显示时区";
-"Affects dates and times inside MenuCue only; it never changes macOS." = "只影响 MenuCue 内的日期与时间，不改变 macOS。";
-"Display Time Zone" = "显示时区";
+"Anchor Time" = "锚定时间";
+"Reminders, calendar dates, and automatic appearance share this time zone. It never changes the macOS time zone." = "提醒、日历日期与自动外观共用此时区，不会更改 macOS 系统时区。";
 "Fallback Rule" = "回退规则";
 "Automatic" = "自动回退";
 "macOS Language and Region" = "macOS 语言与地区";
@@ -1388,7 +1387,7 @@
 "Current" = "当前";
 "Current Contacts" = "当前触点";
 "Current Rule Count" = "当前规则数";
-"Dates and times inside MenuCue use this zone." = "MenuCue 内的日期与时间使用这个时区。";
+"Choose the time zone used throughout MenuCue." = "选择 MenuCue 内统一使用的时区。";
 "Default" = "默认";
 "Default open" = "默认打开";
 "Defaults to https://api.day.app." = "默认 https://api.day.app。";
@@ -1418,7 +1417,7 @@
 "Global Gesture Parameters" = "全局手势参数";
 "Hidden Records" = "隐藏的记录";
 "HUD Preview" = "HUD 预览";
-"If that zone is unavailable, MenuCue falls back to the first clock in the carousel, then to this Mac's zone." = "该时区不可用时，先回落到时钟轮播中的第一项，再回落到本机系统时区。";
+"If the anchor time zone is unavailable, MenuCue uses this Mac's time zone directly. World clocks do not affect the fallback." = "锚定时区不可用时，MenuCue 直接使用本机系统时区；世界时钟不影响回退。";
 "In Advanced mode the pattern strings set their own order." = "高级模式下按模式串自身的顺序渲染。";
 "Inactive" = "未生效";
 "Installing" = "安装中";
@@ -1571,3 +1570,8 @@
 "Notification" = "通知";
 "Title" = "标题";
 "Hold Esc or press and hold the screen for 3 seconds to exit." = "长按 Esc，或长按屏幕 3 秒退出。";
+"This Mac" = "本机系统时区";
+"Anchor time zone unavailable" = "锚定时区不可用";
+"MenuCue is using this Mac's time zone. Choose an available anchor time zone to restore your preferred schedule." = "MenuCue 正在使用本机系统时区。请选择可用的锚定时区，以恢复你偏好的时间安排。";
+"Set as Anchor Time" = "设为锚定时间";
+"Set %@ as Anchor Time" = "将 %@ 设为锚定时间";

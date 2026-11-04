@@ -236,15 +236,11 @@ struct GeneralSettingsView: View {
           SettingsRow(
             L10n.string("Auto reference"),
             desc: L10n.string(
-              "Auto uses light from 07:00-19:00 in the selected time zone."
+              "Auto uses light from 07:00–19:00 in Anchor Time. Change the anchor in Time & Region."
             ),
             controlWidth: 240
           ) {
-            TimeZonePicker(
-              title: "",
-              selection: model.settingsBinding(\.appearanceTimeZoneID)
-            )
-            .labelsHidden()
+            SettingsChip(TimeZoneCatalog.displayName(for: model.settings.anchorTimeZone.identifier))
           }
         }
 
@@ -341,8 +337,8 @@ struct GeneralSettingsView: View {
     case .automaticByTimeZone:
       var sentences = [
         L10n.format(
-          "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@).",
-          TimeZoneCatalog.displayName(for: model.settings.appearanceTimeZoneID)
+          "When enabled, macOS follows the appearance above — 07:00–19:00 light in Anchor Time (%@).",
+          TimeZoneCatalog.displayName(for: model.settings.anchorTimeZone.identifier)
         )
       ]
       if let localWindow = referenceZoneLocalLightWindow {
@@ -363,7 +359,7 @@ struct GeneralSettingsView: View {
   private var referenceZoneLocalLightWindow: String? {
     let date = Date()
     let deltaMinutes =
-      (model.settings.appearanceTimeZone.secondsFromGMT(for: date)
+      (model.settings.anchorTimeZone.secondsFromGMT(for: date)
         - TimeZone.current.secondsFromGMT(for: date)) / 60
     guard deltaMinutes != 0 else { return nil }
     return L10n.format(
@@ -421,7 +417,7 @@ struct GeneralSettingsView: View {
     updateService.lastUpdateCheckDate.map { date in
       L10n.format(
         "Last checked %@.",
-        date.formatted(date: .abbreviated, time: .shortened)
+        model.settings.formatDate(date, date: .abbreviated, time: .shortened)
       )
     }
   }
@@ -439,7 +435,7 @@ private struct PreferenceSyncSettingsView: View {
   var body: some View {
     SettingsCard(L10n.string("iCloud Sync")) {
       SettingsRows {
-        SettingsRow(service.status.title, desc: service.status.message) {
+        SettingsRow(service.status.title, desc: service.status.message(timeZone: model.settings.anchorTimeZone)) {
           HStack(spacing: 8) {
             Image(systemName: statusSymbol)
               .font(.system(size: 14, weight: .semibold))
@@ -458,7 +454,7 @@ private struct PreferenceSyncSettingsView: View {
         SettingsRow(
           L10n.string("Synced between Macs"),
           desc: L10n.string(
-            "Menu-bar format, clock order and labels, rotation interval, overview time zone, week start, and app appearance."
+            "Menu-bar format, clock order and labels, rotation interval, Anchor Time, week start, and app appearance."
           )
         ) {
           SettingsChip(L10n.string("Portable"))

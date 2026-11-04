@@ -7,6 +7,7 @@ actor AlertMonitoringService {
   private let store: NotificationRuntimeStore
   private let providers: [AlertMetricProviderKind: any AlertMetricProviding]
   private var deviceName: @Sendable () -> String
+  private var timeZone: TimeZone
   private var delivery: Delivery
   private let sleep: Sleep
   private let now: @Sendable () -> Date
@@ -22,6 +23,7 @@ actor AlertMonitoringService {
   init(
     store: NotificationRuntimeStore,
     providers: [AlertMetricProviderKind: any AlertMetricProviding],
+    timeZone: TimeZone,
     deviceName: @escaping @Sendable () -> String = { Host.current().localizedName ?? "Mac" },
     delivery: @escaping Delivery = {},
     sleep: @escaping Sleep = { interval in
@@ -32,6 +34,7 @@ actor AlertMonitoringService {
     self.store = store
     self.providers = providers
     self.deviceName = deviceName
+    self.timeZone = timeZone
     self.delivery = delivery
     self.sleep = sleep
     self.now = now
@@ -59,6 +62,10 @@ actor AlertMonitoringService {
 
   func setDeviceName(_ name: String) {
     deviceName = { name }
+  }
+
+  func setTimeZone(_ timeZone: TimeZone) {
+    self.timeZone = timeZone
   }
 
   func setDeliveryHandler(_ delivery: @escaping Delivery) {
@@ -316,7 +323,8 @@ actor AlertMonitoringService {
       rule: rule,
       observation: transition.observation,
       deviceName: deviceName(),
-      state: state
+      state: state,
+      timeZone: timeZone
     )
 
     let titleTemplate =

@@ -115,11 +115,11 @@ final class SystemAppearanceScheduleTests: XCTestCase {
     XCTAssertEqual(recorder.writtenValues, [false, true])
   }
 
-  /// The hour comes from the reference zone the user picked, not from this Mac's clock. One
+  /// The hour comes from the anchor zone the user picked, not from this Mac's clock. One
   /// instant resolves to dark in Asia/Shanghai (04:30) and light in America/Los_Angeles
   /// (12:30), so an implementation reading the machine's zone would write the same value
   /// twice instead of flipping — whichever zone the machine happens to be in.
-  func testTheScheduleFollowsTheReferenceTimeZoneRatherThanTheMachineClock() {
+  func testTheScheduleFollowsTheAnchorTimeZoneRatherThanTheMachineClock() {
     let recorder = SystemAppearanceWriteRecorder()
     let service = AppearanceService(writeSystemAppearance: recorder.write)
     let utcInstant = instant(in: "UTC", hour: 20, minute: 30)
@@ -127,12 +127,12 @@ final class SystemAppearanceScheduleTests: XCTestCase {
     service.apply(
       settings: makeSettings(mode: .automaticByTimeZone, referenceTimeZoneID: "Asia/Shanghai"),
       date: utcInstant)
-    XCTAssertEqual(recorder.writtenValues, [true], "04:30 in the reference zone is night")
+    XCTAssertEqual(recorder.writtenValues, [true], "04:30 in the anchor zone is night")
 
     service.apply(
       settings: makeSettings(mode: .automaticByTimeZone, referenceTimeZoneID: "America/Los_Angeles"),
       date: utcInstant)
-    XCTAssertEqual(recorder.writtenValues, [true, false], "12:30 in the new reference zone is day")
+    XCTAssertEqual(recorder.writtenValues, [true, false], "12:30 in the new anchor zone is day")
   }
 
   /// 07:00 and 19:00 are the only two instants the schedule turns on, and the daylight
@@ -284,7 +284,7 @@ final class SystemAppearanceScheduleTests: XCTestCase {
   ) -> AppSettings {
     var settings = SettingsStore(defaults: defaults).load()
     settings.appearanceMode = mode
-    settings.appearanceTimeZoneID = referenceTimeZoneID
+    settings.anchorTimeZoneID = referenceTimeZoneID
     settings.appliesSystemAppearance = appliesSystemAppearance
     return settings
   }

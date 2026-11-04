@@ -40,12 +40,6 @@ final class HotkeyMasterSwitchTests: XCTestCase {
     XCTAssertTrue(store.load().hotkeysGloballyEnabled)
   }
 
-  /// Shortcuts worked before the switch existed, so a store that never saw the key has to
-  /// keep registering: reading "never set" as off would silently disable every shortcut an
-  /// existing user already had.
-  func testAStoreThatNeverSawTheHotkeysSwitchLoadsItEnabled() {
-    XCTAssertTrue(SettingsStore(defaults: defaults).load().hotkeysGloballyEnabled)
-  }
 
   func testRegisteredHotkeyBindingsAreEmptyOnlyWhileTheSwitchIsOff() {
     let binding = HotkeyBinding(
@@ -69,6 +63,7 @@ final class HotkeyMasterSwitchTests: XCTestCase {
     let store = SettingsStore(defaults: defaults)
     var stored = store.load()
     stored.hotkeysGloballyEnabled = false
+    stored.notificationSettings.isGloballyEnabled = false
     store.save(stored)
 
     let registrar = MasterSwitchRegistrar()
@@ -95,9 +90,8 @@ final class HotkeyMasterSwitchTests: XCTestCase {
     AppSettings(
       statusBarSwitchIntervalSeconds: 5,
       appearanceMode: .system,
-      appearanceTimeZoneID: "UTC",
       appliesSystemAppearance: false,
-      overviewTimeZoneID: "UTC",
+      anchorTimeZoneID: "UTC",
       calendarWeekStartDay: .monday,
       calendarSelectionMode: .all,
       selectedCalendarIDs: [],

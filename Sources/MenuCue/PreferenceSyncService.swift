@@ -113,41 +113,28 @@ enum PreferenceSyncStatus: Equatable {
         }
     }
 
-    var message: String {
+    func message(timeZone: TimeZone) -> String {
         switch self {
         case .unavailable:
-            return L10n.string(
-                "This build does not contain the iCloud key-value entitlement. Local settings remain available."
-            )
+            return L10n.string("This build does not contain the iCloud key-value entitlement. Local settings remain available.")
         case .signedOut:
-            return L10n.string(
-                "Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac."
-            )
+            return L10n.string("Sign in to iCloud in System Settings, then retry. Local changes remain on this Mac.")
         case .disabled:
-            return L10n.string(
-                "Settings are stored only on this Mac. Existing iCloud values are not erased."
-            )
+            return L10n.string("Settings are stored only on this Mac. Existing iCloud values are not erased.")
         case .needsOnboarding:
-            return L10n.string(
-                "Sync portable clock, time-zone, week, and appearance preferences across your Macs."
-            )
+            return L10n.string("Sync portable clock, time-zone, week, and appearance preferences across your Macs.")
         case .needsSourceDecision(.initialMerge):
-            return L10n.string(
-                "Both this Mac and iCloud contain settings. Choose which source should win for the first merge."
-            )
+            return L10n.string("Both this Mac and iCloud contain settings. Choose which source should win for the first merge.")
         case .needsSourceDecision(.accountChanged):
-            return L10n.string(
-                "Choose whether to use settings from the current iCloud account or upload this Mac's settings."
-            )
+            return L10n.string("Choose whether to use settings from the current iCloud account or upload this Mac's settings.")
         case .syncing:
             return L10n.string("Checking iCloud for newer preference values.")
         case let .synced(date):
             return L10n.format(
                 "Last sync activity %@. iCloud may take a few minutes to update other devices.",
-                date.formatted(date: .abbreviated, time: .shortened)
+                date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened, timeZone: timeZone))
             )
-        case let .failed(message):
-            return L10n.format("%@", message)
+        case let .failed(message): return L10n.format("%@", message)
         }
     }
 }
@@ -502,7 +489,7 @@ extension AppSettings {
         case .clockEntries: return .clockEntries(clockEntries)
         case .statusBarSwitchInterval:
             return .statusBarSwitchInterval(statusBarSwitchIntervalSeconds)
-        case .overviewTimeZone: return .overviewTimeZone(overviewTimeZoneID)
+        case .overviewTimeZone: return .overviewTimeZone(anchorTimeZoneID)
         case .calendarWeekStartDay: return .calendarWeekStartDay(calendarWeekStartDay)
         case .showsLunarCalendar: return .showsLunarCalendar(showsLunarCalendar)
         case .allDayEventDatePolicy: return .allDayEventDatePolicy(allDayEventDatePolicy)
@@ -530,7 +517,7 @@ extension AppSettings {
             statusBarSwitchIntervalSeconds = min(30, max(2, interval))
         case let (.overviewTimeZone, .overviewTimeZone(identifier)):
             guard TimeZone(identifier: identifier) != nil else { return false }
-            overviewTimeZoneID = identifier
+            anchorTimeZoneID = identifier
         case let (.calendarWeekStartDay, .calendarWeekStartDay(day)):
             calendarWeekStartDay = day
         case let (.showsLunarCalendar, .showsLunarCalendar(isEnabled)):

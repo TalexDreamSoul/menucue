@@ -387,7 +387,7 @@ struct PowerSettingsView: View {
           ) {
             ForEach(wakeRows) { event in
               SettingsTableRow {
-                Text(event.timestamp.formatted(date: .omitted, time: .shortened))
+                Text(model.settings.formatDate(event.timestamp, date: .omitted, time: .shortened))
                   .font(.system(size: 12))
                   .monospacedDigit()
                   .frame(maxWidth: .infinity, alignment: .leading)
@@ -415,7 +415,7 @@ struct PowerSettingsView: View {
               desc: L10n.format(
                 "%d earlier wakes are hidden since you cleared history on %@",
                 diagnostics.hiddenEventCount,
-                clearedAt.formatted(date: .abbreviated, time: .omitted))
+                model.settings.formatDate(clearedAt, date: .abbreviated, time: .omitted))
             ) {
               HStack(spacing: 8) {
                 SettingsChip(L10n.string("Recoverable"))

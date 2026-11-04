@@ -85,6 +85,8 @@ final class AppModelHotkeyDefaultsTests: XCTestCase {
     let store = SettingsStore(defaults: defaults)
     var settings = store.load()
     seed(&settings)
+    // Hotkey tests must not start delivery of time-dependent reminder occurrences.
+    settings.notificationSettings.isGloballyEnabled = false
     store.save(settings)
     return store
   }

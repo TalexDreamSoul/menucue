@@ -130,7 +130,7 @@ struct OverviewTabView: View {
             HStack(spacing: 8) {
               ForEach(secondary) { clock in
                 Button {
-                  model.updateSettings { $0.overviewTimeZoneID = clock.timeZone.identifier }
+                  model.updateSettings { $0.anchorTimeZoneID = clock.timeZone.identifier }
                 } label: {
                   HStack(spacing: 4) {
                     Text(clock.flag)
@@ -144,7 +144,7 @@ struct OverviewTabView: View {
                       .foregroundStyle(.primary)
 
                     let offset = relativeOffsetString(
-                      from: model.settings.overviewTimeZone,
+                      from: model.settings.anchorTimeZone,
                       to: clock.timeZone,
                       date: context.date
                     )
@@ -158,6 +158,8 @@ struct OverviewTabView: View {
                   .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(L10n.format("Set %@ as Anchor Time", clock.title))
+                .help(L10n.string("Set as Anchor Time"))
               }
               Spacer()
             }
@@ -171,21 +173,23 @@ struct OverviewTabView: View {
     Menu {
       ForEach(model.settings.clockTimeZones) { clock in
         Button {
-          model.updateSettings { $0.overviewTimeZoneID = clock.timeZone.identifier }
+          model.updateSettings { $0.anchorTimeZoneID = clock.timeZone.identifier }
         } label: {
           HStack {
             Text("\(clock.flag) \(clock.title) (\(clock.subtitle))")
-            if clock.timeZone.identifier == model.settings.overviewTimeZoneID {
+            if clock.timeZone.identifier == model.settings.anchorTimeZoneID {
               Image(systemName: "checkmark")
             }
           }
         }
+        .accessibilityLabel(L10n.format("Set %@ as Anchor Time", clock.title))
+        .help(L10n.string("Set as Anchor Time"))
       }
     } label: {
       HStack(spacing: 3) {
         Image(systemName: "globe")
           .font(.system(size: 9))
-        Text(currentClockTimeZone?.title ?? TimeZoneCatalog.shortTitle(for: model.settings.overviewTimeZoneID))
+        Text(currentClockTimeZone?.title ?? TimeZoneCatalog.shortTitle(for: model.settings.anchorTimeZone.identifier))
           .font(.system(size: 10, weight: .medium))
         Image(systemName: "chevron.down")
           .font(.system(size: 7, weight: .bold))
@@ -198,13 +202,15 @@ struct OverviewTabView: View {
     }
     .menuStyle(.borderlessButton)
     .fixedSize()
+    .accessibilityLabel(L10n.string("Anchor Time"))
+    .help(L10n.string("Set as Anchor Time"))
   }
 
   private var fusedTimeZones: [ClockTimeZone] {
     var result: [ClockTimeZone] = []
     if let primary = currentClockTimeZone {
       result.append(primary)
-    } else if let custom = ClockTimeZone.custom(identifier: model.settings.overviewTimeZoneID) {
+    } else if let custom = ClockTimeZone.custom(identifier: model.settings.anchorTimeZone.identifier) {
       result.append(custom)
     }
     for clock in model.settings.clockTimeZones {
@@ -217,7 +223,7 @@ struct OverviewTabView: View {
   }
 
   private var secondaryTimeZones: [ClockTimeZone] {
-    fusedTimeZones.filter { $0.timeZone.identifier != model.settings.overviewTimeZoneID }
+    fusedTimeZones.filter { $0.timeZone.identifier != model.settings.anchorTimeZone.identifier }
   }
 
   private func timeText(for timeZone: TimeZone, date: Date) -> String {
@@ -457,18 +463,18 @@ struct OverviewTabView: View {
     }
   }
   private var currentClockTimeZone: ClockTimeZone? {
-    model.settings.clockTimeZones.first { $0.timeZone.identifier == model.settings.overviewTimeZoneID }
+    model.settings.clockTimeZones.first { $0.timeZone.identifier == model.settings.anchorTimeZone.identifier }
   }
 
   private var timeZoneSubtitle: String {
-    let flag = currentClockTimeZone?.flag ?? TimeZoneCatalog.flag(for: model.settings.overviewTimeZoneID)
-    let display = currentClockTimeZone?.subtitle ?? TimeZoneCatalog.displayName(for: model.settings.overviewTimeZoneID)
+    let flag = currentClockTimeZone?.flag ?? TimeZoneCatalog.flag(for: model.settings.anchorTimeZone.identifier)
+    let display = currentClockTimeZone?.subtitle ?? TimeZoneCatalog.displayName(for: model.settings.anchorTimeZone.identifier)
     return "\(flag) \(display)"
   }
 
   private func currentTimeText(date: Date) -> String {
     let formatter = DateFormatter()
-    formatter.timeZone = model.settings.overviewTimeZone
+    formatter.timeZone = model.settings.anchorTimeZone
     formatter.locale = Locale.autoupdatingCurrent
     formatter.dateFormat = "HH:mm:ss"
     return formatter.string(from: date)
@@ -476,7 +482,7 @@ struct OverviewTabView: View {
 
   private func todayDateText(date: Date) -> String {
     let formatter = DateFormatter()
-    formatter.timeZone = model.settings.overviewTimeZone
+    formatter.timeZone = model.settings.anchorTimeZone
     formatter.locale = Locale.autoupdatingCurrent
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
@@ -485,7 +491,7 @@ struct OverviewTabView: View {
 
   private func todayLunarText(date: Date) -> String? {
     guard model.settings.showsLunarCalendar else { return nil }
-    let info = LunarDateProvider(timeZone: model.settings.overviewTimeZone, locale: L10n.appLocale).info(for: date)
+    let info = LunarDateProvider(timeZone: model.settings.anchorTimeZone, locale: L10n.appLocale).info(for: date)
     return info?.compactText ?? info?.fullText
   }
 
@@ -498,7 +504,7 @@ struct OverviewTabView: View {
   private func eventTimeText(_ event: CalendarEventInfo, date: Date) -> String {
     if event.isAllDay { return L10n.string("All day") }
     let formatter = DateFormatter()
-    formatter.timeZone = model.settings.overviewTimeZone
+    formatter.timeZone = model.settings.anchorTimeZone
     formatter.dateStyle = .none
     formatter.timeStyle = .short
     return formatter.string(from: event.startDate)

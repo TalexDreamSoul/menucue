@@ -27,8 +27,8 @@ final class ReminderSchedulerTests: XCTestCase {
     XCTAssertEqual(event.deliveries[.bark]?.state, .pending)
 
     // Repeated ticks include a burst before the previous enqueue has finished.
-    scheduler.update(settings: settings, deviceName: "Studio Mac")
-    scheduler.update(settings: settings, deviceName: "Studio Mac")
+    scheduler.update(settings: settings, deviceName: "Studio Mac", timeZone: shanghai)
+    scheduler.update(settings: settings, deviceName: "Studio Mac", timeZone: shanghai)
     await scheduler.settle()
     fixture.date = localDate(day: 5, hour: 12, minute: 59)
     await tick(scheduler, settings: settings)
@@ -247,7 +247,7 @@ final class ReminderSchedulerTests: XCTestCase {
       testCase.disable(&disabled)
       let scheduler = await fixture.makeScheduler()
 
-      scheduler.update(settings: disabled, deviceName: "Studio Mac")
+      scheduler.update(settings: disabled, deviceName: "Studio Mac", timeZone: shanghai)
       scheduler.handleLidStateChange()
       await scheduler.settle()
       var events = await fixture.store.snapshot().events
@@ -263,9 +263,223 @@ final class ReminderSchedulerTests: XCTestCase {
     }
   }
 
-  private func tick(_ scheduler: ReminderScheduler, settings: NotificationSettings) async {
-    scheduler.update(settings: settings, deviceName: "Studio Mac")
+  func testAnchorZoneChangeAcrossDateLineDoesNotReplayDailyOccurrence() async throws {
+    let firstInstant = localDate(day: 5, hour: 11, minute: 0)
+    let fixture = try makeFixture(at: firstInstant)
+    var rule = reminder(schedule: .daily(hour: 17, minute: 30))
+    rule.lidCloseAfterHour = 11
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    // The lid path reserves the Shanghai civil day before the asynchronous enqueue settles.
+    scheduler.update(settings: settings, deviceName: "Studio Mac", timeZone: shanghai)
+    scheduler.handleLidStateChange()
+    fixture.date = localDate(day: 5, hour: 11, minute: 30)
+    scheduler.update(settings: settings, deviceName: "Studio Mac", timeZone: honolulu)
+    scheduler.handleLidStateChange()
     await scheduler.settle()
+
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events.map(\.message.eventID), [
+      "reminder|\(rule.id.uuidString)|2026-01-05"
+    ])
+
+    let emptyStore = try NotificationRuntimeStore(
+      fileURL: fixture.fileURL.deletingLastPathComponent().appendingPathComponent("date-line-empty.json"))
+    let restarted = await fixture.makeScheduler(store: emptyStore)
+    fixture.date = localDate(day: 5, hour: 17, minute: 30, timeZone: honolulu)
+    await tick(restarted, settings: settings, timeZone: honolulu)
+    let replayed = await emptyStore.snapshot().events
+    XCTAssertEqual(replayed, [], "a civil day already consumed in Shanghai stays consumed after relaunch")
+    fixture.date = localDate(day: 6, hour: 17, minute: 30, timeZone: honolulu)
+    await tick(restarted, settings: settings, timeZone: honolulu)
+    let nextDay = await emptyStore.snapshot().events
+    XCTAssertEqual(nextDay.map(\.message.eventID), ["reminder|\(rule.id.uuidString)|2026-01-06"])
+  }
+
+  func testDailyMissingSpringTimeUsesFoundationNextOccurrence() async throws {
+    let fixture = try makeFixture(
+      at: localDate(day: 8, hour: 1, minute: 59, second: 59, month: 3, timeZone: losAngeles))
+    let rule = reminder(schedule: .daily(hour: 2, minute: 30))
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let before = await fixture.store.snapshot().events
+    XCTAssertTrue(before.isEmpty)
+
+    fixture.date = localDate(day: 8, hour: 3, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events.map(\.message.eventID), [
+      "reminder|\(rule.id.uuidString)|2026-03-08"
+    ])
+  }
+
+  func testDailyRepeatedAutumnTimeFiresOnlyOnce() async throws {
+    let firstOccurrence = localDate(day: 1, hour: 1, minute: 30, month: 11, timeZone: losAngeles)
+    let fixture = try makeFixture(at: firstOccurrence)
+    let rule = reminder(schedule: .daily(hour: 1, minute: 30))
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let firstEvents = await fixture.store.snapshot().events
+    XCTAssertEqual(firstEvents.map(\.message), [
+      message(rule: rule, eventID: "reminder|\(rule.id.uuidString)|2026-11-01", at: firstOccurrence)
+    ])
+    fixture.date = firstOccurrence.addingTimeInterval(60 * 60)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events, firstEvents, "the repeated civil hour shares one daily occurrence")
+  }
+
+  func testHourlyWindowNeverCrossesAnchorDayEndAtHour23() async throws {
+    let fixture = try makeFixture(
+      at: localDate(day: 8, hour: 21, minute: 59, month: 3, timeZone: losAngeles))
+    let rule = reminder(schedule: .everyHours(hours: 1, startHour: 22, endHour: 23))
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    fixture.date = localDate(day: 8, hour: 22, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    fixture.date = localDate(day: 8, hour: 23, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    fixture.date = localDate(day: 9, hour: 0, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events.map(\.message.eventID), [
+      occurrenceID(rule: rule, at: localDate(day: 8, hour: 22, month: 3, timeZone: losAngeles)),
+      occurrenceID(rule: rule, at: localDate(day: 8, hour: 23, month: 3, timeZone: losAngeles))
+    ], "the next day cannot inherit a prior day's 00:00 slot")
+  }
+
+  func testHourlyWindowSkipsSpringGapWithoutLooping() async throws {
+    let fixture = try makeFixture(
+      at: localDate(day: 8, hour: 0, month: 3, timeZone: losAngeles))
+    let rule = reminder(schedule: .everyHours(hours: 2, startHour: 0, endHour: 23))
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    fixture.date = localDate(day: 8, hour: 3, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events.map(\.message.eventID), [
+      occurrenceID(rule: rule, at: localDate(day: 8, hour: 0, month: 3, timeZone: losAngeles)),
+      occurrenceID(rule: rule, at: fixture.date)
+    ], "the missing 02:00 hour must not duplicate or stall slots")
+  }
+
+  func testEveryDaysUsesCivilCalendarDaysAcrossSpringDST() async throws {
+    let fixture = try makeFixture(
+      at: localDate(day: 7, hour: 10, minute: 15, month: 3, timeZone: losAngeles))
+    let rule = reminder(schedule: .everyDays(days: 7))
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    fixture.date = localDate(day: 14, hour: 10, minute: 14, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let before = await fixture.store.snapshot().events
+    XCTAssertEqual(before.count, 0)
+
+    fixture.date = localDate(day: 14, hour: 10, minute: 15, month: 3, timeZone: losAngeles)
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events.map(\.message), [
+      message(rule: rule, eventID: occurrenceID(rule: rule, at: fixture.date), at: fixture.date)
+    ], "seven calendar days remain seven across the 23-hour day")
+  }
+
+  func testLiveAnchorChangeMakesShanghaiDailyTimeImmediatelyDue() async throws {
+    let fixture = try makeFixture(at: localDate(day: 5, hour: 11))
+    let rule = reminder(schedule: .daily(hour: 11, minute: 0))
+    let settings = settings(for: rule)
+    let scheduler = await fixture.makeScheduler()
+
+    await tick(scheduler, settings: settings, timeZone: losAngeles)
+    let before = await fixture.store.snapshot().events
+    XCTAssertEqual(before, [])
+    await tick(scheduler, settings: settings, timeZone: shanghai)
+    let after = await fixture.store.snapshot().events
+    XCTAssertEqual(after.map(\.message), [
+      message(rule: rule, eventID: "reminder|\(rule.id.uuidString)|2026-01-05", at: fixture.date)
+    ])
+  }
+
+  func testLegacyRuntimeWithoutCivilDayStateStillSuppressesSameDayAfterRestart() async throws {
+    let instant = localDate(day: 5, hour: 11)
+    let fixture = try makeFixture(at: instant)
+    let rule = reminder(schedule: .daily(hour: 11, minute: 0))
+    let legacy: [String: [String: Date]] = [
+      "lastFired": [rule.id.uuidString: instant], "anchors": [:]
+    ]
+    fixture.defaults.set(try JSONEncoder().encode(legacy), forKey: "reminderRuntime.v1")
+    let scheduler = await fixture.makeScheduler()
+    await tick(scheduler, settings: settings(for: rule))
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events, [])
+  }
+
+  func testHourlyAutumnRepeatUsesDistinctAbsoluteOccurrences() async throws {
+    let first = localDate(day: 1, hour: 1, month: 11, timeZone: losAngeles)
+    let fixture = try makeFixture(at: first)
+    let rule = reminder(schedule: .everyHours(hours: 1, startHour: 1, endHour: 2))
+    let scheduler = await fixture.makeScheduler()
+    await tick(scheduler, settings: settings(for: rule), timeZone: losAngeles)
+    fixture.date = first.addingTimeInterval(3_600)
+    await tick(scheduler, settings: settings(for: rule), timeZone: losAngeles)
+    let events = await fixture.store.snapshot().events
+    XCTAssertEqual(events.map(\.message.eventID), [
+      occurrenceID(rule: rule, at: first),
+      occurrenceID(rule: rule, at: first.addingTimeInterval(3_600))
+    ])
+  }
+
+  func testHourlyWindowDoesNotTreatAnOvernightGapAsAContinuingPreviousDay() async throws {
+    let fixture = try makeFixture(at: localDate(day: 5, hour: 23))
+    let rule = reminder(schedule: .everyHours(hours: 2, startHour: 9, endHour: 18))
+    let scheduler = await fixture.makeScheduler()
+    let settings = settings(for: rule)
+    await tick(scheduler, settings: settings)
+    fixture.date = localDate(day: 6, hour: 8, minute: 59)
+    await tick(scheduler, settings: settings)
+    let overnight = await fixture.store.snapshot().events
+    XCTAssertEqual(overnight, [])
+    fixture.date = localDate(day: 6, hour: 9)
+    await tick(scheduler, settings: settings)
+    let morning = await fixture.store.snapshot().events
+    XCTAssertEqual(morning.map(\.message.eventID), [occurrenceID(rule: rule, at: fixture.date)])
+  }
+
+  private let shanghai = TimeZone(identifier: "Asia/Shanghai")!
+  private let honolulu = TimeZone(identifier: "Pacific/Honolulu")!
+  private let losAngeles = TimeZone(identifier: "America/Los_Angeles")!
+
+  private func tick(
+    _ scheduler: ReminderScheduler,
+    settings: NotificationSettings,
+    timeZone: TimeZone = TimeZone(identifier: "Asia/Shanghai")!
+  ) async {
+    scheduler.update(settings: settings, deviceName: "Studio Mac", timeZone: timeZone)
+    await scheduler.settle()
+  }
+  private func localDate(
+    day: Int,
+    hour: Int,
+    minute: Int = 0,
+    second: Int = 0,
+    month: Int = 1,
+    timeZone: TimeZone? = nil
+  ) -> Date {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = timeZone ?? shanghai
+    return calendar.date(
+      from: DateComponents(
+        year: 2026, month: month, day: day, hour: hour, minute: minute, second: second
+      ))!
   }
 
   private func makeFixture(at date: Date) throws -> ReminderSchedulerFixture {
@@ -320,12 +534,6 @@ final class ReminderSchedulerTests: XCTestCase {
     "reminder|\(rule.id.uuidString)|\(Int(date.timeIntervalSince1970))"
   }
 
-  private func localDate(day: Int, hour: Int, minute: Int = 0, second: Int = 0) -> Date {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = .autoupdatingCurrent
-    return calendar.date(
-      from: DateComponents(year: 2026, month: 1, day: day, hour: hour, minute: minute, second: second))!
-  }
 }
 
 @MainActor

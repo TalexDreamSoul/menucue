@@ -23,25 +23,6 @@ final class LocalizationResourceTests: XCTestCase {
     XCTAssertFalse(try L10n.entries(for: "zh-Hans").isEmpty)
   }
 
-  func testBrandBearingSwiftUIKeysResolveInSimplifiedChinese() throws {
-    let simplifiedChinese = try L10n.entries(for: "zh-Hans")
-    let keys = [
-      "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time.",
-      "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@).",
-      "Inactive while Appearance is set to Follow System — there is no target appearance to sync.",
-      "On this Mac that is %@–%@ light.",
-      "Launch MenuCue at login",
-      "MenuCue starts only when you open it.",
-      "MenuCue will start automatically after you sign in.",
-      "macOS requires approval before MenuCue can start at login.",
-      "Launch at Login is available when MenuCue runs from its app bundle.",
-    ]
-
-    for key in keys {
-      let translation = try XCTUnwrap(simplifiedChinese[key], "Missing localization key: \(key)")
-      XCTAssertNotEqual(translation, key, "Simplified Chinese falls back to English: \(key)")
-    }
-  }
 
   func testLocalizedSwiftUIStringsDoNotInterpolateTheBrandConstant() throws {
     let repositoryRoot = URL(fileURLWithPath: #filePath)

@@ -216,6 +216,8 @@ struct StatusPopoverView: View {
       quickEventSheet
     }
     .environment(\.menuCueMotion, motion)
+    .environment(\.timeZone, model.settings.anchorTimeZone)
+    .environment(\.calendar, model.settings.anchorCalendar)
   }
 
   /// Routes every tab-bar tap through `select` so a click animates the same way a
@@ -308,7 +310,7 @@ struct StatusPopoverView: View {
           selectedDate: $selectedCalendarDate,
           presentationCache: calendarPresentationCache,
           events: model.events,
-          timeZone: model.settings.overviewTimeZone,
+          timeZone: model.settings.anchorTimeZone,
           weekStartDay: model.settings.calendarWeekStartDay,
           showsLunarCalendar: model.settings.showsLunarCalendar,
           allDayEventDatePolicy: model.settings.allDayEventDatePolicy,
@@ -325,7 +327,7 @@ struct StatusPopoverView: View {
         CalendarDateDetailCard(
           date: selectedCalendarDate,
           events: model.events,
-          timeZone: model.settings.overviewTimeZone,
+          timeZone: model.settings.anchorTimeZone,
           weekStartDay: model.settings.calendarWeekStartDay,
           showsLunarCalendar: model.settings.showsLunarCalendar,
           allDayEventDatePolicy: model.settings.allDayEventDatePolicy,
@@ -381,7 +383,7 @@ struct StatusPopoverView: View {
       } else {
         AgendaList(
           events: model.events,
-          timeZone: model.settings.overviewTimeZone,
+          timeZone: model.settings.anchorTimeZone,
           weekStartDay: model.settings.calendarWeekStartDay,
           allDayEventDatePolicy: model.settings.allDayEventDatePolicy
         )
@@ -409,6 +411,7 @@ struct StatusPopoverView: View {
           set: { quickEventDraft = $0 }
         ),
         calendars: model.calendars,
+        timeZone: model.settings.anchorTimeZone,
         onCancel: { quickEventDraft = nil },
         onSave: { draft in
           model.createEvent(from: draft)
@@ -609,6 +612,7 @@ struct QuickEventWindowView: View {
     QuickEventEditor(
       draft: $draft,
       calendars: model.calendars,
+      timeZone: model.settings.anchorTimeZone,
       onCancel: onClose,
       onSave: { draft in
         model.createEvent(from: draft)
@@ -623,6 +627,7 @@ struct QuickEventWindowView: View {
 private struct QuickEventEditor: View {
   @Binding var draft: QuickEventDraft
   let calendars: [CalendarInfo]
+  let timeZone: TimeZone
   let onCancel: () -> Void
   let onSave: (QuickEventDraft) -> Void
 
@@ -713,6 +718,14 @@ private struct QuickEventEditor: View {
         .disabled(!canSave)
       }
     }
+    .environment(\.timeZone, timeZone)
+    .environment(\.calendar, calendar)
+  }
+
+  private var calendar: Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = timeZone
+    return calendar
   }
 
   private var canSave: Bool {

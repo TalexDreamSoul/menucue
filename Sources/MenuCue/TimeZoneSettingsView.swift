@@ -3,53 +3,42 @@ import SwiftUI
 
 /// Time & Region — the v1.0.0 design document's one new pane (pane M).
 ///
-/// Three things that used to be scattered now sit together: MenuCue's own display time
-/// zone (whose editor lived in the Menu Bar pane), the macOS system time zone (which lived
-/// at the bottom of that same pane), and the Mac's language and region (which lived inside
-/// General).
+/// Three things that used to be scattered now sit together: MenuCue's anchor time
+/// zone, the macOS system time zone, and the Mac's language and region.
 ///
 /// MenuCue's own app language deliberately stays in General: it never changes macOS, so
 /// it is not a system-wide setting.
 struct TimeZoneSettingsView: View {
   @ObservedObject var model: AppModel
-  @State private var displayTimeZoneSearch = ""
+  @State private var anchorTimeZoneSearch = ""
 
   var body: some View {
     VStack(alignment: .leading, spacing: SettingsMetrics.cardSpacing) {
-      SettingsBanner(
-        L10n.string("These settings change this Mac"),
-        desc: L10n.string("The system time zone is written through Power Helper and affects every app and system service."),
-        systemImage: "exclamationmark.triangle.fill",
-        tint: .orange
-      )
-
-      displayTimeZoneCard
+      anchorTimeZoneCard
       systemTimeZoneCard
       systemLanguageCard
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }
 
-  /// The stored value is `overviewTimeZoneID`; the first carousel clock is only its
-  /// fallback, so the picker is the setting and the chip documents the fallback chain.
-  private var displayTimeZoneCard: some View {
+  private var anchorTimeZoneCard: some View {
     SettingsCard(
-      L10n.string("MenuCue Display Time Zone"),
-      desc: L10n.string("Affects dates and times inside MenuCue only; it never changes macOS.")
+      L10n.string("Anchor Time"),
+      desc: L10n.string("Reminders, calendar dates, and automatic appearance share this time zone. It never changes the macOS time zone.")
     ) {
       SettingsRows {
         SettingsRow(
-          L10n.string("Display Time Zone"),
-          desc: L10n.string("Dates and times inside MenuCue use this zone."),
+          L10n.string("Anchor Time"),
+          desc: L10n.string("Choose the time zone used throughout MenuCue."),
           controlWidth: 240
         ) {
           VStack(alignment: .leading, spacing: 6) {
-            TextField(L10n.string("Search time zones"), text: $displayTimeZoneSearch)
+            TextField(L10n.string("Search time zones"), text: $anchorTimeZoneSearch)
               .textFieldStyle(.roundedBorder)
             TimeZonePicker(
               title: "",
-              selection: model.settingsBinding(\.overviewTimeZoneID),
-              identifiers: displayTimeZoneIdentifiers
+              selection: model.settingsBinding(\.anchorTimeZoneID),
+              identifiers: anchorTimeZoneIdentifiers
             )
             .labelsHidden()
           }
@@ -57,18 +46,26 @@ struct TimeZoneSettingsView: View {
         }
         SettingsRow(
           L10n.string("Fallback Rule"),
-          desc: L10n.string("If that zone is unavailable, MenuCue falls back to the first clock in the carousel, then to this Mac's zone.")
+          desc: L10n.string("If the anchor time zone is unavailable, MenuCue uses this Mac's time zone directly. World clocks do not affect the fallback.")
         ) {
-          SettingsChip(L10n.string("Automatic"))
+          SettingsChip(L10n.string("This Mac"))
         }
+      }
+      if model.settings.isAnchorTimeZoneUnavailable {
+        SettingsBanner(
+          L10n.string("Anchor time zone unavailable"),
+          desc: L10n.string("MenuCue is using this Mac's time zone. Choose an available anchor time zone to restore your preferred schedule."),
+          systemImage: "exclamationmark.triangle.fill",
+          tint: .orange
+        )
       }
     }
   }
 
-  private var displayTimeZoneIdentifiers: [String] {
+  private var anchorTimeZoneIdentifiers: [String] {
     TimeZoneCatalog.identifiers(
-      matching: displayTimeZoneSearch,
-      including: model.settings.overviewTimeZoneID
+      matching: anchorTimeZoneSearch,
+      including: model.settings.anchorTimeZoneID
     )
   }
 
@@ -77,6 +74,12 @@ struct TimeZoneSettingsView: View {
       L10n.string("macOS System Time Zone"),
       desc: L10n.string("Changes the time zone for all apps and system services on this Mac.")
     ) {
+      SettingsBanner(
+        L10n.string("This setting changes macOS"),
+        desc: L10n.string("The system time zone is written through Power Helper and affects every app and system service."),
+        systemImage: "exclamationmark.triangle.fill",
+        tint: .orange
+      )
       SystemTimeZoneSettingsView(powerHelper: model.quickActionService.powerHelperManager)
     }
   }

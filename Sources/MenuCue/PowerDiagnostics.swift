@@ -183,9 +183,12 @@ struct PowerDiagnosticsSnapshot: Equatable {
   /// The old `?? 0` rendered "0 dark wakes today" whether the Mac genuinely had none
   /// or the history simply had not been read — indistinguishable, and the second is
   /// what every user saw while the log was blowing the size cap.
-  func darkWakeCount(on date: Date, calendar: Calendar = .current) -> Int? {
-    let day = calendar.startOfDay(for: date)
-    return dailySummaries.first { calendar.isDate($0.day, inSameDayAs: day) }?.darkWakeCount
+  func darkWakeCount(on date: Date, calendar: Calendar) -> Int? {
+    var count: Int?
+    for event in events where calendar.isDate(event.timestamp, inSameDayAs: date) {
+      count = (count ?? 0) + (event.kind == .darkWake ? 1 : 0)
+    }
+    return count
   }
 }
 

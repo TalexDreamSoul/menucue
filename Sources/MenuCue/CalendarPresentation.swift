@@ -72,7 +72,7 @@ enum AllDayEventDatePolicy: String, CaseIterable, Codable, Identifiable {
         case .preserveSource:
             return L10n.string("Keep original all-day date")
         case .overviewTimeZone:
-            return L10n.string("Use overview time zone")
+            return L10n.string("Use Anchor Time")
         }
     }
 }

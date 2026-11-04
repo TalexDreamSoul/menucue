@@ -77,7 +77,7 @@ final class ClockEntryAndCarouselTests: XCTestCase {
 
         let reloaded = SettingsStore(defaults: defaults).load()
         XCTAssertEqual(reloaded.clockEntries, settings.clockEntries)
-        XCTAssertEqual(reloaded.displayTimeZone.identifier, "Asia/Tokyo")
+        XCTAssertEqual(reloaded.clockTimeZones.first?.identifier, "Asia/Tokyo")
     }
 
     func testRotationUsesOrderedClockEntriesRatherThanTimeZoneIdentifiers() {
@@ -355,9 +355,8 @@ final class ClockEntryAndCarouselTests: XCTestCase {
             clockEntries: clockEntries,
             statusBarSwitchIntervalSeconds: 5,
             appearanceMode: .system,
-            appearanceTimeZoneID: "UTC",
             appliesSystemAppearance: false,
-            overviewTimeZoneID: "UTC",
+            anchorTimeZoneID: "UTC",
             calendarWeekStartDay: .monday,
             calendarSelectionMode: .all,
             selectedCalendarIDs: [],

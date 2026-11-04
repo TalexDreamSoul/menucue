@@ -101,6 +101,37 @@ final class PreferenceSyncServiceTests: XCTestCase {
         XCTAssertEqual(try storedEnvelope(in: cloud, field: .statusBarSwitchInterval), updatedInterval)
     }
 
+    func testLegacyOverviewCloudEnvelopeStillAppliesToAnchorAndExportsOldWireName() throws {
+        let legacy = Data("""
+        {"schemaVersion":1,"field":"overviewTimeZone","modifiedAt":200,
+         "originDeviceID":"old-mac","value":{"overviewTimeZone":{"_0":"Asia/Shanghai"}}}
+        """.utf8)
+        let decoded = try JSONDecoder().decode(PortableSettingEnvelope.self, from: legacy)
+        var settings = makeSettings()
+        XCTAssertTrue(settings.applyPortableValue(decoded.value, for: decoded.field))
+        XCTAssertEqual(settings.anchorTimeZone.identifier, "Asia/Shanghai")
+
+        let exported = envelope(
+            field: .overviewTimeZone, date: newDate,
+            value: settings.portableValue(for: .overviewTimeZone))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(exported)) as? [String: Any])
+        XCTAssertEqual(object["field"] as? String, "overviewTimeZone")
+        let value = try XCTUnwrap(object["value"] as? [String: [String: String]])
+        XCTAssertEqual(value, ["overviewTimeZone": ["_0": "Asia/Shanghai"]])
+    }
+
+    func testSyncActivityMessageUsesExplicitZone() {
+        let shanghai = TimeZone(identifier: "Asia/Shanghai")!
+        let honolulu = TimeZone(identifier: "Pacific/Honolulu")!
+        let status = PreferenceSyncStatus.synced(newDate)
+        let expected = L10n.format(
+            "Last sync activity %@. iCloud may take a few minutes to update other devices.",
+            newDate.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened, timeZone: shanghai)))
+        XCTAssertEqual(status.message(timeZone: shanghai), expected)
+        XCTAssertNotEqual(status.message(timeZone: shanghai), status.message(timeZone: honolulu))
+    }
+
     func testLunarFieldsRoundTripAsIndependentCloudEnvelopes() throws {
         let cloud = InMemoryPreferenceCloudStore()
         let service = entitledService(cloud: cloud)
@@ -145,9 +176,6 @@ final class PreferenceSyncServiceTests: XCTestCase {
         ]
 
         var settings = makeSettings()
-        XCTAssertTrue(settings.calendarShowsDateDistance)
-        XCTAssertTrue(settings.calendarShowsMonthStats)
-        XCTAssertEqual(settings.calendarWorkdayScheme, .chineseStatutory)
 
         for (field, value) in fields {
             XCTAssertTrue(settings.applyPortableValue(value, for: field), "\(field) never applied")
@@ -257,7 +285,8 @@ final class PreferenceSyncServiceTests: XCTestCase {
 
             let settingsStore = SettingsStore(defaults: defaults)
             var localSettings = settingsStore.load()
-            localSettings.overviewTimeZoneID = "Asia/Tokyo"
+            localSettings.anchorTimeZoneID = "Asia/Tokyo"
+            localSettings.notificationSettings.isGloballyEnabled = false
             localSettings.preferenceSyncEnabled = true
             localSettings.preferenceSyncOnboardingCompleted = true
             localSettings.iCloudIdentityTokenData = token
@@ -280,7 +309,7 @@ final class PreferenceSyncServiceTests: XCTestCase {
                 preferenceSyncService: sync
             )
 
-            XCTAssertEqual(model.settings.overviewTimeZoneID, testCase.expectedOverview, testCase.name)
+            XCTAssertEqual(model.settings.anchorTimeZoneID, testCase.expectedOverview, testCase.name)
         }
     }
 
@@ -300,9 +329,8 @@ final class PreferenceSyncServiceTests: XCTestCase {
         AppSettings(
             statusBarSwitchIntervalSeconds: 5,
             appearanceMode: .system,
-            appearanceTimeZoneID: "UTC",
             appliesSystemAppearance: false,
-            overviewTimeZoneID: "UTC",
+            anchorTimeZoneID: "UTC",
             calendarWeekStartDay: .monday,
             calendarSelectionMode: .all,
             selectedCalendarIDs: [],

@@ -95,9 +95,9 @@ final class CalendarService {
         }
     }
 
-    func createEvent(from draft: QuickEventDraft) throws {
+    func createEvent(from draft: QuickEventDraft, timeZone: TimeZone) throws {
         try eventStoreQueue.sync {
-            try saveEvent(from: draft)
+            try saveEvent(from: draft, timeZone: timeZone)
         }
     }
 
@@ -138,7 +138,7 @@ final class CalendarService {
         let ranges = CalendarEventQueryPlanner.ranges(
             visibleMonthDate: visibleMonthDate,
             now: Date(),
-            timeZone: settings.overviewTimeZone,
+            timeZone: settings.anchorTimeZone,
             weekStartDay: settings.calendarWeekStartDay,
             daysAhead: 14
         )
@@ -159,11 +159,13 @@ final class CalendarService {
             }
         }
 
-        let sourceTimeZone = TimeZone.autoupdatingCurrent
         return eventsByID.values
             .sorted { $0.startDate < $1.startDate }
             .map { event in
-                CalendarEventInfo(
+                // Floating all-day events keep EventKit's system-zone interpretation;
+                // explicit source zones must not be replaced by the app's anchor.
+                let sourceTimeZone = event.timeZone ?? .autoupdatingCurrent
+                return CalendarEventInfo(
                     id: CalendarEventOccurrenceIdentifier.make(
                         eventIdentifier: event.eventIdentifier,
                         calendarItemIdentifier: event.calendarItemIdentifier,
@@ -183,7 +185,7 @@ final class CalendarService {
             }
     }
 
-    private func saveEvent(from draft: QuickEventDraft) throws {
+    private func saveEvent(from draft: QuickEventDraft, timeZone: TimeZone) throws {
         let event = EKEvent(eventStore: eventStore)
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         event.title = trimmedTitle.isEmpty ? L10n.string("New Event") : trimmedTitle
@@ -191,8 +193,18 @@ final class CalendarService {
         event.notes = draft.notes.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         event.url = URL(string: draft.urlString.trimmingCharacters(in: .whitespacesAndNewlines))
         event.isAllDay = draft.isAllDay
-        event.startDate = draft.startDate
-        event.endDate = max(draft.endDate, draft.startDate.addingTimeInterval(60))
+        event.timeZone = timeZone
+        if draft.isAllDay {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = timeZone
+            let start = calendar.startOfDay(for: draft.startDate)
+            let minimumEnd = calendar.date(byAdding: .day, value: 1, to: start)!
+            event.startDate = start
+            event.endDate = max(calendar.startOfDay(for: draft.endDate), minimumEnd)
+        } else {
+            event.startDate = draft.startDate
+            event.endDate = max(draft.endDate, draft.startDate.addingTimeInterval(60))
+        }
         guard let targetCalendar = calendar(for: draft.calendarID) ?? eventStore.defaultCalendarForNewEvents else {
             throw CalendarServiceError.missingDefaultCalendar
         }

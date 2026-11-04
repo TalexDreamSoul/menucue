@@ -103,7 +103,7 @@ struct CalendarSettingsView: View {
 
         SettingsRowSelect(
           L10n.string("All-day events"),
-          desc: L10n.string("Keep their original civil date, or regroup them using the overview time zone."),
+          desc: L10n.string("Keep their original civil date, or regroup them using Anchor Time."),
           selection: model.settingsBinding(\.allDayEventDatePolicy),
           options: AllDayEventDatePolicy.allCases.map { policy in (value: policy, label: policy.title) }
         )

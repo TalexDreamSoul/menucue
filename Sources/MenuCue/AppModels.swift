@@ -209,9 +209,8 @@ struct AppSettings: Equatable {
     private(set) var clockEntries: [ClockEntry]
     var statusBarSwitchIntervalSeconds: TimeInterval
     var appearanceMode: AppearanceMode
-    var appearanceTimeZoneID: String
     var appliesSystemAppearance: Bool
-    var overviewTimeZoneID: String
+    var anchorTimeZoneID: String
     var calendarWeekStartDay: WeekStartDay
     var showsLunarCalendar: Bool
     var allDayEventDatePolicy: AllDayEventDatePolicy
@@ -252,9 +251,8 @@ struct AppSettings: Equatable {
         clockEntries: [ClockEntry] = [.system()],
         statusBarSwitchIntervalSeconds: TimeInterval,
         appearanceMode: AppearanceMode,
-        appearanceTimeZoneID: String,
         appliesSystemAppearance: Bool,
-        overviewTimeZoneID: String,
+        anchorTimeZoneID: String,
         calendarWeekStartDay: WeekStartDay,
         showsLunarCalendar: Bool = false,
         allDayEventDatePolicy: AllDayEventDatePolicy = .preserveSource,
@@ -284,9 +282,8 @@ struct AppSettings: Equatable {
         self.clockEntries = Self.normalizedClockEntries(clockEntries)
         self.statusBarSwitchIntervalSeconds = statusBarSwitchIntervalSeconds
         self.appearanceMode = appearanceMode
-        self.appearanceTimeZoneID = appearanceTimeZoneID
         self.appliesSystemAppearance = appliesSystemAppearance
-        self.overviewTimeZoneID = overviewTimeZoneID
+        self.anchorTimeZoneID = anchorTimeZoneID
         self.calendarWeekStartDay = calendarWeekStartDay
         self.showsLunarCalendar = showsLunarCalendar
         self.allDayEventDatePolicy = allDayEventDatePolicy
@@ -324,16 +321,22 @@ struct AppSettings: Equatable {
         }
     }
 
-    var displayTimeZone: TimeZone {
-        clockTimeZones.first?.timeZone ?? .autoupdatingCurrent
+    var anchorTimeZone: TimeZone {
+        TimeZone(identifier: anchorTimeZoneID) ?? .autoupdatingCurrent
     }
 
-    var appearanceTimeZone: TimeZone {
-        TimeZone(identifier: appearanceTimeZoneID) ?? displayTimeZone
+    var anchorCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = anchorTimeZone
+        return calendar
     }
 
-    var overviewTimeZone: TimeZone {
-        TimeZone(identifier: overviewTimeZoneID) ?? displayTimeZone
+    var isAnchorTimeZoneUnavailable: Bool {
+        TimeZone(identifier: anchorTimeZoneID) == nil
+    }
+
+    func formatDate(_ value: Date, date: Date.FormatStyle.DateStyle, time: Date.FormatStyle.TimeStyle) -> String {
+        value.formatted(Date.FormatStyle(date: date, time: time, timeZone: anchorTimeZone))
     }
 
     func statusBarClock(at date: Date, switchInterval: TimeInterval? = nil) -> ClockTimeZone {
@@ -816,8 +819,8 @@ struct QuickEventDraft: Equatable {
     var repeatMode: EventRepeatMode
     var alertMode: EventAlertMode
 
-    init(startDate: Date, calendarID: String?) {
-        let roundedStartDate = Self.roundedStartDate(from: startDate)
+    init(startDate: Date, calendarID: String?, timeZone: TimeZone) {
+        let roundedStartDate = Self.roundedStartDate(from: startDate, timeZone: timeZone)
         self.title = L10n.string("New Event")
         self.location = ""
         self.notes = ""
@@ -830,10 +833,10 @@ struct QuickEventDraft: Equatable {
         self.alertMode = .none
     }
 
-    private static func roundedStartDate(from date: Date) -> Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month, .day, .hour], from: date)
-        guard let hourStart = calendar.date(from: components) else { return date }
+    private static func roundedStartDate(from date: Date, timeZone: TimeZone) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard let hourStart = calendar.dateInterval(of: .hour, for: date)?.start else { return date }
         if date.timeIntervalSince(hourStart) == 0 {
             return hourStart
         }

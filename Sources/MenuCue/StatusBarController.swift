@@ -312,7 +312,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
       alert.messageText = reason == .accountChanged
         ? L10n.string("iCloud Account Changed")
         : L10n.string("Choose Initial MenuCue Settings")
-      alert.informativeText = status.message
+      alert.informativeText = status.message(timeZone: model.settings.anchorTimeZone)
       alert.addButton(withTitle: L10n.string("Use iCloud Settings"))
       alert.addButton(withTitle: L10n.string("Use This Mac's Settings"))
       let response = alert.runModal()
@@ -603,7 +603,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     case .automaticByTimeZone:
       let hour =
         Calendar(identifier: .gregorian).dateComponents(
-          in: model.settings.appearanceTimeZone, from: Date()
+          in: model.settings.anchorTimeZone, from: Date()
         ).hour ?? 12
       return !(7..<19).contains(hour)
     }

@@ -192,9 +192,9 @@ jobs:
           cat > "$NOTES" <<EOF
           ## Changes
 
-          - System appearance ownership now disables macOS's competing automatic Light/Dark schedule while MenuCue sync is enabled, restores it when disabled, and corrects sustained drift against the selected time zone.
-          - Added configurable local reminders: seven-day screen cleaning, water breaks, 11:00 lunch, 17:00 finish-work, and 17:30 or lid-close clock-out reminders with optional Bark delivery.
-          - Cleaning Mode now lasts 10 minutes by default, pauses its countdown during input activity, shows an mm:ss countdown, supports a three-second screen hold to exit, and reliably exits on a held Esc during event tracking.
+          - Unified reminders, calendar dates, automatic appearance, and internal date/time displays under one Anchor Time setting, while keeping world clocks and the macOS system time zone independent.
+          - Reminder schedules, hourly windows, and lid-close rules now follow Anchor Time, with duplicate protection across time-zone changes, date-line crossings, and daylight-saving transitions.
+          - Existing display-zone selections and iCloud values remain compatible. Reminder and event editors use the same anchor calendar, and automatic appearance no longer has a separate time-zone picker.
 
           This release is signed with Developer ID, notarized by Apple, and stapled.
           EOF

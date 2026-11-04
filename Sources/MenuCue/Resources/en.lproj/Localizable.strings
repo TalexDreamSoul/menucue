@@ -136,7 +136,7 @@
 "Auto Rotate" = "Auto Rotate";
 "Auto by Time Zone" = "Auto by Time Zone";
 "Auto reference" = "Auto reference";
-"Auto uses light from 07:00-19:00 in the selected time zone." = "Auto uses light from 07:00-19:00 in the selected time zone.";
+"Auto uses light from 07:00–19:00 in Anchor Time. Change the anchor in Time & Region." = "Auto uses light from 07:00–19:00 in Anchor Time. Change the anchor in Time & Region.";
 "Auto-hide Dock" = "Auto-hide Dock";
 "Auto-hide Menu Bar" = "Auto-hide Menu Bar";
 "Automatic updates are off. Manual checks remain available." = "Automatic updates are off. Manual checks remain available.";
@@ -319,7 +319,7 @@
 "Memory by app" = "Memory by app";
 "Menu Bar" = "Menu Bar";
 "Menu Bar Format" = "Menu Bar Format";
-"Menu-bar format, clock order and labels, rotation interval, overview time zone, week start, and app appearance." = "Menu-bar format, clock order and labels, rotation interval, overview time zone, week start, and app appearance.";
+"Menu-bar format, clock order and labels, rotation interval, Anchor Time, week start, and app appearance." = "Menu-bar format, clock order and labels, rotation interval, Anchor Time, week start, and app appearance.";
 "MenuCue" = "MenuCue";
 "MenuCue Language" = "MenuCue Language";
 "MenuCue Settings" = "MenuCue Settings";
@@ -596,7 +596,7 @@
 "Went to sleep after being idle" = "Went to sleep after being idle";
 "Went to sleep to save power" = "Went to sleep to save power";
 "Went to sleep — %@" = "Went to sleep — %@";
-"When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@)." = "When enabled, macOS follows the appearance above — 07:00–19:00 light in the reference zone (%@).";
+"When enabled, macOS follows the appearance above — 07:00–19:00 light in Anchor Time (%@)." = "When enabled, macOS follows the appearance above — 07:00–19:00 light in Anchor Time (%@).";
 "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time." = "When enabled, macOS is set to the appearance chosen above — at launch and whenever you change it. A manual switch stays yours the rest of the time.";
 "When enabled, MenuCue keeps macOS on the appearance chosen above. Manual system changes are corrected after a short grace period." = "When enabled, MenuCue keeps macOS on the appearance chosen above. Manual system changes are corrected after a short grace period.";
 "MenuCue turns off macOS's own automatic appearance schedule while this is enabled and restores it when disabled." = "MenuCue turns off macOS's own automatic appearance schedule while this is enabled and restores it when disabled.";
@@ -798,8 +798,8 @@
 "Spring Equinox" = "Spring Equinox";
 "Spring Festival" = "Spring Festival";
 "Summer Solstice" = "Summer Solstice";
-"Use overview time zone" = "Use overview time zone";
-"Keep their original civil date, or regroup them using the overview time zone." = "Keep their original civil date, or regroup them using the overview time zone.";
+"Use Anchor Time" = "Use Anchor Time";
+"Keep their original civil date, or regroup them using Anchor Time." = "Keep their original civil date, or regroup them using Anchor Time.";
 "White Dew" = "White Dew";
 "Winter Clothes Day" = "Winter Clothes Day";
 "Winter Solstice" = "Winter Solstice";
@@ -1295,12 +1295,11 @@
 "Time & Region" = "Time & Region";
 "Status-bar clock, its format, and the clock carousel." = "Status-bar clock, its format, and the clock carousel.";
 "Every action MenuCue can run, where it appears, and what references it." = "Every action MenuCue can run, where it appears, and what references it.";
-"MenuCue's display time zone, the macOS system time zone, and system language and region." = "MenuCue's display time zone, the macOS system time zone, and system language and region.";
-"These settings change this Mac" = "These settings change this Mac";
+"MenuCue's anchor time zone, the macOS system time zone, and system language and region." = "MenuCue's anchor time zone, the macOS system time zone, and system language and region.";
+"This setting changes macOS" = "This setting changes macOS";
 "The system time zone is written through Power Helper and affects every app and system service." = "The system time zone is written through Power Helper and affects every app and system service.";
-"MenuCue Display Time Zone" = "MenuCue Display Time Zone";
-"Affects dates and times inside MenuCue only; it never changes macOS." = "Affects dates and times inside MenuCue only; it never changes macOS.";
-"Display Time Zone" = "Display Time Zone";
+"Anchor Time" = "Anchor Time";
+"Reminders, calendar dates, and automatic appearance share this time zone. It never changes the macOS time zone." = "Reminders, calendar dates, and automatic appearance share this time zone. It never changes the macOS time zone.";
 "Fallback Rule" = "Fallback Rule";
 "Automatic" = "Automatic";
 "macOS Language and Region" = "macOS Language and Region";
@@ -1387,7 +1386,7 @@
 "Current" = "Current";
 "Current Contacts" = "Current Contacts";
 "Current Rule Count" = "Current Rule Count";
-"Dates and times inside MenuCue use this zone." = "Dates and times inside MenuCue use this zone.";
+"Choose the time zone used throughout MenuCue." = "Choose the time zone used throughout MenuCue.";
 "Default" = "Default";
 "Default open" = "Default open";
 "Defaults to https://api.day.app." = "Defaults to https://api.day.app.";
@@ -1417,7 +1416,7 @@
 "Global Gesture Parameters" = "Global Gesture Parameters";
 "Hidden Records" = "Hidden Records";
 "HUD Preview" = "HUD Preview";
-"If that zone is unavailable, MenuCue falls back to the first clock in the carousel, then to this Mac's zone." = "If that zone is unavailable, MenuCue falls back to the first clock in the carousel, then to this Mac's zone.";
+"If the anchor time zone is unavailable, MenuCue uses this Mac's time zone directly. World clocks do not affect the fallback." = "If the anchor time zone is unavailable, MenuCue uses this Mac's time zone directly. World clocks do not affect the fallback.";
 "In Advanced mode the pattern strings set their own order." = "In Advanced mode the pattern strings set their own order.";
 "Inactive" = "Inactive";
 "Installing" = "Installing";
@@ -1570,3 +1569,8 @@
 "Every %d hours" = "Every %d hours";
 "Notification" = "Notification";
 "Title" = "Title";
+"This Mac" = "This Mac";
+"Anchor time zone unavailable" = "Anchor time zone unavailable";
+"MenuCue is using this Mac's time zone. Choose an available anchor time zone to restore your preferred schedule." = "MenuCue is using this Mac's time zone. Choose an available anchor time zone to restore your preferred schedule.";
+"Set as Anchor Time" = "Set as Anchor Time";
+"Set %@ as Anchor Time" = "Set %@ as Anchor Time";

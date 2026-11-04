@@ -96,11 +96,16 @@ final class NotificationTemplateRendererTests: XCTestCase {
     )
 
     let values = AlertTemplateContextBuilder.values(
-      rule: rule, observation: observation, deviceName: "Work Mac", state: .alert)
-
+      rule: rule,
+      observation: observation,
+      deviceName: "Work Mac",
+      state: .alert,
+      timeZone: TimeZone(identifier: "Asia/Shanghai")!
+    )
     XCTAssertEqual(values["device.name"], "Work Mac")
     XCTAssertEqual(values["metric.name"], L10n.string("cpu.total.busy"))
     XCTAssertEqual(values["metric.value"], "92%")
+    XCTAssertEqual(values["event.time"], "1970-01-01T08:00:10+08:00")
     XCTAssertEqual(values["metric.threshold"], "90%")
   }
 
@@ -653,6 +658,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [.system: provider],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       deviceName: { "Studio Mac" },
       delivery: { await delivery.kick() },
       sleep: { _ in try await Task.never() }
@@ -682,6 +688,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [.system: provider],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       sleep: { _ in try await Task.never() }
     )
     var disabled = rule(
@@ -705,6 +712,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [.system: provider],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       deviceName: { "Work Mac" },
       delivery: { await order.deliveryKicked() },
       sleep: { _ in try await Task.never() }
@@ -732,6 +740,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [:],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       delivery: { await delivery.kick() },
       now: { Date(timeIntervalSince1970: 100) }
     )
@@ -766,6 +775,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [.system: provider],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       delivery: { await delivery.kick() },
       sleep: { _ in try await Task.never() }
     )
@@ -788,6 +798,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [.system: provider],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       delivery: { await delivery.kick() },
       sleep: { _ in try await Task.never() }
     )
@@ -825,6 +836,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [:],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       delivery: { await delivery.kick() },
       now: { Date(timeIntervalSince1970: 100) }
     )
@@ -871,6 +883,7 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let monitor = AlertMonitoringService(
       store: store,
       providers: [.system: provider],
+      timeZone: TimeZone(secondsFromGMT: 0)!,
       sleep: { _ in try await Task.never() }
     )
     try await monitor.updateRules([
@@ -889,6 +902,30 @@ final class AlertMonitoringServiceTests: XCTestCase {
     let resumedProviders = await monitor.activeProviderKinds
     XCTAssertEqual(resumedProviders, [.system], "on has to start sampling again")
     await monitor.stop()
+  }
+
+  func testLiveTimeZoneChangeFormatsOnlyFutureAlertMessagesInNewZone() async throws {
+    let url = temporaryURL()
+    addTeardownBlock { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let store = try NotificationRuntimeStore(fileURL: url)
+    let monitor = AlertMonitoringService(
+      store: store, providers: [:], timeZone: TimeZone(identifier: "Asia/Shanghai")!,
+      now: { Date(timeIntervalSince1970: 100) })
+    var rule = AlertRule(
+      name: "Dark wake", metricID: "event.darkWake", condition: .event, channels: [.bark])
+    rule.alertBodyTemplate = "{{event.time}}"
+    try await monitor.updateRules([rule])
+    await monitor.processDarkWakeEvents([
+      WakeEvent(timestamp: date(101), kind: .darkWake, reason: "RTC", occurrence: 0)
+    ])
+    await monitor.setTimeZone(TimeZone(identifier: "Pacific/Honolulu")!)
+    await monitor.processDarkWakeEvents([
+      WakeEvent(timestamp: date(102), kind: .darkWake, reason: "RTC", occurrence: 0)
+    ])
+    let snapshot = await store.snapshot()
+    XCTAssertEqual(snapshot.events.map(\.message.body), [
+      "1970-01-01T08:01:41+08:00", "1969-12-31T14:01:42-10:00"
+    ])
   }
 
   private func rule(id: String, metric: AlertMetricID) -> AlertRule {
